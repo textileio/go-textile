@@ -25,19 +25,12 @@ import (
 var fileConfigOpt fileConfigOption
 
 type fileConfigSettings struct {
-	Use       string
 	Data      []byte
 	Path      string
 	Plaintext bool
 }
 
 type fileConfigOption func(*fileConfigSettings)
-
-func (fileConfigOption) Use(val string) fileConfigOption {
-	return func(settings *fileConfigSettings) {
-		settings.Use = val
-	}
-}
 
 func (fileConfigOption) Data(val []byte) fileConfigOption {
 	return func(settings *fileConfigSettings) {
@@ -78,6 +71,8 @@ func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callba
 	}()
 }
 
+// AddFiles builds a directory from paths and adds it to the thread
+// Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
 func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
 	go func() {
 		pths := new(pb.Strings)
@@ -284,14 +279,6 @@ func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.
 		return nil, core.ErrThreadSchemaRequired
 	}
 
-	var use string
-	if data == nil {
-		if ref, err := ipfspath.ParsePath(path); err == nil {
-			parts := strings.Split(ref.String(), "/")
-			use = parts[len(parts)-1]
-		}
-	}
-
 	dir := &pb.Directory{
 		Files: make(map[string]*pb.FileIndex),
 	}
@@ -304,7 +291,6 @@ func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.
 		conf, err := m.getFileConfig(mil,
 			fileConfigOpt.Data(data),
 			fileConfigOpt.Path(path),
-			fileConfigOpt.Use(use),
 			fileConfigOpt.Plaintext(thrd.Schema.Plaintext),
 		)
 		if err != nil {
@@ -337,7 +323,6 @@ func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.
 				conf, err = m.getFileConfig(mil,
 					fileConfigOpt.Data(data),
 					fileConfigOpt.Path(path),
-					fileConfigOpt.Use(use),
 					fileConfigOpt.Plaintext(step.Link.Plaintext),
 				)
 				if err != nil {
@@ -351,8 +336,7 @@ func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.
 
 				conf, err = m.getFileConfig(mil,
 					fileConfigOpt.Data(data),
-					fileConfigOpt.Path(path),
-					fileConfigOpt.Use(dir.Files[step.Link.Use].Hash),
+					fileConfigOpt.Path(dir.Files[step.Link.Use].Hash),
 					fileConfigOpt.Plaintext(step.Link.Plaintext),
 				)
 				if err != nil {
@@ -378,30 +362,39 @@ func (m *Mobile) getFileConfig(mil mill.Mill, opts ...fileConfigOption) (*core.A
 	conf := &core.AddFileConfig{}
 	settings := fileConfigOptions(opts...)
 
-	if settings.Use == "" {
-		if settings.Data != nil {
-			reader = bytes.NewReader(settings.Data)
-		} else {
+	if settings.Data != nil {
+		reader = bytes.NewReader(settings.Data)
+	} else {
+		ref, err := ipfspath.ParsePath(settings.Path)
+		if err == nil {
+			parts := strings.Split(ref.String(), "/")
+			hash := parts[len(parts)-1]
+			var file *pb.FileIndex
+			reader, file, err = m.node.FileContent(hash)
+			if err != nil {
+				if err == core.ErrFileNotFound {
+					// just cat the data from ipfs
+					b, err := ipfs.DataAtPath(m.node.Ipfs(), hash)
+					if err != nil {
+						return nil, err
+					}
+					reader = bytes.NewReader(b)
+					conf.Use = hash
+				} else {
+					return nil, err
+				}
+			} else {
+				conf.Use = file.Checksum
+			}
+		} else { // lastly, try and open as an os file
 			f, err := os.Open(settings.Path)
 			if err != nil {
 				return nil, err
 			}
 			defer f.Close()
 			reader = f
-
-			_, file := filepath.Split(f.Name())
-			conf.Name = file
+			_, conf.Name = filepath.Split(f.Name())
 		}
-	} else {
-		var file *pb.FileIndex
-		var err error
-		reader, file, err = m.node.FileContent(settings.Use)
-		if err != nil {
-			return nil, err
-		}
-
-		conf.Name = file.Name
-		conf.Use = file.Checksum
 	}
 
 	var err error
