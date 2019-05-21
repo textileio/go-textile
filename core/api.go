@@ -450,7 +450,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		return nil, err
 	}
 	conf.Media = media
-	reader.Seek(0, 0)
+	_, _ = reader.Seek(0, 0)
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
