@@ -485,10 +485,11 @@ show a profile for each of its peers, e.g., mobile, desktop, etc.`)
 	profileSetName = profileSetCmd.Flag("name", "Set the peer's display name").Short('n').String()
 	profileSetAvatar = profileSetCmd.Flag("avatar", "Set the peer's avatar from an image path (JPEG, PNG, or GIF)").Short('a').String()
 
-	// set name
-	// set avatar
-	// @todo surely name and avatar should become flags rather than commands
-	// @todo implemented accordingly
+	// b/c
+	profileSetNameCmd = profileSetCmd.Command("name", "Sets the profile name of the peer")
+	profileSetNameValue = profileSetNameCmd.Arg("value", "The value to set the profile name to").Required().String()
+	profileSetAvatarCmd = profileSetCmd.Command("avatar", "Sets the profile avatar of the peer")
+	profileSetAvatarValue = profileSetAvatarCmd.Arg("value", "The value (as an image path: JPEG, PNG, GIF) to set the profile avatar to").Required().String()
 
 	// ================================
 
@@ -545,7 +546,6 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	// get
 	threadGetCmd = threadCmd.Command("get", "Gets and displays info about a thread")
 	threadGetThreadID = threadGetCmd.Arg("id", "Thread ID").Required().String()
-	// @todo remove all trimQuotes in the cmd/* folder
 
 	// default
 	threadDefaultCmd = threadCmd.Command("default", "Gets and displays info about the default thread (if selected")
@@ -858,6 +858,12 @@ func Run() error {
 
 	case profileSetCmd.FullCommand():
 		return ProfileSet(*profileSetName, *profileSetAvatar)
+
+	case profileSetNameCmd.FullCommand():
+		return ProfileSet(*profileSetNameValue, "")
+
+	case profileSetAvatarCmd.FullCommand():
+		return ProfileSet("", *profileSetAvatarValue)
 
 	// subscribe
 	case subscribeCmd.FullCommand():
