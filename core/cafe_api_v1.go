@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,8 +28,14 @@ func (c *cafeApi) store(g *gin.Context) {
 	}
 	files := form.File["file"]
 
+	var f multipart.File
+	defer func() {
+		if f != nil {
+			f.Close()
+		}
+	}()
 	for _, file := range files {
-		f, err := file.Open()
+		f, err = file.Open()
 		if err != nil {
 			c.abort(g, http.StatusBadRequest, err)
 			return
@@ -47,11 +54,11 @@ func (c *cafeApi) store(g *gin.Context) {
 			c.abort(g, http.StatusBadRequest, err)
 			return
 		}
-		hash := aid.Hash().B58String()
 
-		log.Debugf("stored %s", hash)
+		log.Debugf("stored %s", aid.Hash().B58String())
 
 		f.Close()
+		f = nil
 	}
 
 	g.Status(http.StatusNoContent)
@@ -72,10 +79,13 @@ func (c *cafeApi) unstore(g *gin.Context) {
 
 	for _, p := range pinned {
 		if p.Mode != pin.NotPinned {
-			if err := ipfs.UnpinCid(c.node.Ipfs(), p.Key, true); err != nil {
+			err = ipfs.UnpinCid(c.node.Ipfs(), p.Key, true)
+			if err != nil {
 				c.abort(g, http.StatusBadRequest, err)
 				return
 			}
+
+			log.Debugf("unstored %s", p.Key.Hash().B58String())
 		}
 	}
 
@@ -105,15 +115,17 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 		return
 	}
 
-	thrd := &pb.CafeClientThread{
+	err = c.node.datastore.CafeClientThreads().AddOrUpdate(&pb.CafeClientThread{
 		Id:         id,
 		Client:     client.Id,
 		Ciphertext: buf.Bytes(),
-	}
-	if err := c.node.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
+	})
+	if err != nil {
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
+
+	log.Debugf("stored thread %s", id)
 
 	g.Status(http.StatusNoContent)
 }
@@ -128,10 +140,13 @@ func (c *cafeApi) unstoreThread(g *gin.Context) {
 		return
 	}
 
-	if err := c.node.datastore.CafeClientThreads().Delete(id, client.Id); err != nil {
+	err := c.node.datastore.CafeClientThreads().Delete(id, client.Id)
+	if err != nil {
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
+
+	log.Debugf("unstored thread %s", id)
 
 	g.Status(http.StatusNoContent)
 }
@@ -167,13 +182,13 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		return
 	}
 
-	message := &pb.CafeClientMessage{
+	err = c.node.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
 		Id:     mid.Hash().B58String(),
 		Peer:   pid,
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
-	}
-	if err := c.node.datastore.CafeClientMessages().AddOrUpdate(message); err != nil {
+	})
+	if err != nil {
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
@@ -184,10 +199,13 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 			log.Errorf("error parsing client id %s: %s", client.Id, err)
 			return
 		}
-		if err := c.node.cafe.notifyClient(cpid); err != nil {
-			log.Debugf("unable to notify offline client: %s", client.Id)
+		err = c.node.cafe.notifyClient(cpid)
+		if err != nil {
+			log.Debugf("unable to notify client: %s", client.Id)
 		}
 	}()
+
+	log.Debugf("delivered message %s", mid.Hash().B58String())
 
 	g.Status(http.StatusOK)
 }

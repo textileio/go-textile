@@ -148,14 +148,16 @@ func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
 	return syncGroups
 }
 
-func (c *CafeRequestDB) SyncGroupStatus(syncGroupId string) *pb.CafeRequestSyncGroupStatus {
+func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeRequestSyncGroupStatus {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	group := &pb.CafeRequestSyncGroupStatus{}
 
 	rows, err := c.db.Query(`
-        SELECT cafeId, size, status FROM cafe_requests WHERE syncGroupId=? ORDER BY date ASC;
-	`, syncGroupId)
+        SELECT cafeId, size, status FROM cafe_requests WHERE syncGroupId=(
+            SELECT syncGroupId FROM cafe_requests WHERE groupId=?
+        ) ORDER BY date ASC;
+	`, groupId)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return group

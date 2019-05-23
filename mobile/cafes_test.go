@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -26,95 +25,10 @@ var cafesTestVars = struct {
 	mobilePath:  "./testdata/.textile4",
 }
 
-type testCafesHandler struct {
-	mux sync.Mutex
-}
-
-/*
-Handle the request queue.
-  1. List some groups
-  2. List get the HTTP request list for each of those groups
-  3. Handle them
-  4. Delete failed (reties not handled here)
-  5. Mark successful as complete
-*/
-func (th *testCafesHandler) Flush() {
-	th.mux.Lock()
-	defer th.mux.Unlock()
-
-	if cafesTestVars.mobile == nil {
-		return
-	}
-	fmt.Println(">>> FLUSHING <<<")
-
-	res, err := cafesTestVars.mobile.CafeRequests(10)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	groups := new(pb.Strings)
-	err = proto.Unmarshal(res, groups)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	// print status to start
-	//printGroupStatus(groups)
-
-	// write the reqs for each group
-	reqs := make(map[string]*pb.CafeHTTPRequestList)
-	for _, g := range groups.Values {
-		res, err = cafesTestVars.mobile.WriteCafeHTTPRequests(g)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		list := new(pb.CafeHTTPRequestList)
-		err = proto.Unmarshal(res, list)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		reqs[g] = list
-	}
-
-	// handle each (doing this in a new loop for test clarity)
-	failed := map[string]struct{}{}
-	for g, list := range reqs {
-		for _, req := range list.Items {
-			res, err := handleReq(req)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-			if res.StatusCode >= 300 {
-				fmt.Printf("got bad status: %d\n", res.StatusCode)
-				failed[g] = struct{}{}
-			} else {
-				err = cafesTestVars.mobile.SetCafeRequestComplete(g)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-			}
-			res.Body.Close()
-			//printGroupStatus(groups)
-		}
-	}
-
-	// delete failed groups
-	for group := range failed {
-		err = cafesTestVars.mobile.SetCafeRequestFailed(group)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-}
-
 func TestMobile_SetupCafes(t *testing.T) {
 	var err error
 	cafesTestVars.mobile, err = createAndStartMobile(
-		cafesTestVars.mobilePath, false, &testCafesHandler{}, &testMessenger{})
+		cafesTestVars.mobilePath, false, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,6 +78,21 @@ func TestMobile_RegisterCafe(t *testing.T) {
 	err = addTestData(cafesTestVars.mobile)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	//flush := func() error {
+	//	count, err := flushCafeRequest(10)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if count > 0 {
+	//		return flush()
+	//	}
+	//}
+
+	_, err = flushCafeRequest(100)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 
@@ -219,6 +148,97 @@ func addTestData(m *Mobile) error {
 	return nil
 }
 
+/*
+Handle the request queue.
+  1. List some groups
+  2. List get the HTTP request list for each of those groups
+  3. Handle them (set to pending, send to cafe)
+  4. Delete failed (reties not handled here)
+  5. Set successful to complete
+*/
+func flushCafeRequest(limit int) (int, error) {
+	var count int
+	res, err := cafesTestVars.mobile.CafeRequests(limit)
+	if err != nil {
+		return count, err
+	}
+	groups := new(pb.Strings)
+	err = proto.Unmarshal(res, groups)
+	if err != nil {
+		return count, err
+	}
+	count = len(groups.Values)
+
+	for _, g := range groups.Values {
+		printGroupStatus(g)
+	}
+
+	// write the req for each group
+	reqs := make(map[string]*pb.CafeHTTPRequest)
+	for _, g := range groups.Values {
+		res, err = cafesTestVars.mobile.WriteCafeHTTPRequest(g)
+		if err != nil {
+			return count, err
+		}
+		req := new(pb.CafeHTTPRequest)
+		err = proto.Unmarshal(res, req)
+		if err != nil {
+			return count, err
+		}
+		reqs[g] = req
+	}
+
+	// mark each as pending (new loops for clarity)
+	for g := range reqs {
+		err = cafesTestVars.mobile.SetCafeRequestPending(g)
+		if err != nil {
+			return count, err
+		}
+	}
+
+	// handle each
+	for g, req := range reqs {
+		res, err := handleReq(req)
+		if err != nil {
+			return count, err
+		}
+		if res.StatusCode >= 300 {
+			fmt.Printf("got bad status: %d\n", res.StatusCode)
+			err = cafesTestVars.mobile.SetCafeRequestFailed(g)
+		} else {
+			err = cafesTestVars.mobile.SetCafeRequestComplete(g)
+		}
+		if err != nil {
+			return count, err
+		}
+		res.Body.Close()
+		printGroupStatus(g)
+	}
+	return count, nil
+}
+
+func printGroupStatus(group string) {
+	res, err := cafesTestVars.mobile.CafeRequestGroupStatus(group)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	status := new(pb.CafeRequestSyncGroupStatus)
+	err = proto.Unmarshal(res, status)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println(">>> " + group)
+	fmt.Println(fmt.Sprintf("num. pending: %d", status.NumPending))
+	fmt.Println(fmt.Sprintf("num. complete: %d", status.NumComplete))
+	fmt.Println(fmt.Sprintf("num. total: %d", status.NumTotal))
+	fmt.Println(fmt.Sprintf("size pending: %d", status.SizePending))
+	fmt.Println(fmt.Sprintf("size complete: %d", status.SizeComplete))
+	fmt.Println(fmt.Sprintf("size total: %d", status.SizeTotal))
+	fmt.Println("<<<")
+}
+
 func handleReq(r *pb.CafeHTTPRequest) (*http.Response, error) {
 	f, err := os.Open(r.Path)
 	if err != nil {
@@ -234,28 +254,4 @@ func handleReq(r *pb.CafeHTTPRequest) (*http.Response, error) {
 	}
 	client := &http.Client{}
 	return client.Do(req)
-}
-
-func printGroupStatus(list *pb.Strings) {
-	for _, g := range list.Values {
-		res, err := cafesTestVars.mobile.CafeRequestGroupStatus(g)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		status := new(pb.CafeRequestSyncGroupStatus)
-		err = proto.Unmarshal(res, status)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		fmt.Println(">>> " + g)
-		fmt.Println(fmt.Sprintf("num. pending: %d", status.NumPending))
-		fmt.Println(fmt.Sprintf("num. complete: %d", status.NumComplete))
-		fmt.Println(fmt.Sprintf("num. total: %d", status.NumTotal))
-		fmt.Println(fmt.Sprintf("size pending: %d", status.SizePending))
-		fmt.Println(fmt.Sprintf("size complete: %d", status.SizeComplete))
-		fmt.Println(fmt.Sprintf("size total: %d", status.SizeTotal))
-		fmt.Println("<<<")
-	}
 }

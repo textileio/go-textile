@@ -2,12 +2,11 @@ package core_test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
-
-	"github.com/textileio/go-textile/util"
 
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"github.com/segmentio/ksuid"
@@ -16,6 +15,7 @@ import (
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
+	"github.com/textileio/go-textile/util"
 )
 
 var repoPath = "testdata/.textile"

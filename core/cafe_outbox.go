@@ -154,8 +154,7 @@ func (q *CafeOutbox) Flush() {
 
 // add queues a single request
 func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type, settings *CafeRequestSettings) error {
-	log.Debugf("adding cafe %s request for %s to %s: %s",
-		rtype.String(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
+	log.Debugf("adding cafe %s request: %s", rtype.String(), target)
 
 	return q.datastore.CafeRequests().Add(&pb.CafeRequest{
 		Id:        ksuid.New().String(),
