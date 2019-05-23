@@ -82,8 +82,7 @@ func WriteFileByPath(name string, data []byte) error {
 	return ioutil.WriteFile(name, data, 0644)
 }
 
-func Mkdirp(name string) error {
-	dir := filepath.Dir(name)
+func Mkdirp(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {

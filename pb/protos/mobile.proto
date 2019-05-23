@@ -2,18 +2,12 @@ syntax = "proto3";
 option java_package = "io.textile.pb";
 option go_package = "pb";
 
-import "view.proto";
 import "query.proto";
 import "message.proto";
 
 message MobileWalletAccount {
     string seed    = 1;
     string address = 2;
-}
-
-message MobilePreparedFiles {
-    Directory dir           = 1;
-    map<string, string> pin = 2;
 }
 
 enum MobileEventType {

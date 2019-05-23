@@ -16,34 +16,42 @@ import (
 )
 
 func (c *cafeApi) store(g *gin.Context) {
-	id, err := cid.Decode(g.Param("cid"))
-	if err != nil {
-		c.abort(g, http.StatusBadRequest, err)
-		return
-	}
-	hash := id.Hash().B58String()
-
+	var err error
 	var aid *cid.Cid
-	switch g.Request.Header.Get("X-Textile-Store-Type") {
-	case "data":
-		aid, err = ipfs.AddData(c.node.Ipfs(), g.Request.Body, true, false)
-	case "object":
-		aid, err = ipfs.AddObject(c.node.Ipfs(), g.Request.Body, true)
-	default:
-		c.abort(g, http.StatusBadRequest, fmt.Errorf("missing store type header"))
-		return
-	}
+	stype := g.Request.Header.Get("X-Textile-Store-Type")
+
+	form, err := g.MultipartForm()
 	if err != nil {
 		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
-	rhash := aid.Hash().B58String()
+	files := form.File["file"]
 
-	log.Debugf("stored %s", rhash)
+	for _, file := range files {
+		f, err := file.Open()
+		if err != nil {
+			c.abort(g, http.StatusBadRequest, err)
+			return
+		}
 
-	if rhash != hash {
-		c.abort(g, http.StatusBadRequest, fmt.Errorf("cids do not match (received %s, resolved %s)", hash, rhash))
-		return
+		switch stype {
+		case "data":
+			aid, err = ipfs.AddData(c.node.Ipfs(), f, true, false)
+		case "object":
+			aid, err = ipfs.AddObject(c.node.Ipfs(), f, true)
+		default:
+			c.abort(g, http.StatusBadRequest, fmt.Errorf("missing store type header"))
+			return
+		}
+		if err != nil {
+			c.abort(g, http.StatusBadRequest, err)
+			return
+		}
+		hash := aid.Hash().B58String()
+
+		log.Debugf("stored %s", hash)
+
+		f.Close()
 	}
 
 	g.Status(http.StatusNoContent)
