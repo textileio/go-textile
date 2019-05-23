@@ -121,7 +121,7 @@ func (tm *testMessenger) Notify(event *Event) {
 	case pb.MobileEventType_NODE_START:
 	case pb.MobileEventType_NODE_ONLINE:
 	case pb.MobileEventType_NODE_STOP:
-	case pb.MobileEventType_WALLET_UPDATE:
+	case pb.MobileEventType_ACCOUNT_UPDATE:
 	case pb.MobileEventType_THREAD_UPDATE:
 	case pb.MobileEventType_NOTIFICATION:
 	case pb.MobileEventType_QUERY_RESPONSE:

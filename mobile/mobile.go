@@ -157,7 +157,7 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					m.notify(pb.MobileEventType_WALLET_UPDATE, update)
+					m.notify(pb.MobileEventType_ACCOUNT_UPDATE, update)
 				}
 			}
 		}()
