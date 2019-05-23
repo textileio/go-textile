@@ -201,7 +201,7 @@ func TestCafeRequestDB_UpdateStatus(t *testing.T) {
 }
 
 func TestCafeRequestDB_SyncGroupStatus(t *testing.T) {
-	status := cafeRequestStore.SyncGroupStatus("sync_group2")
+	status := cafeRequestStore.SyncGroupStatus("group3") // sync_group2
 	if status.NumTotal != 2 {
 		t.Errorf("wrong num total %d", status.NumTotal)
 	}
