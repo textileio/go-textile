@@ -80,17 +80,8 @@ func TestMobile_RegisterCafe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//flush := func() error {
-	//	count, err := flushCafeRequest(10)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if count > 0 {
-	//		return flush()
-	//	}
-	//}
-
-	_, err = flushCafeRequest(100)
+	// manually flush until empty
+	err = flush(10)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -150,13 +141,13 @@ func addTestData(m *Mobile) error {
 
 /*
 Handle the request queue.
-  1. List some groups
-  2. List get the HTTP request list for each of those groups
+  1. List some requests
+  2. Write the HTTP request for each
   3. Handle them (set to pending, send to cafe)
   4. Delete failed (reties not handled here)
   5. Set successful to complete
 */
-func flushCafeRequest(limit int) (int, error) {
+func flushCafeRequests(limit int) (int, error) {
 	var count int
 	res, err := cafesTestVars.mobile.CafeRequests(limit)
 	if err != nil {
@@ -210,6 +201,17 @@ func flushCafeRequest(limit int) (int, error) {
 		res.Body.Close()
 	}
 	return count, nil
+}
+
+func flush(batchSize int) error {
+	count, err := flushCafeRequests(batchSize)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return flush(batchSize)
+	}
+	return nil
 }
 
 func printSyncGroupStatus(status *pb.CafeSyncGroupStatus) {
