@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/location"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/jsonpb"
@@ -18,6 +20,7 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/mr-tron/base58/base58"
+	gincors "github.com/rs/cors/wrapper/gin"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/gateway/static/css"
@@ -43,8 +46,15 @@ func (g *Gateway) Start(addr string) {
 	if g.Node != nil {
 		gin.DefaultWriter = g.Node.Writer()
 	}
+	conf := g.Node.Config()
 
 	router := gin.Default()
+	router.Use(location.Default())
+
+	// Add the CORS middleware
+	// Merges the API HTTPHeaders (from config/init) into blank/default CORS configuration
+	router.Use(gincors.New(core.ConvertHeadersToCorsOptions(conf.API.HTTPHeaders)))
+
 	router.SetHTMLTemplate(parseTemplates())
 
 	router.GET("/health", func(c *gin.Context) {
@@ -285,6 +295,14 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 
 // render404 renders the 404 template
 func render404(c *gin.Context) {
+	if strings.Contains(c.Request.URL.String(), "small/content") ||
+		strings.Contains(c.Request.URL.String(), "large/content") {
+		url := location.Get(c)
+		pth := strings.Replace(c.Request.URL.String(), "/content", "/d", 1)
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s://%s%s", url.Scheme, url.Host, pth))
+		return
+	}
+
 	c.HTML(http.StatusNotFound, "404", nil)
 }
 

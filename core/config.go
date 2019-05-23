@@ -9,6 +9,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/rs/cors"
 	"github.com/textileio/go-textile/repo/config"
 )
 
@@ -116,11 +117,11 @@ func ensureMobileConfig(repoPath string) error {
 
 	conf.Routing.Type = "dhtclient"
 	conf.Reprovider.Interval = "0"
-	conf.Swarm.ConnMgr.LowWater = 20
-	conf.Swarm.ConnMgr.HighWater = 40
-	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+	conf.Swarm.ConnMgr.LowWater = 200
+	conf.Swarm.ConnMgr.HighWater = 500
+	conf.Swarm.ConnMgr.GracePeriod = (time.Second * 20).String()
 	conf.Swarm.DisableBandwidthMetrics = true
-	conf.Swarm.EnableAutoRelay = true
+	conf.Swarm.EnableAutoRelay = false
 
 	return rep.SetConfig(conf)
 }
@@ -149,4 +150,26 @@ func ensureServerConfig(repoPath string) error {
 	conf.Addresses.Gateway = []string{"/ip4/127.0.0.1/tcp/8080"}
 
 	return rep.SetConfig(conf)
+}
+
+// ConvertHeadersToCorsOptions converts http headers into the format that cors options accepts
+func ConvertHeadersToCorsOptions(headers config.HTTPHeaders) cors.Options {
+	options := cors.Options{}
+
+	control, ok := headers["Access-Control-Allow-Origin"]
+	if ok && len(control) > 0 {
+		options.AllowedOrigins = control
+	}
+
+	control, ok = headers["Access-Control-Allow-Methods"]
+	if ok && len(control) > 0 {
+		options.AllowedMethods = control
+	}
+
+	control, ok = headers["Access-Control-Allow-Headers"]
+	if ok && len(control) > 0 {
+		options.AllowedHeaders = control
+	}
+
+	return options
 }

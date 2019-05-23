@@ -18,11 +18,14 @@ func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 	}
 
 	if msg == nil {
-		var err error
-		msg, err = t.buildAnnounce()
-		if err != nil {
-			return nil, err
+		msg = &pb.ThreadAnnounce{}
+	}
+	if msg.Peer == nil {
+		peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
+		if peer == nil {
+			return nil, fmt.Errorf("unable to announce, no peer for self")
 		}
+		msg.Peer = peer
 	}
 
 	// do not annouce for other account peers
@@ -108,16 +111,5 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		}
 	}
 
-	return msg, nil
-}
-
-// buildAnnounce builds up a Announce block
-func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
-	msg := &pb.ThreadAnnounce{}
-	peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
-	if peer == nil {
-		return nil, fmt.Errorf("unable to announce, no peer for self")
-	}
-	msg.Peer = peer
 	return msg, nil
 }

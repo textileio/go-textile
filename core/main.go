@@ -582,11 +582,6 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	}
 	ctx.Plugins = plugins
 
-	if t.node != nil {
-		if err := t.node.Close(); err != nil {
-			return err
-		}
-	}
 	if t.cancel != nil {
 		t.cancel()
 	}
@@ -699,20 +694,16 @@ func (t *Textile) loadThreadSchemas() {
 
 // sendUpdate sends an update to the update channel
 func (t *Textile) sendUpdate(update *pb.WalletUpdate) {
-	for _, k := range internalThreadKeys {
-		if update.Key == k {
-			return
-		}
+	if update.Key == t.account.Address() {
+		return
 	}
 	t.updates <- update
 }
 
 // sendThreadUpdate sends a feed item to the update channel
 func (t *Textile) sendThreadUpdate(block *pb.Block, key string) {
-	for _, k := range internalThreadKeys {
-		if key == k {
-			return
-		}
+	if key == t.account.Address() {
+		return
 	}
 
 	update, err := t.feedItem(block, feedItemOpts{})
