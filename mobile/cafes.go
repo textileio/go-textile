@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"mime/multipart"
 	"os"
-	"path/filepath"
-
-	"github.com/segmentio/ksuid"
 
 	"github.com/golang/protobuf/proto"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -99,12 +97,12 @@ func (m *Mobile) CheckCafeMessages() error {
 }
 
 // CafeRequests paginates new request groups
-func (m *Mobile) CafeRequests(offset string, limit int) ([]byte, error) {
+func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	groups := m.node.Datastore().CafeRequests().ListGroups(offset, limit)
+	groups := m.node.Datastore().CafeRequests().ListGroups("", limit)
 	return proto.Marshal(&pb.Strings{Values: groups})
 }
 
@@ -147,7 +145,7 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 	}
 
 	// ensure tmp exists
-	err := util.Mkdirp(filepath.Join(m.RepoPath, "tmp"))
+	err := util.Mkdirp(m.RepoPath + "/tmp")
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +187,7 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 						"Authorization":  "Basic " + session.Access,
 						"X-Textile-Peer": m.node.Ipfs().Identity.Pretty(),
 					},
-					Path: filepath.Join(m.RepoPath, "tmp", ksuid.New().String()),
+					Path: fmt.Sprintf("%s/tmp/%s", m.RepoPath, ksuid.New().String()),
 				}
 
 				// write each req with a multipart writer
@@ -252,6 +250,7 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 					case pb.CafeRequest_UNSTORE:
 						hreq.Type = pb.CafeHTTPRequest_DELETE
 						hreq.Url += "/store/" + req.Target
+						body = []byte("noop")
 
 					case pb.CafeRequest_STORE_THREAD:
 						hreq.Type = pb.CafeHTTPRequest_PUT
@@ -274,6 +273,7 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 					case pb.CafeRequest_UNSTORE_THREAD:
 						hreq.Type = pb.CafeHTTPRequest_DELETE
 						hreq.Url += "/threads/" + req.Target
+						body = []byte("noop")
 
 					case pb.CafeRequest_INBOX:
 						hreq.Type = pb.CafeHTTPRequest_POST
@@ -281,13 +281,11 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 						body = []byte(req.Target)
 					}
 
-					if body != nil {
-						hreq.Headers["Content-Type"] = "application/octet-stream"
-						hreq.Path = filepath.Join(m.RepoPath, "tmp", req.Id)
-						err := util.WriteFileByPath(hreq.Path, body)
-						if err != nil {
-							return nil, err
-						}
+					hreq.Headers["Content-Type"] = "application/octet-stream"
+					hreq.Path = fmt.Sprintf("%s/tmp/%s", m.RepoPath, req.Id)
+					err := util.WriteFileByPath(hreq.Path, body)
+					if err != nil {
+						return nil, err
 					}
 
 					hreqs.Items = append(hreqs.Items, hreq)

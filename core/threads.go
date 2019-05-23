@@ -166,6 +166,9 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 // AddOrUpdateThread add or updates a thread directly, usually from a backup
 func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
 	// check if we're allowed to get an invite
 	// Note: just using a dummy thread here because having these access+sharing
 	// methods on Thread is very nice elsewhere.
@@ -257,6 +260,9 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 // RenameThread adds an announce block to the thread w/ a new name
 // Note: Only thread initiators can update the thread's name
 func (t *Textile) RenameThread(id string, name string) error {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return ErrThreadNotFound
@@ -322,6 +328,9 @@ func (t *Textile) ThreadPeers(id string) (*pb.PeerList, error) {
 
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
 	var thrd *Thread
 	var index int
 	for i, th := range t.loadedThreads {

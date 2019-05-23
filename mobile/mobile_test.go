@@ -10,66 +10,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
-
-type testHandler struct{}
-
-func (th *testHandler) Flush() {
-	fmt.Println("=== MOBILE FLUSH CALLED")
-}
-
-type testMessenger struct{}
-
-func (tm *testMessenger) Notify(event *Event) {
-	etype := pb.MobileEventType(event.Type)
-	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", event.Name))
-
-	switch etype {
-	case pb.MobileEventType_NODE_START:
-	case pb.MobileEventType_NODE_ONLINE:
-	case pb.MobileEventType_NODE_STOP:
-	case pb.MobileEventType_WALLET_UPDATE:
-	case pb.MobileEventType_THREAD_UPDATE:
-	case pb.MobileEventType_NOTIFICATION:
-	case pb.MobileEventType_QUERY_RESPONSE:
-		res := new(pb.MobileQueryEvent)
-		err := proto.Unmarshal(event.Data, res)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		fmt.Println(fmt.Sprintf("+++ MOBILE QUERY EVENT: %s", res.Type.String()))
-
-		switch res.Type {
-		case pb.MobileQueryEvent_DATA:
-			switch res.Data.Value.TypeUrl {
-			case "/CafeClientThread":
-				val := new(pb.CafeClientThread)
-				err := ptypes.UnmarshalAny(res.Data.Value, val)
-				if err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-				fmt.Println(fmt.Sprintf("+++ FOUND CLIENT THREAD (qid=%s): %s", res.Id, val.Id))
-
-			case "/Contact":
-				val := new(pb.Contact)
-				err := ptypes.UnmarshalAny(res.Data.Value, val)
-				if err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Address))
-			}
-		case pb.MobileQueryEvent_DONE:
-			fmt.Println(fmt.Sprintf("+++ DONE (qid=%s)", res.Id))
-		case pb.MobileQueryEvent_ERROR:
-			fmt.Println(fmt.Sprintf("+++ ERROR (%d) (qid=%s): %s", res.Error.Code, res.Id, res.Error.Message))
-		}
-	}
-}
 
 var testVars = struct {
 	repoPath1 string
@@ -159,6 +103,63 @@ var testVars = struct {
 		}
 	  }
 	}`,
+}
+
+type testHandler struct{}
+
+func (th *testHandler) Flush() {
+	fmt.Println("=== MOBILE FLUSH CALLED")
+}
+
+type testMessenger struct{}
+
+func (tm *testMessenger) Notify(event *Event) {
+	etype := pb.MobileEventType(event.Type)
+	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", event.Name))
+
+	switch etype {
+	case pb.MobileEventType_NODE_START:
+	case pb.MobileEventType_NODE_ONLINE:
+	case pb.MobileEventType_NODE_STOP:
+	case pb.MobileEventType_WALLET_UPDATE:
+	case pb.MobileEventType_THREAD_UPDATE:
+	case pb.MobileEventType_NOTIFICATION:
+	case pb.MobileEventType_QUERY_RESPONSE:
+		res := new(pb.MobileQueryEvent)
+		err := proto.Unmarshal(event.Data, res)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Println(fmt.Sprintf("+++ MOBILE QUERY EVENT: %s", res.Type.String()))
+
+		switch res.Type {
+		case pb.MobileQueryEvent_DATA:
+			switch res.Data.Value.TypeUrl {
+			case "/CafeClientThread":
+				val := new(pb.CafeClientThread)
+				err := ptypes.UnmarshalAny(res.Data.Value, val)
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CLIENT THREAD (qid=%s): %s", res.Id, val.Id))
+
+			case "/Contact":
+				val := new(pb.Contact)
+				err := ptypes.UnmarshalAny(res.Data.Value, val)
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Address))
+			}
+		case pb.MobileQueryEvent_DONE:
+			fmt.Println(fmt.Sprintf("+++ DONE (qid=%s)", res.Id))
+		case pb.MobileQueryEvent_ERROR:
+			fmt.Println(fmt.Sprintf("+++ ERROR (%d) (qid=%s): %s", res.Error.Code, res.Id, res.Error.Message))
+		}
+	}
 }
 
 func TestNewWallet(t *testing.T) {
@@ -291,7 +292,7 @@ func TestMobile_AccountThread(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	conf := &pb.AddThreadConfig{
+	thrd, err := addTestThread(testVars.mobile1, &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
 		Name: "test",
 		Schema: &pb.AddThreadConfig_Schema{
@@ -299,25 +300,15 @@ func TestMobile_AddThread(t *testing.T) {
 		},
 		Type:    pb.Thread_OPEN,
 		Sharing: pb.Thread_SHARED,
-	}
-	mconf, err := proto.Marshal(conf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := testVars.mobile1.AddThread(mconf)
+	})
 	if err != nil {
 		t.Fatalf("add thread failed: %s", err)
-	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal(res, thrd)
-	if err != nil {
-		t.Fatal(err)
 	}
 	testVars.thrdId = thrd.Id
 }
 
 func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
-	conf := &pb.AddThreadConfig{
+	_, err := addTestThread(testVars.mobile1, &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
 		Name: "test",
 		Schema: &pb.AddThreadConfig_Schema{
@@ -325,26 +316,9 @@ func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
 		},
 		Type:    pb.Thread_READ_ONLY,
 		Sharing: pb.Thread_INVITE_ONLY,
-	}
-	mconf, err := proto.Marshal(conf)
+	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	res, err := testVars.mobile1.AddThread(mconf)
-	if err != nil {
-		t.Fatalf("add thread failed: %s", err)
-	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal(res, thrd)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res2, err := testVars.mobile1.RemoveThread(thrd.Id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res2 == "" {
-		t.Fatalf("remove thread bad result: %s", err)
 	}
 }
 
@@ -358,13 +332,13 @@ func TestMobile_Threads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Items) != 1 {
+	if len(list.Items) != 2 {
 		t.Fatal("get threads bad result")
 	}
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	conf := &pb.AddThreadConfig{
+	thrd, err := addTestThread(testVars.mobile1, &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
 		Name: "another",
 		Schema: &pb.AddThreadConfig_Schema{
@@ -372,26 +346,24 @@ func TestMobile_RemoveThread(t *testing.T) {
 		},
 		Type:    pb.Thread_PRIVATE,
 		Sharing: pb.Thread_NOT_SHARED,
-	}
-	mconf, err := proto.Marshal(conf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := testVars.mobile1.AddThread(mconf)
+	})
 	if err != nil {
 		t.Fatalf("add thread failed: %s", err)
 	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal(res, thrd)
+	res, err := testVars.mobile1.RemoveThread(thrd.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if res == "" {
+		t.Fatal("failed to remove thread")
+	}
+	// try to remove it again
 	res2, err := testVars.mobile1.RemoveThread(thrd.Id)
-	if err != nil {
+	if err == nil {
 		t.Fatal(err)
 	}
-	if res2 == "" {
-		t.Fatalf("remove thread bad result: %s", err)
+	if res2 != "" {
+		t.Fatal("bad result removing thread again")
 	}
 }
 
@@ -540,7 +512,6 @@ func TestMobile_FileData(t *testing.T) {
 	res, err := testVars.mobile1.FileContent(testVars.files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Fatalf("get file data failed: %s", err)
-		return
 	}
 	if len(res) == 0 {
 		t.Fatalf("get file data bad result")
@@ -736,7 +707,7 @@ func TestMobile_Contact(t *testing.T) {
 
 func TestMobile_AddInvite(t *testing.T) {
 	var err error
-	testVars.mobile2, err = createAndStartMobile(testVars.repoPath2, true)
+	testVars.mobile2, err = createAndStartMobile(testVars.repoPath2, true, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -873,8 +844,8 @@ func TestMobile_Teardown(t *testing.T) {
 	_ = os.RemoveAll(testVars.repoPath2)
 }
 
-func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) {
-	_ = os.RemoveAll(repoPath)
+func createAndStartMobile(rpth string, wait bool, h core.CafeOutboxHandler, m Messenger) (*Mobile, error) {
+	_ = os.RemoveAll(rpth)
 
 	recovery, err := NewWallet(12)
 	if err != nil {
@@ -893,16 +864,17 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 
 	err = InitRepo(&InitConfig{
 		Seed:     accnt.Seed,
-		RepoPath: repoPath,
+		RepoPath: rpth,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	mobile, err := NewTextile(&RunConfig{
-		RepoPath:          repoPath,
-		CafeOutboxHandler: &testHandler{},
-	}, &testMessenger{})
+		RepoPath:          rpth,
+		Debug:             true,
+		CafeOutboxHandler: h,
+	}, m)
 	if err != nil {
 		return nil, err
 	}
@@ -912,9 +884,26 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 
-	if waitForOnline {
+	if wait {
 		<-mobile.OnlineCh()
 	}
 
 	return mobile, nil
+}
+
+func addTestThread(m *Mobile, conf *pb.AddThreadConfig) (*pb.Thread, error) {
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		return nil, err
+	}
+	res, err := m.AddThread(mconf)
+	if err != nil {
+		return nil, err
+	}
+	thrd := new(pb.Thread)
+	err = proto.Unmarshal(res, thrd)
+	if err != nil {
+		return nil, err
+	}
+	return thrd, nil
 }

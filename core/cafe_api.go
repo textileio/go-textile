@@ -91,7 +91,7 @@ func (c *cafeApi) start() {
 
 	store := v1.Group("/store", c.validateToken)
 	{
-		store.PUT("/:cid", c.store)
+		store.PUT("", c.store)
 		store.DELETE("/:cid", c.unstore)
 	}
 

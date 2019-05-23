@@ -28,7 +28,8 @@ var ErrRepoCorrupted = fmt.Errorf("repo is corrupted")
 const Repover = "13"
 
 func Init(repoPath string, mobile bool, server bool) error {
-	if err := checkWriteable(repoPath); err != nil {
+	err := checkWriteable(repoPath)
+	if err != nil {
 		return err
 	}
 
@@ -53,11 +54,13 @@ func Init(repoPath string, mobile bool, server bool) error {
 		return err
 	}
 
-	if _, err := LoadPlugins(repoPath); err != nil {
+	_, err = LoadPlugins(repoPath)
+	if err != nil {
 		return err
 	}
 
-	if err := fsrepo.Init(repoPath, conf); err != nil {
+	err = fsrepo.Init(repoPath, conf)
+	if err != nil {
 		return err
 	}
 
@@ -66,7 +69,8 @@ func Init(repoPath string, mobile bool, server bool) error {
 	if err != nil {
 		return err
 	}
-	if err := config.Write(repoPath, tconf); err != nil {
+	err = config.Write(repoPath, tconf)
+	if err != nil {
 		return err
 	}
 
@@ -76,7 +80,8 @@ func Init(repoPath string, mobile bool, server bool) error {
 		return err
 	}
 	defer repoverFile.Close()
-	if _, err := repoverFile.Write([]byte(Repover)); err != nil {
+	_, err = repoverFile.Write([]byte(Repover))
+	if err != nil {
 		return err
 	}
 
@@ -97,15 +102,17 @@ func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	}
 	plugins, err = loader.NewPluginLoader(pluginpath)
 	if err != nil {
-		log.Error("error loading plugins: ", err)
+		log.Errorf("error loading plugins: %s", err)
 	}
 
-	if err := plugins.Initialize(); err != nil {
-		log.Error("error initializing plugins: ", err)
+	err = plugins.Initialize()
+	if err != nil {
+		log.Errorf("error initializing plugins: %s", err)
 	}
 
-	if err := plugins.Inject(); err != nil {
-		log.Warningf("inject plugins: ", err)
+	err = plugins.Inject()
+	if err != nil {
+		log.Warningf("inject plugins: %s", err)
 	}
 	return plugins, nil
 }
