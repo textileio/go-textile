@@ -11,7 +11,7 @@ import (
 )
 
 func MessageAdd(threadID string, body string) error {
-	res, err := AddMessage(threadID, body)
+	res, err := addMessage(threadID, body)
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func MessageAdd(threadID string, body string) error {
 	return nil
 }
 
-func AddMessage(threadID string, body string) (string, error) {
+func addMessage(threadID string, body string) (string, error) {
 	res, err := executeJsonCmd(http.MethodPost, "threads/"+threadID+"/messages", params{
 		args: []string{body},
 	}, nil)
@@ -58,8 +58,8 @@ func MessageList(threadID string, offset string, limit int) error {
 	return MessageList(threadID, list.Items[len(list.Items)-1].Block, limit)
 }
 
-func MessageGet(messageID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "messages/"+messageID, params{}, nil)
+func MessageGet(blockID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "messages/"+blockID, params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -67,6 +67,6 @@ func MessageGet(messageID string) error {
 	return nil
 }
 
-func MessageIgnore(messageID string) error {
-	return BlockRemove(messageID)
+func MessageIgnore(blockID string) error {
+	return BlockIgnore(blockID)
 }

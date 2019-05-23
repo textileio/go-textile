@@ -24,8 +24,8 @@ func CommentList(blockID string) error {
 	return nil
 }
 
-func CommentGet(commentID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "blocks/"+commentID+"/comment", params{}, nil)
+func CommentGet(blockID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "blocks/"+blockID+"/comment", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -34,6 +34,6 @@ func CommentGet(commentID string) error {
 }
 
 
-func CommentIgnore(commentID string) error {
-	return BlockRemove(commentID)
+func CommentIgnore(blockID string) error {
+	return BlockIgnore(blockID)
 }

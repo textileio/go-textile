@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func IPFSId() error {
+func IpfsPeer() error {
 	res, err := executeStringCmd(http.MethodGet, "ipfs/id", params{})
 	if err != nil {
 		return err
@@ -14,7 +14,7 @@ func IPFSId() error {
 	return nil
 }
 
-func IPFSSwarmConnect(address string) error {
+func IpfsSwarmConnect(address string) error {
 	res, err := executeJsonCmd(http.MethodPost, "ipfs/swarm/connect", params{
 		args: []string{address},
 	}, nil)
@@ -25,7 +25,7 @@ func IPFSSwarmConnect(address string) error {
 	return nil
 }
 
-func IPFSSwarmPeers(verbose bool, streams bool, latency bool, direction bool) error {
+func IpfsSwarmPeers(verbose bool, streams bool, latency bool, direction bool) error {
 	res, err := executeJsonCmd(http.MethodGet, "ipfs/swarm/peers", params{
 		opts: map[string]string{
 			"verbose":   strconv.FormatBool(verbose),
@@ -42,7 +42,7 @@ func IPFSSwarmPeers(verbose bool, streams bool, latency bool, direction bool) er
 }
 
 
-func IPFSCat(hash string, key string) error {
+func IpfsCat(hash string, key string) error {
 	return executeBlobCmd(http.MethodGet, "ipfs/cat/"+hash, params{
 		opts: map[string]string{"key": key},
 	})

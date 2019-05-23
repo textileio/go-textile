@@ -21,8 +21,9 @@ import (
 func (a *api) addBlockComments(g *gin.Context) {
 	id := g.Param("id")
 
-	thrd := a.getBlockThread(g, id)
-	if thrd == nil {
+	thread, err, code := getBlockThread(a.node, id)
+	if err != nil {
+		sendError(g, err, code)
 		return
 	}
 
@@ -36,7 +37,7 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	hash, err := thrd.AddComment(id, args[0])
+	hash, err := thread.AddComment(id, args[0])
 	if err != nil {
 		a.abort500(g, err)
 		return

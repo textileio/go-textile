@@ -38,13 +38,12 @@ func formatFlag(haveShort bool, flag *kingpin.FlagModel) string {
 func formatFlags(flags []*kingpin.FlagModel) string {
 	var line = ""
 	if len(flags) != 0 {
-		line += "\n<table>\n\t<tr><th>Flag</th><th>Description</th></tr>"
+		line += "\n\t<tr><th>Flag</th><th>Description</th></tr>"
 		for _, flag := range flags {
 			name := formatFlag(flag.Short != 0, flag)
 			desc := strings.TrimSpace(flag.Help)
-			line += "\n\t<tr><td>" + html.EscapeString(name) + "</td><td><pre>" + html.EscapeString(desc) + "</pre></td></tr>"
+			line += "\n\t<tr><td><code>" + html.EscapeString(name) + "</code></td><td><pre>" + html.EscapeString(desc) + "</pre></td></tr>"
 		}
-		line += "\n</table>"
 	}
 	return line
 }
@@ -52,7 +51,7 @@ func formatFlags(flags []*kingpin.FlagModel) string {
 func formatArgs(args []*kingpin.ArgModel) string {
 	var line = ""
 	if len(args) != 0 {
-		line += "\n<table>\n\t<tr><th>Argument</th><th>Description</th></tr>"
+		line += "\n\t<tr><th>Argument</th><th>Description</th></tr>"
 		for _, arg := range args {
 			name := arg.Name
 			if len(arg.Default) != 0 {
@@ -63,9 +62,8 @@ func formatArgs(args []*kingpin.ArgModel) string {
 				name = "[" + name + "]"
 			}
 			desc := strings.TrimSpace(arg.Help)
-			line += "\n\t<tr><td>" + html.EscapeString(name) + "</td><td><pre>" + html.EscapeString(desc) + "</pre></td></tr>"
+			line += "\n\t<tr><td><code>" + html.EscapeString(name) + "</code></td><td><pre>" + html.EscapeString(desc) + "</pre></td></tr>"
 		}
-		line += "\n</table>"
 	}
 	return line
 }
@@ -73,51 +71,70 @@ func formatArgs(args []*kingpin.ArgModel) string {
 func formatCommands(cmds []*kingpin.CmdModel) string {
 	var line = ""
 	if len(cmds) != 0 {
-		for _, subCmd := range cmds {
-			line += "\n" + formatCommand(appCmd, subCmd)
+		for _, cmd := range cmds {
+			line += "\n" + formatCommand(appCmd, *cmd)
 		}
 	}
 	return line
 }
 
-func formatAppCommand (cmd *kingpin.ApplicationModel) string {
-	line := appCmd.Name
-	if len(cmd.Flags) != 0 {
-		line += " " + cmd.FlagSummary()
-	}
-	if len(cmd.Args) != 0 {
-		line += " " + cmd.ArgSummary()
-	}
-	line = fmt.Sprintf("\n<h%d>%s</h%d>", 1, html.EscapeString(line), 1)
-	desc := strings.TrimSpace(cmd.Help)
-	line += "\n<p><pre>" + html.EscapeString(desc) + "</pre></p>"
-	line += formatFlags(cmd.Flags)
-	line += formatArgs(cmd.Args)
-	line += formatCommands(cmd.Commands)
-	return line
-}
+func formatCommand(appCmd *kingpin.Application, i interface{}) string {
+	// Prepare
+	var depth int
+	var fullCommand string
+	var help string
+	var flags []*kingpin.FlagModel
+	var args []*kingpin.ArgModel
+	var cmds []*kingpin.CmdModel
 
-func formatCommand(appCmd *kingpin.Application, cmd *kingpin.CmdModel) string {
-	level := cmd.Depth + 1
-	line := appCmd.Name + " " + cmd.FullCommand
-	if len(cmd.Flags) != 0 {
-		line += " " + cmd.FlagSummary()
+	// ApplicationModel vs CmdModel
+	switch i.(type) {
+	case kingpin.CmdModel:
+		cmd := i.(kingpin.CmdModel)
+		depth = cmd.Depth
+		fullCommand = appCmd.Name + " " + cmd.FullCommand
+		// generic
+		help = cmd.Help
+		if len(cmd.Flags) != 0 {
+			flags = cmd.Flags
+			fullCommand += " " + cmd.FlagSummary()
+		}
+		if len(cmd.Args) != 0 {
+			args = cmd.Args
+			fullCommand += " " + cmd.ArgSummary()
+		}
+		cmds = cmd.Commands
+
+	case kingpin.ApplicationModel:
+		cmd := i.(kingpin.ApplicationModel)
+		fullCommand = cmd.Name
+		// generic
+		help = cmd.Help
+		if len(cmd.Flags) != 0 {
+			flags = cmd.Flags
+			fullCommand += " " + cmd.FlagSummary()
+		}
+		if len(cmd.Args) != 0 {
+			args = cmd.Args
+			fullCommand += " " + cmd.ArgSummary()
+		}
+		cmds = cmd.Commands
 	}
-	if len(cmd.Args) != 0 {
-		line += " " + cmd.ArgSummary()
+
+	level := depth + 1
+	line := fmt.Sprintf("\n<h%d>%s</h%d>", level, html.EscapeString(fullCommand), level)
+	line += "\n<p><pre>" + html.EscapeString(strings.TrimSpace(help)) + "</pre></p>"
+	details := formatFlags(flags) + formatArgs(args)
+	if details != "" {
+		line += "\n<table>" + details + "\n</table>"
 	}
-	line = fmt.Sprintf("\n<h%d>%s</h%d>", level, html.EscapeString(line), level)
-	desc := strings.TrimSpace(cmd.Help)
-	line += "\n<p><pre>" + html.EscapeString(desc) + "</pre></p>"
-	line += formatFlags(cmd.Flags)
-	line += formatArgs(cmd.Args)
-	line += formatCommands(cmd.Commands)
+	line += formatCommands(cmds)
 	return line
 }
 
 func Docs() error {
 	m := appCmd.Model()
-	result := formatAppCommand(m)
+	result := formatCommand(appCmd, *m)
 	fmt.Println(result)
 	return nil
 }

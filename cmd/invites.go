@@ -12,9 +12,9 @@ import (
 
 func InviteCreate(threadID string, address string, wait int) error {
 	if address != "" {
-		contact, _, _ := GetContact(address)
+		contact, _, _ := getContact(address)
 		if contact != nil {
-			return CreateInvite(threadID, address)
+			return createInvite(threadID, address)
 		}
 
 		output("Could not find contact locally, searching network...")
@@ -71,10 +71,10 @@ func InviteCreate(threadID string, address string, wait int) error {
 		}
 	}
 
-	return CreateInvite(threadID, address)
+	return createInvite(threadID, address)
 }
 
-func CreateInvite(threadID string, address string) error {
+func createInvite(threadID string, address string) error {
 	res, err := executeJsonCmd(http.MethodPost, "invites", params{
 		opts: map[string]string{
 			"thread":  threadID,

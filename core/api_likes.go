@@ -20,12 +20,13 @@ import (
 func (a *api) addBlockLikes(g *gin.Context) {
 	id := g.Param("id")
 
-	thrd := a.getBlockThread(g, id)
-	if thrd == nil {
+	thread, err, code := getBlockThread(a.node, id)
+	if err != nil {
+		sendError(g, err, code)
 		return
 	}
 
-	hash, err := thrd.AddLike(id)
+	hash, err := thread.AddLike(id)
 	if err != nil {
 		a.abort500(g, err)
 		return

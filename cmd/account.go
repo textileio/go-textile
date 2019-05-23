@@ -72,12 +72,12 @@ func AccountSync(wait int) error {
 	}
 
 	for _, result := range remote {
-		if err := ApplyThreadSnapshot(&result); err != nil {
+		if err := applyThreadSnapshot(&result); err != nil {
 			return err
 		}
 	}
 
-	if _, err := CreateThreadSnapshot(); err != nil {
+	if _, err := createThreadSnapshot(); err != nil {
 		return err
 	}
 

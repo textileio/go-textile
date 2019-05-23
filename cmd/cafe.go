@@ -33,7 +33,7 @@ func CafeGet(cafeID string) error {
 	return nil
 }
 
-func CafeRemove(cafeID string) error {
+func CafeDelete(cafeID string) error {
 	res, err := executeStringCmd(http.MethodDelete, "cafes/"+cafeID, params{})
 	if err != nil {
 		return err

@@ -11,7 +11,7 @@ import (
 )
 
 func Chat(threadID string) error {
-	contact, err := getContact()
+	contact, err := getAccountContact()
 	if err != nil {
 		return err
 	}
@@ -79,14 +79,14 @@ func Chat(threadID string) error {
 
 func handleLine(line string, threadID string) error {
 	if strings.TrimSpace(line) != "" {
-		if _, err := AddMessage(threadID, line); err != nil {
+		if _, err := addMessage(threadID, line); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func getContact() (*pb.Contact, error) {
+func getAccountContact() (*pb.Contact, error) {
 	_, c, err := getAccount()
 	if err != nil {
 		return nil, err

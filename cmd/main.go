@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -74,15 +75,15 @@ var (
 
 	// app
 	appCmd     = kingpin.New("textile", "Textile is a set of tools and trust-less infrastructure for building censorship resistant and privacy preserving applications")
-	apiAddr    = appCmd.Flag("api", "API Address to use.").Envar("API").Default("http://127.0.0.1:40600").String()
-	apiVersion = appCmd.Flag("api-version", "API version to use.").Envar("API_VERSION").Default("v0").String()
+	apiAddr    = appCmd.Flag("api", "API Address to use").Envar("API").Default("http://127.0.0.1:40600").String()
+	apiVersion = appCmd.Flag("api-version", "API version to use").Envar("API_VERSION").Default("v0").String()
 
 	// ipfs
 	ipfsServerMode = appCmd.Flag("server", "Apply IPFS server profile").Bool()
 	ipfsSwarmPorts = appCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
 
 	// log
-	logNoFiles = appCmd.Flag("no-log-files", "Write logs to stdout instead of rolling files").Bool()
+	logFiles = appCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("true").Bool()
 	logDebug   = appCmd.Flag("debug", "Set the logging level to debug").Bool()
 
 	// address
@@ -117,10 +118,9 @@ var (
 	accountSyncWait = accountSyncCmd.Flag("wait", "Stops searching after 'wait' seconds have elapsed (max 30s)").Default("2").Int()
 
 	// ================================
-	// @todo the verbose docs are better suited for https://docs.textile.io
 
 	// block
-	blockCmd = appCmd.Command("block", "Blocks are the raw components in a thread. Think of them as an append-only log of thread updates where each update is hash-linked to its parent(s). New / recovering peers can sync history by simply traversing the hash tree.").Alias("blocks")
+	blockCmd = appCmd.Command("block", "Threads are composed of an append-only log of blocks, use these commands to manage them").Alias("blocks")
 
 	// list
 	blockListCmd = blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls")
@@ -131,16 +131,15 @@ var (
 
 	// meta
 	blockMetaCmd = blockCmd.Command("meta", "Get the metadata for a block").Alias("get")
-	blockMetaBlockID = blockMetaCmd.Arg("id", "Block ID").Required().String()
+	blockMetaBlockID = blockMetaCmd.Arg("block", "Block ID").Required().String()
 
-	// remove
-	// @todo does this ignore, or delete?
-	blockRemoveCmd = blockCmd.Command("remove", "Remove a block").Alias("rm")
-	blockRemoveBlockID = blockRemoveCmd.Arg("id", "Block ID").Required().String()
+	// ignore
+	blockIgnoreCmd = blockCmd.Command("ignore", "Remove a block by marking it to be ignored").Alias("remove").Alias("rm")
+	blockIgnoreBlockID = blockIgnoreCmd.Arg("block", "Block ID").Required().String()
 
 	// files
-	blockFileCmd = blockCmd.Command("file", "Get the files or a file of a block").Alias("files")
-	blockFileBlockID = blockFileCmd.Arg("id", "Block ID").Required().String()
+	blockFileCmd = blockCmd.Command("file", "Get the files, or a specific file, of a Files Block").Alias("files")
+	blockFileBlockID = blockFileCmd.Arg("files-block", "Files Block ID").Required().String()
 	blockFileIndex = blockFileCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
 	blockFilePath = blockFileCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
 	blockFileContent = blockFileCmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
@@ -153,19 +152,18 @@ var (
 	// add
 	cafeAddCmd = cafeCmd.Command("add", `Registers with a cafe and saves an expiring service session token.
 	An access token is required to register, and should be obtained separately from the target Cafe.`)
-	cafeAddToken = cafeAddCmd.Flag("token", "An access token supplied by the Cafe.").Short('t').Required().String()
+	cafeAddToken = cafeAddCmd.Flag("token", "An access token supplied by the Cafe").Short('t').Required().String()
 
 	// list
 	cafeListCmd = cafeCmd.Command("list", "List info about all active cafe sessions").Alias("ls")
 
 	// get
 	cafeGetCmd = cafeCmd.Command("get", "Gets and displays info about a cafe session")
-	cafeGetCafeID = cafeGetCmd.Arg("id", "Cafe ID").Required().String()
+	cafeGetCafeID = cafeGetCmd.Arg("cafe", "Cafe ID").Required().String()
 
-	// remove
-	// @todo does this ignore, or delete?
-	cafeRemoveCmd = cafeCmd.Command("remove", "Deregisters a cafe (content will expire based on the cafe's service rules)").Alias("rm")
-	cafeRemoveCafeID = cafeRemoveCmd.Arg("id", "Cafe ID").Required().String()
+	// delete
+	cafeDeleteCmd = cafeCmd.Command("delete", "Deregisters a cafe (content will expire based on the cafe's service rules)").Alias("del").Alias("remove").Alias("rm")
+	cafeDeleteCafeID = cafeDeleteCmd.Arg("cafe", "Cafe ID").Required().String()
 
 	// messages
 	cafeMessagesCmd = cafeCmd.Command("messages", "Check for messages at all cafes. New messages are downloaded and processed opportunistically.")
@@ -182,23 +180,21 @@ var (
 	commentCmd = appCmd.Command("comment",  "Comments are added as blocks in a thread, which target another block, usually a file(s)").Alias("comments")
 
 	// add
-	commentAddCmd = commentCmd.Command("add", "Adds a comment to a thread block")
-	commentAddBlockID = commentAddCmd.Flag("block", "Thread Block ID, usually a file(s) block").Short('b').Required().String()
-	commentAddBody = commentAddCmd.Arg("body", "Comment body to add to the thread").Required().String()
+	commentAddCmd = commentCmd.Command("add", "Attach a comment to a block")
+	commentAddBlockID = commentAddCmd.Arg("block", "The Block ID to attach the comment to").Required().String()
+	commentAddBody = commentAddCmd.Arg("body", "Text to use as the comment").Required().String()
 
 	// list
-	commentListCmd = commentCmd.Command("list", "Lists comments on a thread block").Alias("ls")
-	commentListBlockID = commentListCmd.Arg("block", "Thread Block ID, usually a file(s) block").Required().String()
+	commentListCmd = commentCmd.Command("list", "Get the comments that are attached to a block").Alias("ls")
+	commentListBlockID = commentListCmd.Arg("block", "The Block ID which the comments attached to").Required().String()
 
 	// get
-	commentGetCmd = commentCmd.Command("get", "Gets a thread comment by its comment block ID")
-	commentGetCommentID = commentGetCmd.Arg("id", "Comment Block ID").Required().String()
+	commentGetCmd = commentCmd.Command("get", "Get a comment by its own Block ID")
+	commentGetBlockID = commentGetCmd.Arg("comment-block", "Comment Block ID").Required().String()
 
 	// ignore
-	commentIgnoreCmd = commentCmd.Command("ignore", `Ignores a thread comment by its block ID.
-This adds an "ignore" thread block targeted at the comment.
-Ignored blocks are by default not returned when listing.`).Alias("remove").Alias("rm")
-	commentIgnoreCommentID = commentIgnoreCmd.Arg("id", "Comment Block ID").Required().String()
+	commentIgnoreCmd = commentCmd.Command("ignore", "Ignore a comment by its own Block ID").Alias("remove").Alias("rm")
+	commentIgnoreBlockID = commentIgnoreCmd.Arg("comment-block", "Comment Block ID").Required().String()
 
 	// ================================
 
@@ -227,9 +223,8 @@ Ignored blocks are by default not returned when listing.`).Alias("remove").Alias
 	contactGetAddress = contactGetCmd.Arg("address", "Account Address").Required().String()
 
 	// delete
-	// @todo does this ignore, or delete?
-	contactRemoveCmd =  contactCmd.Command("remove", "Removes a known contact").Alias("rn")
-	contactRemoveAddress = contactRemoveCmd.Arg("address", "Account Address").Required().String()
+	contactDeleteCmd =  contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rn")
+	contactDeleteAddress = contactDeleteCmd.Arg("address", "Account Address").Required().String()
 
 	// search
 	contactSearchCmd = contactCmd.Command("search", "Searches locally and on the network for contacts").Alias("find")
@@ -256,60 +251,60 @@ Ignored blocks are by default not returned when listing.`).Alias("remove").Alias
 	docsCmd = appCmd.Command("docs", "Prints the CLI help as HTML")
 
 	// ================================
-	// @todo this documentation is better suited for docs.textile.io
 
 	// feed
 	feedCmd = appCmd.Command("feed", `Paginates post (join|leave|files|message) and annotation (comment|like) block types as a consumable feed.
+
 The --mode option dictates how the feed is displayed:
 
 -  "chrono": All feed block types are shown. Annotations always nest their target post, i.e., the post a comment is about.
 -  "annotated": Annotations are nested under post targets, but are not shown in the top-level feed.
 -  "stacks": Related blocks are chronologically grouped into "stacks". A new stack is started if an unrelated block
-   breaks continuity. This mode is used by Textile Photos. Stacks may include:
+   breaks continuity. This mode is used by Textile Photos.
 
-*  The initial post with some nested annotations. Newer annotations may have already been listed.
-*  One or more annotations about a post. The newest annotation assumes the "top" position in the stack. Additional
-     annotations are nested under the target. Newer annotations may have already been listed in the case as well.`)
+Stacks may include:
+
+- The initial post with some nested annotations. Newer annotations may have already been listed.
+- One or more annotations about a post. The newest annotation assumes the "top" position in the stack. Additional
+ annotations are nested under the target. Newer annotations may have already been listed in the case as well.`)
 	feedThreadID = feedCmd.Flag("thread", "Thread ID, omit for all").Short('t').String()
 	feedOffset = feedCmd.Flag("offset", "Offset ID to start listening from").Short('o').String()
 	feedLimit = feedCmd.Flag("limit", "List page size").Short('l').Default("3").Int()
 	feedMode = feedCmd.Flag("mode", "Feed mode, one of: chrono, annotated, stacks").Short('m').Default("chrono").String()
+	// ^ when kingpin v2 lands with enumerables, we could move the usage docs to the enum docs
 
 	// ================================
 
 	// file
-	fileCmd = appCmd.Command("file", "Interact with Textile Files").Alias("files")
+	fileCmd = appCmd.Command("file", "Manage Textile Files Blocks").Alias("files")
+	// @todo rename this to Textile Data Blocks: https://github.com/textileio/meta/issues/31
 
 	// list
-	fileListCmd = fileCmd.Command("list", `Paginates thread files.`).Alias("ls")
+	fileListCmd = fileCmd.Command("list", `Paginates thread files`).Alias("ls")
 	fileListThreadID = fileListCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileListOffset = fileListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	fileListLimit  = fileListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 
 	// keys
-	fileKeysCmd    = fileCmd.Command("keys", "Shows file keys under the given target from an add.").Alias("key")
-	fileKeysFileID = fileKeysCmd.Arg("id", "File ID").Required().String()
+	fileKeysCmd    = fileCmd.Command("keys", "Shows file keys under the given target").Alias("key")
+	fileKeysTargetID = fileKeysCmd.Arg("target-block", "Files Block Target ID").Required().String()
+	// @todo why is this a block target
 
 	// add
-	fileAddCmd = fileCmd.Command("add", `Adds a file, directory, or hash to a thread.
-Files not supported by the thread schema are ignored.
-Nested directories are included.`)
+	fileAddCmd = fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
 	fileAddPath    = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").Required().String()
 	fileAddThreadID  = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
-	fileAddCaption = fileAddCmd.Flag("caption", "File(s) caption.").Short('c').String()
-	fileAddGroup   = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object.").Short('g').Bool()
+	fileAddCaption = fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
+	fileAddGroup   = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
 	fileAddVerbose = fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
 
 	// ignore
-	// @todo is this a block id or a file id?
-	fileIgnoreCmd = fileCmd.Command("ignore", `Ignores a thread file by its block ID.
-This adds an "ignore" thread block targeted at the file.
-Ignored blocks are by default not returned when listing.`).Alias("remove").Alias("rm")
-	fileIgnoreFileID = fileIgnoreCmd.Arg("id", "File ID").Required().String()
+	fileIgnoreCmd = fileCmd.Command("ignore", `Ignores a thread file by its own block ID`).Alias("remove").Alias("rm")
+	fileIgnoreBlockID = fileIgnoreCmd.Arg("files-block", "Files Block ID").Required().String()
 
 	// get
 	fileGetCmd = fileCmd.Command("get", "Get the metadata or content of a specific file")
-	fileGetFileID = fileGetCmd.Arg("id", "File ID").Required().String()
+	fileGetHash = fileGetCmd.Arg("hash", "File Hash").Required().String()
 	fileGetContent = fileGetCmd.Flag("content", "If provided, the decrypted content of the file is retrieved").Bool()
 
 	// ================================
@@ -324,16 +319,18 @@ Ignored blocks are by default not returned when listing.`).Alias("remove").Alias
 	// add log flags
 
 	// ================================
+	// @todo are invites blocks?
 
 	// invite
-	inviteCmd  = appCmd.Command("invite", `Invites allow other users to join threads. There are two types of
-invites, direct account-to-account and external:
+	inviteCmd  = appCmd.Command("invite", `Invites allow other users to join threads.
+
+There are two types of invites, direct account-to-account and external:
 
 - Account-to-account invites are encrypted with the invitee's account address (public key).
 - External invites are encrypted with a single-use key and are useful for onboarding new users.`).Alias("invites")
 
 	// create
-	inviteCreateCmd = inviteCmd.Command("create", `Creates a direct account-to-account or external invite to a thread.`)
+	inviteCreateCmd = inviteCmd.Command("create", "Creates a direct account-to-account or external invite to a thread")
 	inviteCreateThreadID = inviteCreateCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	inviteCreateAddress = inviteCreateCmd.Flag("address", "Account Address, omit to create an external invite").Short('a').String()
 	inviteCreateWait = inviteCreateCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
@@ -342,12 +339,12 @@ invites, direct account-to-account and external:
 	inviteListCmd = inviteCmd.Command("list", "Lists all pending thread invites").Alias("ls")
 
 	// accept
-	inviteAcceptCmd = inviteCmd.Command("accept", `Accepts a direct account-to-account or external invite to a thread`)
+	inviteAcceptCmd = inviteCmd.Command("accept", "Accepts a direct account-to-account or external invite to a thread")
 	inviteAcceptKey = inviteAcceptCmd.Flag("key", "Key for an external invite").Short('k').String()
 	inviteAcceptID = inviteAcceptCmd.Arg("id", "Invite ID that you have received").Required().String()
 
 	// ignore
-	inviteIgnoreCmd = inviteCmd.Command("ignore", `Ignores a direct account-to-account invite to a thread`).Alias("remove").Alias("rm")
+	inviteIgnoreCmd = inviteCmd.Command("ignore", "Ignores a direct account-to-account invite to a thread").Alias("remove").Alias("rm")
 	inviteIgnoreID = inviteIgnoreCmd.Arg("id", "Invite ID that you wish to ignore").Required().String()
 
 
@@ -356,8 +353,8 @@ invites, direct account-to-account and external:
 	// ipfs
 	ipfsCmd = appCmd.Command("ipfs", "Provides access to some IPFS commands")
 
-	// id
-	ipfsIdCmd = ipfsCmd.Command("id", "Shows the local node's IPFS peer ID")
+	// peer
+	ipfsPeerCmd = ipfsCmd.Command("peer", "Shows the local node's IPFS peer ID").Alias("id")
 
 	// swarm
 	ipfsSwarmCmd = ipfsCmd.Command("swarm", "Provides access to a limited set of IPFS swarm commands")
@@ -387,24 +384,23 @@ invites, direct account-to-account and external:
 	// as right now, it says thread block, but then usually a file's block - it needs to be one or the other!
 
 	// like
-	likeCmd = appCmd.Command("like", `Likes are added as blocks in a thread, which target another block, usually a file(s).
-Use this command to add, list, get, and ignore likes.`).Alias("likes")
+	likeCmd = appCmd.Command("like", `Likes are added as blocks in a thread, which target another block`).Alias("likes")
 
 	// add
-	likeAddCmd = likeCmd.Command("add", "Adds a like to a thread block")
-	likeAddBlockID = likeAddCmd.Arg("block", "Thread Block ID, usually a file's block").Required().String()
+	likeAddCmd = likeCmd.Command("add", "Attach a like to a block")
+	likeAddBlockID = likeAddCmd.Arg("block", "Block ID, usually a file's block").Required().String()
 
 	// list
-	likeListCmd = likeCmd.Command("list", "List likes on a thread block").Alias("ls")
-	likeListBlockID = likeListCmd.Arg("block", "Thread Block ID, usually a file's block").Required().String()
+	likeListCmd = likeCmd.Command("list", "Get likes that are attached to a block").Alias("ls")
+	likeListBlockID = likeListCmd.Arg("block", "Block ID, usually a file's block").Required().String()
 
 	// get
-	likeGetCmd = likeCmd.Command("get", "Get a like by its Block ID")
-	likeGetLikeID = likeGetCmd.Arg("id", "The like's Block ID").Required().String()
+	likeGetCmd = likeCmd.Command("get", "Get a like by its own Block ID")
+	likeGetLikeID = likeGetCmd.Arg("like-block", "Like Block ID").Required().String()
 
 	// ignore
-	likeIgnoreCmd = likeCmd.Command("ignore", "Ignore a like by its Block ID").Alias("remove").Alias("rm")
-	likeIgnoreLikeID = likeIgnoreCmd.Arg("id", "The like's Block ID").Required().String()
+	likeIgnoreCmd = likeCmd.Command("ignore", "Ignore a like by its own Block ID").Alias("remove").Alias("rm")
+	likeIgnoreLikeID = likeIgnoreCmd.Arg("like-block", "Like Block ID").Required().String()
 
 
 	// ================================
@@ -413,15 +409,12 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 	logCmd = appCmd.Command("log", `List or change the verbosity of one or all subsystems log output. Textile logs piggyback on the IPFS event logs.`).Alias("logs")
 	logSubsystem = logCmd.Flag("subsystem", "The subsystem logging identifier, omit for all").Short('s').String()
 	logLevel = logCmd.Flag("level", "One of: debug, info, warning, error, critical. Omit to get current level.").Short('l').String()
-	logTexOnly = logCmd.Flag("tex-only", "Whether to list/change only Textile subsystems, or all available subsystems").Short('t').Bool()
-	// ^ @todo why is this called tex, instead of textile-only
+	logTextileOnly = logCmd.Flag("textile-only", "Whether to list/change only Textile subsystems, or all available subsystems").Short('t').Bool()
 
 	// ================================
-	// @todo, is really describing what a message is necessary in the CLI docs
-	// that is what docs.textile.io is for
 
 	// message
-	messageCmd = appCmd.Command("message", "Messages are added as blocks in a thread").Alias("messages")
+	messageCmd = appCmd.Command("message", "Manage Textile Messages").Alias("messages")
 
 	// add
 	messageAddCmd = messageCmd.Command("add", "Adds a message to a thread")
@@ -436,13 +429,12 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 	messageListLimit = messageListCmd.Flag("limit", "List page size").Default("10").Short('l').Int()
 
 	// get
-	messageGetCmd = messageCmd.Command("get", "Gets a thread message by its Block ID")
-	messageGetMessageID = messageGetCmd.Arg("id", "The Block ID for the Message").String()
+	messageGetCmd = messageCmd.Command("get", "Gets a message by its own Block ID")
+	messageGetBlockID = messageGetCmd.Arg("message-block", "Message Block ID").String()
 
 	// ignore
-	messageIgnoreCmd  = messageCmd.Command("ignore", "Ignores a thread message by its Block ID").Alias("remove").Alias("rm")
-	messageIgnoreMessageID = messageIgnoreCmd.Arg("id", "The Block ID for the Message").String()
-
+	messageIgnoreCmd  = messageCmd.Command("ignore", "Ignores a message by its own Block ID").Alias("remove").Alias("rm")
+	messageIgnoreBlockID = messageIgnoreCmd.Arg("message-block", "Message Block ID").String()
 
 	// ================================
 
@@ -451,19 +443,21 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 	migrateRepoPath = migrateCmd.Flag("repo-dir", "Specify a custom repository path").Short('r').String()
 	migratePinCode  = migrateCmd.Flag("pin-code", "Specify the pin code for datastore encryption (omit of none was used during init)").Short('p').String()
 
-
 	// ================================
+	// @todo are notifications blocks?
 
 	// notification
 	notificationCmd = appCmd.Command("notification", "Manage notifications that have been generated by thread and account activity").Alias("notifications")
 
 	// list
-	notificationListCmd = notificationCmd.Command("list", "Lists notifications").Alias("ls")
-	// @todo only unread?
+	notificationListCmd = notificationCmd.Command("list", "Lists all notifications").Alias("ls")
 
 	// read
 	notificationReadCmd = notificationCmd.Command("read", "Marks a notification as read")
 	notificationReadID = notificationReadCmd.Arg("id", "Notification ID, set to [all] to mark all notifications as read").Required().String()
+
+	// delete
+	// @todo do delete notification command at some point
 
 	// ================================
 
@@ -474,8 +468,7 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 	// ================================
 
 	// profile
-	profileCmd = appCmd.Command("profile", `Use this command to view and update the peer profile. A Textile account will
-show a profile for each of its peers, e.g., mobile, desktop, etc.`)
+	profileCmd = appCmd.Command("profile", `Manage the profile for your Textile Account, each peer will have its own profile`)
 
 	// get
 	profileGetCmd = profileCmd.Command("get", "Gets the local peer profile")
@@ -535,17 +528,18 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	threadAddSharing = threadAddCmd.Flag("sharing", "Set the thread sharing style to one of: not_shared, invite_only, shared").Short('s').Default("not_shared").String()
 	threadAddWhitelist = threadAddCmd.Flag("whitelist", "A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts").Short('w').Strings()
 	threadAddSchema = threadAddCmd.Flag("schema", "Thread schema ID. Supersedes schema filename").String()
-	threadAddSchemaFile = threadAddCmd.Flag("schema-file", "Thread schema filename, supersedes the built-in schema flags").String() // @todo could swap this to file perhaps
+	threadAddSchemaFile = threadAddCmd.Flag("schema-file", "Thread schema filename, supersedes the built-in schema flags").String() // @note could be swapped to .File() perhaps
 	threadAddBlob = threadAddCmd.Flag("blob", "Use the built-in blob schema for generic data").Bool()
 	threadAddCameraRoll = threadAddCmd.Flag("camera-roll", "Use the built-in camera roll schema").Bool()
 	threadAddMedia = threadAddCmd.Flag("media", "Use the built-in media schema").Bool()
+	threadAddName = threadAddCmd.Arg("name", "The name to use for the new thread").Required().String()
 
 	// list
 	threadListCmd = threadCmd.Command("list", "Lists info on all threads").Alias("ls")
 
 	// get
 	threadGetCmd = threadCmd.Command("get", "Gets and displays info about a thread")
-	threadGetThreadID = threadGetCmd.Arg("id", "Thread ID").Required().String()
+	threadGetThreadID = threadGetCmd.Arg("thread", "Thread ID").Required().String()
 
 	// default
 	threadDefaultCmd = threadCmd.Command("default", "Gets and displays info about the default thread (if selected")
@@ -555,15 +549,16 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	threadPeerThreadID = threadPeerCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 
 	// rename
-	threadRenameCmd = threadCmd.Command("rename", "Renames a thread. Only the initiator can rename the thread.").Alias("mv")
+	threadRenameCmd = threadCmd.Command("rename", "Renames a thread. Only the initiator of a thread can rename it.").Alias("mv")
 	threadRenameThreadID = threadRenameCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	threadRenameName = threadRenameCmd.Arg("name", "The name to rename the thread to").Required().String()
 
-	// remove
-	threadRemoveCmd = threadCmd.Command("remove", "Leaves and removes a thread").Alias("rm")
-	threadRemoveThreadID = threadRemoveCmd.Arg("id", "Thread ID").Required().String()
+	// unsubscribe
+	threadUnsubscribeCmd = threadCmd.Command("unsubscribe", "Unsubscribes from the thread, and if no one else remains subscribed, deletes it").Alias("subsub").Alias("remove").Alias("rm")
+	threadUnsubscribeThreadID = threadUnsubscribeCmd.Arg("thread", "Thread ID").Required().String()
 
 	// snapshot
+	// @todo are snapshots blocks?
 	threadSnapshotCmd = threadCmd.Command("snapshot", "Manage thread snapshots").Alias("snapshots")
 
 	// snapshot create
@@ -576,18 +571,22 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	// snapshot apply
 	threadSnapshotApplyCmd = threadSnapshotCmd.Command("apply", "Applies a single thread snapshot")
 	threadSnapshotApplyWait = threadSnapshotApplyCmd.Flag("wait", "Stops searching after [wait] seconds have elapse (max 30s)").Short('w').Default("2").Int()
-	threadSnapshotApplyID = threadSnapshotApplyCmd.Arg("id", "The id of the snapshot to apply").Required().String()
+	threadSnapshotApplyID = threadSnapshotApplyCmd.Arg("snapshot", "The ID of the snapshot to apply").Required().String()
 
 	// ================================
-	// @todo see if kingpin has automated no-* support, in which case we do "*").Default("true")
+	// @todo are tokens blocks?
+
 	// token
 	tokenCmd = appCmd.Command("token", "Tokens allow other peers to register with a cafe peer").Alias("tokens")
 
 	// create
 	tokenCreateCmd = tokenCmd.Command("create", `Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
 The response contains a base58 encoded version of the random bytes token.`)
-	tokenCreateNoStore = tokenCreateCmd.Flag("no-store", "If used instead of token, the token is generated but not stored in the local Cafe database.").Short('n').Bool()
-	tokenCreateToken = tokenCreateCmd.Flag("token", "If used instead of no-store, use this existing token rather than creating a new one.").Short('t').String()
+	tokenCreateNoStore = tokenCreateCmd.Flag("no-store", "If used instead of token, the token is generated but not stored in the local Cafe database").Short('n').Bool()
+	tokenCreateToken = tokenCreateCmd.Flag("token", "If used instead of no-store, use this existing token rather than creating a new one").Short('t').String()
+	// ^ this seems overly complex, perhaps an arg and flag would be better?
+	// also, kingpin supports the `no-*` prefix, so you could do Flag("store").Default("yes") however, because of the weird behaviour here,
+	// it doesn't make sense to use it here
 
 	// list
 	tokenListCmd = tokenCmd.Command("list", "List info about all stored cafe tokens").Alias("ls")
@@ -596,10 +595,9 @@ The response contains a base58 encoded version of the random bytes token.`)
 	tokenValidateCmd = tokenCmd.Command("validate", "Check validity of existing cafe access token").Alias("valid")
 	tokenValidateToken = tokenValidateCmd.Arg("token", "The token to validate").Required().String()
 
-	// remove
-	tokenRemoveCmd = tokenCmd.Command("remove", "Removes an existing cafe token").Alias("rm")
-	// @todo does this delete or ignore?
-	tokenRemoveToken = tokenRemoveCmd.Arg("token", "The token to remove").Required().String()
+	// delete
+	tokenDeleteCmd = tokenCmd.Command("delete", "Removes an existing cafe token").Alias("del").Alias("remove").Alias("rm")
+	tokenDeleteToken = tokenDeleteCmd.Arg("token", "The token to delete").Required().String()
 
 	// ================================
 
@@ -626,6 +624,9 @@ The response contains a base58 encoded version of the random bytes token.`)
 )
 
 func Run() error {
+	// config
+	kingpin.Version(common.Version)
+
 	// commands
 	switch kingpin.MustParse(appCmd.Parse(os.Args[1:])) {
 
@@ -649,8 +650,8 @@ func Run() error {
 	case blockMetaCmd.FullCommand():
 		return BlockMeta(*blockMetaBlockID)
 
-	case blockRemoveCmd.FullCommand():
-		return BlockRemove(*blockRemoveBlockID)
+	case blockIgnoreCmd.FullCommand():
+		return BlockIgnore(*blockIgnoreBlockID)
 
 	case blockFileCmd.FullCommand():
 		return BlockFile(*blockFileBlockID, *blockFileIndex, *blockFilePath,  *blockFileContent)
@@ -665,8 +666,8 @@ func Run() error {
 	case cafeGetCmd.FullCommand():
 		return CafeGet(*cafeGetCafeID)
 
-	case cafeRemoveCmd.FullCommand():
-		return CafeRemove(*cafeRemoveCafeID)
+	case cafeDeleteCmd.FullCommand():
+		return CafeDelete(*cafeDeleteCafeID)
 
 	case cafeMessagesCmd.FullCommand():
 		return CafeMessages()
@@ -683,10 +684,10 @@ func Run() error {
 		return CommentList(*commentListBlockID)
 
 	case commentGetCmd.FullCommand():
-		return CommentGet(*commentGetCommentID)
+		return CommentGet(*commentGetBlockID)
 
 	case commentIgnoreCmd.FullCommand():
-		return CommentIgnore(*commentIgnoreCommentID)
+		return CommentIgnore(*commentIgnoreBlockID)
 
 	// config
 	case  configCmd.FullCommand():
@@ -702,8 +703,8 @@ func Run() error {
 	case contactGetCmd.FullCommand():
 		return ContactGet(*contactGetAddress)
 
-	case contactRemoveCmd.FullCommand():
-		return ContactRemove(*contactRemoveAddress)
+	case contactDeleteCmd.FullCommand():
+		return ContactDelete(*contactDeleteAddress)
 
 	case contactSearchCmd.FullCommand():
 		return ContactSearch(*contactSearchName, *contactSearchAddress, *contactSearchLocal, *contactSearchRemote, *contactSearchLimit, *contactSearchWait)
@@ -729,13 +730,13 @@ func Run() error {
 		return FileList(*fileListThreadID, *fileListOffset, *fileListLimit)
 
 	case fileKeysCmd.FullCommand():
-		return FileKeys(*fileKeysFileID)
+		return FileKeys(*fileKeysTargetID)
 
 	case fileIgnoreCmd.FullCommand():
-		return FileIgnore(*fileIgnoreFileID)
+		return FileIgnore(*fileIgnoreBlockID)
 
 	case fileGetCmd.FullCommand():
-		return FileGet(*fileGetFileID, *fileGetContent)
+		return FileGet(*fileGetHash, *fileGetContent)
 
 	case fileAddCmd.FullCommand():
 		return FileAdd(*fileAddPath, *fileAddThreadID, *fileAddCaption, *fileAddGroup, *fileAddVerbose)
@@ -768,7 +769,7 @@ func Run() error {
 			ProfilingAddr:   *profilingBindAddr,
 			IsMobile:        false,
 			IsServer:        *ipfsServerMode,
-			LogToDisk:       *logNoFiles == false,
+			LogToDisk:       *logFiles,
 			Debug:           *logDebug,
 			CafeOpen:        *cafeOpen,
 			CafeURL:         *cafeURL,
@@ -791,34 +792,34 @@ func Run() error {
 		return InviteIgnore(*inviteIgnoreID)
 
 	// ipfs
-	case  ipfsIdCmd.FullCommand():
-		return IPFSId()
+	case  ipfsPeerCmd.FullCommand():
+		return IpfsPeer()
 
 	case ipfsSwarmConnectCmd.FullCommand():
-		return IPFSSwarmConnect(*ipfsSwarmConnectAddress)
+		return IpfsSwarmConnect(*ipfsSwarmConnectAddress)
 
 	case  ipfsSwarmPeersCmd.FullCommand():
-		return IPFSSwarmPeers(*ipfsSwarmPeersVerbose, *ipfsSwarmPeersStreams, *ipfsSwarmPeersLatency, *ipfsSwarmPeersDirection)
+		return IpfsSwarmPeers(*ipfsSwarmPeersVerbose, *ipfsSwarmPeersStreams, *ipfsSwarmPeersLatency, *ipfsSwarmPeersDirection)
 
 	case ipfsCatCmd.FullCommand():
-		return IPFSCat(*ipfsCatHash, *ipfsCatKey)
+		return IpfsCat(*ipfsCatHash, *ipfsCatKey)
 
 	// like
 	case likeAddCmd.FullCommand():
 		return LikeAdd(*likeAddBlockID)
 
 	case likeListCmd.FullCommand():
-		return LikeAdd(*likeListBlockID)
+		return LikeList(*likeListBlockID)
 
 	case likeGetCmd.FullCommand():
-		return LikeAdd(*likeGetLikeID)
+		return LikeGet(*likeGetLikeID)
 
 	case likeIgnoreCmd.FullCommand():
-		return LikeAdd(*likeIgnoreLikeID)
+		return LikeIgnore(*likeIgnoreLikeID)
 
 	// log
 	case logCmd.FullCommand():
-		return Logs(*logSubsystem, *logLevel,  *logTexOnly)
+		return Logs(*logSubsystem, *logLevel,  *logTextileOnly)
 
 	// message
 	case messageAddCmd.FullCommand():
@@ -828,10 +829,10 @@ func Run() error {
 		return MessageList(*messageListThreadID, *messageListOffset, *messageListLimit)
 
 	case messageGetCmd.FullCommand():
-		return MessageGet(*messageGetMessageID)
+		return MessageGet(*messageGetBlockID)
 
 	case messageIgnoreCmd.FullCommand():
-		return MessageIgnore(*messageIgnoreMessageID)
+		return MessageIgnore(*messageIgnoreBlockID)
 
 	// migrate
 	case migrateCmd.FullCommand():
@@ -875,7 +876,7 @@ func Run() error {
 
 	// thread
 	case threadAddCmd.FullCommand():
-		return ThreadAdd(*threadAddKey, *threadAddType, *threadAddSharing, *threadAddWhitelist, *threadAddSchema, *threadAddSchemaFile,  *threadAddBlob, *threadAddCameraRoll, *threadAddMedia)
+		return ThreadAdd(*threadAddName, *threadAddKey, *threadAddType, *threadAddSharing, *threadAddWhitelist, *threadAddSchema, *threadAddSchemaFile,  *threadAddBlob, *threadAddCameraRoll, *threadAddMedia)
 
 	case threadListCmd.FullCommand():
 		return ThreadList()
@@ -892,8 +893,8 @@ func Run() error {
 	case threadRenameCmd.FullCommand():
 		return ThreadRename(*threadRenameName, *threadRenameThreadID)
 
-	case threadRemoveCmd.FullCommand():
-		return ThreadRemove(*threadRemoveThreadID)
+	case threadUnsubscribeCmd.FullCommand():
+		return ThreadUnsubscribe(*threadUnsubscribeThreadID)
 
 	case threadSnapshotCreateCmd.FullCommand():
 		return ThreadSnapshotCreate()
@@ -914,8 +915,8 @@ func Run() error {
 	case tokenValidateCmd.FullCommand():
 		return TokenValidate(*tokenValidateToken)
 
-	case tokenRemoveCmd.FullCommand():
-		return TokenRemove(*tokenRemoveToken)
+	case tokenDeleteCmd.FullCommand():
+		return TokenRemove(*tokenDeleteToken)
 
 	// version
 	case versionCmd.FullCommand():

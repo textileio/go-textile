@@ -32,5 +32,5 @@ func LikeGet(likeID string) error {
 }
 
 func LikeIgnore(likeID string) error {
-	return BlockRemove(likeID)
+	return BlockIgnore(likeID)
 }

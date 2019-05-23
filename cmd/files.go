@@ -448,12 +448,12 @@ func FileList(threadID string, offset string, limit int) error {
 // ------------------------------------
 // > file get
 
-func FileGet(fileID string, content bool) error {
+func FileGet(fileHash string, content bool) error {
 	if content {
-		err := executeBlobCmd(http.MethodGet, "file/"+fileID+"/content", params{})
+		err := executeBlobCmd(http.MethodGet, "file/"+fileHash+"/content", params{})
 		return err
 	} else {
-		res, err := executeJsonCmd(http.MethodGet, "file/"+fileID+"/meta", params{}, nil)
+		res, err := executeJsonCmd(http.MethodGet, "file/"+fileHash+"/meta", params{}, nil)
 		if err != nil {
 			return err
 		}
@@ -465,15 +465,15 @@ func FileGet(fileID string, content bool) error {
 // ------------------------------------
 // > file ignore
 
-func FileIgnore(fileID string) error {
-	return BlockRemove(fileID)
+func FileIgnore(blockID string) error {
+	return BlockIgnore(blockID)
 }
 
 // ------------------------------------
 // > files key
 
-func FileKeys(fileID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "keys/"+fileID, params{}, nil)
+func FileKeys(targetID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "keys/"+targetID, params{}, nil)
 	if err != nil {
 		return err
 	}

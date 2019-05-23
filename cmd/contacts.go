@@ -88,7 +88,7 @@ func ContactList() error {
 
 
 func ContactGet(address string) error {
-	_, res, err := GetContact(address)
+	_, res, err := getContact(address)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func ContactGet(address string) error {
 	return nil
 }
 
-func GetContact(address string) (*pb.Contact, string, error) {
+func getContact(address string) (*pb.Contact, string, error) {
 	var contact pb.Contact
 	res, err := executeJsonPbCmd(http.MethodGet, "contacts/"+address, params{}, &contact)
 	if err != nil {
@@ -105,7 +105,8 @@ func GetContact(address string) (*pb.Contact, string, error) {
 	return &contact, res, nil
 }
 
-func ContactRemove(address string) error {
+
+func ContactDelete(address string) error {
 	res, err := executeStringCmd(http.MethodDelete, "contacts/"+address, params{})
 	if err != nil {
 		return err

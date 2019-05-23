@@ -14,7 +14,7 @@ import (
 	"github.com/textileio/go-textile/schema/textile"
 )
 
-func ThreadAdd(key string, tipe string, sharing string, whitelist []string, schema string, schemaFile string, blob bool, cameraRoll bool, media bool) error {
+func ThreadAdd(name string, key string, tipe string, sharing string, whitelist []string, schema string, schemaFile string, blob bool, cameraRoll bool, media bool) error {
 	var body []byte
 	if schema == "" {
 		if schemaFile != "" {
@@ -54,7 +54,7 @@ func ThreadAdd(key string, tipe string, sharing string, whitelist []string, sche
 	}
 
 	res, err := executeJsonCmd(http.MethodPost, "threads", params{
-		args: []string{}, // @todo, what should this be here?
+		args: []string{name},
 		opts: map[string]string{
 			"key":       key,
 			"type":      tipe,
@@ -117,7 +117,7 @@ func ThreadRename(name string, threadID string) error {
 	return nil
 }
 
-func ThreadRemove(threadID string) error {
+func ThreadUnsubscribe(threadID string) error {
 	res, err := executeStringCmd(http.MethodDelete, "threads/"+threadID, params{})
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func ThreadRemove(threadID string) error {
 
 
 func ThreadSnapshotCreate() error {
-	res, err := CreateThreadSnapshot()
+	res, err := createThreadSnapshot()
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func ThreadSnapshotCreate() error {
 	return nil
 }
 
-func CreateThreadSnapshot() (string, error) {
+func createThreadSnapshot() (string, error) {
 	return executeStringCmd(http.MethodPost, "snapshots", params{})
 }
 
@@ -168,14 +168,14 @@ func ThreadSnapshotApply(id string, wait int) error {
 		return nil
 	}
 
-	if err := ApplyThreadSnapshot(result); err != nil {
+	if err := applyThreadSnapshot(result); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func ApplyThreadSnapshot(result *pb.QueryResult) error {
+func applyThreadSnapshot(result *pb.QueryResult) error {
 	snap := new(pb.Thread)
 	if err := ptypes.UnmarshalAny(result.Value, snap); err != nil {
 		return err

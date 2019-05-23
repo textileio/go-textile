@@ -7,7 +7,7 @@ import (
 )
 
 func ProfileGet() error {
-	res, _, err := GetProfile()
+	res, _, err := getProfile()
 	if err != nil {
 		return err
 	}
@@ -15,7 +15,7 @@ func ProfileGet() error {
 	return nil
 }
 
-func GetProfile() (string, *pb.Peer, error) {
+func getProfile() (string, *pb.Peer, error) {
 	var profile pb.Peer
 	res, err := executeJsonPbCmd(http.MethodGet, "profile", params{}, &profile)
 	if err != nil {
