@@ -32,8 +32,10 @@ func (t *Textile) AddInvite(threadId string, address string) error {
 		return ErrContactNotFound
 	}
 
+	var err error
 	for _, p := range peers {
-		if _, err := thrd.AddInvite(p); err != nil {
+		_, err = thrd.AddInvite(p)
+		if err != nil {
 			return err
 		}
 	}
@@ -134,7 +136,8 @@ func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, err
 
 // IgnoreInvite deletes the invite and removes the associated notification.
 func (t *Textile) IgnoreInvite(id string) error {
-	if err := t.datastore.Invites().Delete(id); err != nil {
+	err := t.datastore.Invites().Delete(id)
+	if err != nil {
 		return err
 	}
 	return t.datastore.Notifications().DeleteByBlock(id)
@@ -143,14 +146,16 @@ func (t *Textile) IgnoreInvite(id string) error {
 // handleThreadAdd uses an add block to join a thread
 func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
-	if err := proto.Unmarshal(plaintext, block); err != nil {
+	err := proto.Unmarshal(plaintext, block)
+	if err != nil {
 		return nil, err
 	}
 	if block.Type != pb.Block_ADD {
 		return nil, ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadAdd)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err = ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 	if msg.Thread == nil || msg.Inviter == nil {
@@ -200,18 +205,21 @@ func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := thrd.addOrUpdatePeer(msg.Inviter); err != nil {
+	err = thrd.addOrUpdatePeer(msg.Inviter)
+	if err != nil {
 		return nil, err
 	}
 
 	// follow parents, update head
-	if err := thrd.handleAddBlock(block); err != nil {
+	err = thrd.handleAddBlock(block)
+	if err != nil {
 		return nil, err
 	}
 
 	// mark any discovered peers as welcomed
 	// there's no need to send a welcome because we're about to send a join message
-	if err := t.datastore.ThreadPeers().WelcomeByThread(thrd.Id); err != nil {
+	err = t.datastore.ThreadPeers().WelcomeByThread(thrd.Id)
+	if err != nil {
 		return nil, err
 	}
 

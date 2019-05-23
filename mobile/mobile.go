@@ -149,7 +149,7 @@ func (m *Mobile) Start() error {
 	go func() {
 		<-m.node.OnlineCh()
 
-		// subscribe to wallet updates
+		// subscribe to account updates
 		go func() {
 			for {
 				select {

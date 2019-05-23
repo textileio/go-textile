@@ -12,8 +12,10 @@ import (
 
 // AddContact adds or updates a card
 func (t *Textile) AddContact(card *pb.Contact) error {
+	var err error
 	for _, peer := range card.Peers {
-		if err := t.addPeer(peer); err != nil {
+		err = t.addPeer(peer)
+		if err != nil {
 			return err
 		}
 	}
@@ -31,7 +33,12 @@ func (t *Textile) Contacts() *pb.ContactList {
 }
 
 // RemoveContact removes all contacts that share the given address
+// TODO: Add ignore to account thread targeted at the join
 func (t *Textile) RemoveContact(address string) error {
+	if address == t.account.Address() {
+		return fmt.Errorf("cannot remove own contact")
+	}
+
 	return t.datastore.Peers().DeleteByAddress(address)
 }
 
@@ -95,7 +102,8 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 				}
 
 				peer := new(pb.Peer)
-				if err := ptypes.UnmarshalAny(res.Value, peer); err != nil {
+				err := ptypes.UnmarshalAny(res.Value, peer)
+				if err != nil {
 					terrCh <- err
 					break
 				}

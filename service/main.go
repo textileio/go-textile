@@ -322,10 +322,10 @@ func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *in
 	message := &pb.Message{Type: mtype, Payload: payload}
 
 	if id != nil {
-		message.RequestId = *id
+		message.Request = *id
 	}
 	if response {
-		message.IsResponse = true
+		message.Response = true
 	}
 
 	ser, err := proto.Marshal(message)
@@ -393,7 +393,7 @@ func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope
 
 // handlePing receives a PING message
 func (srv *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.RequestId, true)
+	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.Request, true)
 }
 
 var dhtReadMessageTimeout = time.Minute

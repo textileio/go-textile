@@ -90,7 +90,7 @@ type Textile struct {
 	loadedThreads     []*Thread
 	online            chan struct{}
 	done              chan struct{}
-	updates           chan *pb.WalletUpdate
+	updates           chan *pb.AccountUpdate
 	threadUpdates     *broadcast.Broadcaster
 	notifications     chan *pb.Notification
 	threads           *ThreadsService
@@ -213,7 +213,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 
 	node := &Textile{
 		repoPath:          conf.RepoPath,
-		updates:           make(chan *pb.WalletUpdate, 10),
+		updates:           make(chan *pb.AccountUpdate, 10),
 		threadUpdates:     broadcast.NewBroadcaster(10),
 		notifications:     make(chan *pb.Notification, 10),
 		cafeOutboxHandler: conf.CafeOutboxHandler,
@@ -506,8 +506,8 @@ func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return t.cafe.Ping(pid)
 }
 
-// UpdateCh returns the node update channel
-func (t *Textile) UpdateCh() <-chan *pb.WalletUpdate {
+// UpdateCh returns the account update channel
+func (t *Textile) UpdateCh() <-chan *pb.AccountUpdate {
 	return t.updates
 }
 
@@ -664,7 +664,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		return nil, ErrThreadLoaded
 	}
 
-	threadConfig := &ThreadConfig{
+	thrd, err := NewThread(mod, &ThreadConfig{
 		RepoPath:    t.repoPath,
 		Config:      t.config,
 		Account:     t.account,
@@ -675,9 +675,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		CafeOutbox:  t.cafeOutbox,
 		AddPeer:     t.addPeer,
 		PushUpdate:  t.sendThreadUpdate,
-	}
-
-	thrd, err := NewThread(mod, threadConfig)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -699,8 +697,10 @@ func (t *Textile) loadThreadSchemas() {
 }
 
 // sendUpdate sends an update to the update channel
-func (t *Textile) sendUpdate(update *pb.WalletUpdate) {
-	if update.Key == t.account.Address() {
+func (t *Textile) sendUpdate(update *pb.AccountUpdate) {
+	if (update.Type == pb.AccountUpdate_THREAD_ADDED ||
+		update.Type == pb.AccountUpdate_THREAD_REMOVED) &&
+		update.Id == t.config.Account.Thread {
 		return
 	}
 	t.updates <- update
