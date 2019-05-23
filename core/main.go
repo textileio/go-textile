@@ -547,6 +547,11 @@ func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
 	return err
 }
 
+// FlushBlocks flushes the block message outbox
+func (t *Textile) FlushBlocks() {
+	t.blockOutbox.Flush()
+}
+
 // threadsService returns the threads service
 func (t *Textile) threadsService() *ThreadsService {
 	return t.threads
@@ -634,7 +639,8 @@ func (t *Textile) runJobs() {
 func (t *Textile) flushQueues() {
 	t.cafeOutbox.Flush()
 	t.blockOutbox.Flush()
-	if err := t.cafeInbox.CheckMessages(); err != nil {
+	err := t.cafeInbox.CheckMessages()
+	if err != nil {
 		log.Errorf("error checking messages: %s", err)
 	}
 }
