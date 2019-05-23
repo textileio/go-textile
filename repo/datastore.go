@@ -158,7 +158,7 @@ type CafeRequestStore interface {
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
 	ListIncompleteSyncGroups() []string
-	SyncGroupStatus(groupId string) *pb.CafeRequestSyncGroupStatus
+	SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
 	AddAttempt(id string) error

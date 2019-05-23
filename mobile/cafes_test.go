@@ -169,14 +169,10 @@ func flushCafeRequest(limit int) (int, error) {
 	}
 	count = len(groups.Values)
 
-	for _, g := range groups.Values {
-		printGroupStatus(g)
-	}
-
 	// write the req for each group
 	reqs := make(map[string]*pb.CafeHTTPRequest)
 	for _, g := range groups.Values {
-		res, err = cafesTestVars.mobile.WriteCafeHTTPRequest(g)
+		res, err = cafesTestVars.mobile.WriteCafeRequest(g)
 		if err != nil {
 			return count, err
 		}
@@ -190,7 +186,7 @@ func flushCafeRequest(limit int) (int, error) {
 
 	// mark each as pending (new loops for clarity)
 	for g := range reqs {
-		err = cafesTestVars.mobile.SetCafeRequestPending(g)
+		err = cafesTestVars.mobile.CafeRequestPending(g)
 		if err != nil {
 			return count, err
 		}
@@ -204,32 +200,20 @@ func flushCafeRequest(limit int) (int, error) {
 		}
 		if res.StatusCode >= 300 {
 			fmt.Printf("got bad status: %d\n", res.StatusCode)
-			err = cafesTestVars.mobile.SetCafeRequestFailed(g)
+			err = cafesTestVars.mobile.FailCafeRequest(g)
 		} else {
-			err = cafesTestVars.mobile.SetCafeRequestComplete(g)
+			err = cafesTestVars.mobile.CompleteCafeRequest(g)
 		}
 		if err != nil {
 			return count, err
 		}
 		res.Body.Close()
-		printGroupStatus(g)
 	}
 	return count, nil
 }
 
-func printGroupStatus(group string) {
-	res, err := cafesTestVars.mobile.CafeRequestGroupStatus(group)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	status := new(pb.CafeRequestSyncGroupStatus)
-	err = proto.Unmarshal(res, status)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	fmt.Println(">>> " + group)
+func printSyncGroupStatus(status *pb.CafeSyncGroupStatus) {
+	fmt.Println(">>> " + status.Id)
 	fmt.Println(fmt.Sprintf("num. pending: %d", status.NumPending))
 	fmt.Println(fmt.Sprintf("num. complete: %d", status.NumComplete))
 	fmt.Println(fmt.Sprintf("num. total: %d", status.NumTotal))

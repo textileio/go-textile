@@ -57,6 +57,7 @@ func (q *BlockOutbox) Flush() {
 	}
 
 	// exclude blocks that have an incomplete sync group
+	// TODO: also exclude newer
 	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
 
 	err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize, syncing))

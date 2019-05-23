@@ -148,13 +148,13 @@ func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
 	return syncGroups
 }
 
-func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeRequestSyncGroupStatus {
+func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	group := &pb.CafeRequestSyncGroupStatus{}
+	group := &pb.CafeSyncGroupStatus{}
 
 	rows, err := c.db.Query(`
-        SELECT cafeId, size, status FROM cafe_requests WHERE syncGroupId=(
+        SELECT cafeId, size, status, syncGroupId FROM cafe_requests WHERE syncGroupId=(
             SELECT syncGroupId FROM cafe_requests WHERE groupId=?
         ) ORDER BY date ASC;
 	`, groupId)
@@ -164,14 +164,15 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeRequestSyncGroup
 	}
 
 	for rows.Next() {
-		var cafeId string
+		var cafeId, syncGroupId string
 		var size int64
 		var status int
-		if err := rows.Scan(&cafeId, &size, &status); err != nil {
+		if err := rows.Scan(&cafeId, &size, &status, &syncGroupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 
+		group.Id = syncGroupId
 		group.NumTotal += 1
 		group.SizeTotal += size
 		switch status {

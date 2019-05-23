@@ -20,6 +20,10 @@ enum MobileEventType {
     NOTIFICATION   = 12;
 
     QUERY_RESPONSE = 20;
+
+	CAFE_SYNC_GROUP_UPDATE   = 30;
+	CAFE_SYNC_GROUP_COMPLETE = 31;
+	CAFE_SYNC_GROUP_FAILED   = 32;
 }
 
 message MobileQueryEvent {

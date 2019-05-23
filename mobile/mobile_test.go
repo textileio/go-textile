@@ -159,6 +159,16 @@ func (tm *testMessenger) Notify(event *Event) {
 		case pb.MobileQueryEvent_ERROR:
 			fmt.Println(fmt.Sprintf("+++ ERROR (%d) (qid=%s): %s", res.Error.Code, res.Id, res.Error.Message))
 		}
+	case pb.MobileEventType_CAFE_SYNC_GROUP_UPDATE,
+		pb.MobileEventType_CAFE_SYNC_GROUP_COMPLETE,
+		pb.MobileEventType_CAFE_SYNC_GROUP_FAILED:
+		status := new(pb.CafeSyncGroupStatus)
+		err := proto.Unmarshal(event.Data, status)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		printSyncGroupStatus(status)
 	}
 }
 
