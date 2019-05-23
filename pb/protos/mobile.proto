@@ -15,9 +15,9 @@ enum MobileEventType {
     NODE_ONLINE = 1;
     NODE_STOP   = 2;
 
-    WALLET_UPDATE = 10;
-    THREAD_UPDATE = 11;
-    NOTIFICATION  = 12;
+    ACCOUNT_UPDATE = 10;
+    THREAD_UPDATE  = 11;
+    NOTIFICATION   = 12;
 
     QUERY_RESPONSE = 20;
 }

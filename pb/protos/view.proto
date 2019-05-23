@@ -203,9 +203,9 @@ message LikeList {
 
 // UPDATES //
 
-message WalletUpdate {
+message AccountUpdate {
     string id  = 1;
-    string key = 2;
+    string key = 2 [deprecated = true];
     Type type  = 3;
 
     enum Type {

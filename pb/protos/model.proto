@@ -203,6 +203,7 @@ message Notification {
     enum Type {
         INVITE_RECEIVED     = 0;
         ACCOUNT_PEER_JOINED = 1;
+		ACCOUNT_PEER_LEFT   = 8;
         PEER_JOINED         = 2;
         PEER_LEFT           = 3;
         MESSAGE_ADDED       = 4;

@@ -76,14 +76,16 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, nil
 	}
 	tenv := new(pb.ThreadEnvelope)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, tenv); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, tenv)
+	if err != nil {
 		return nil, err
 	}
 
 	// check for an account signature
 	var accountPeer bool
 	if tenv.Sig != nil {
-		if err := h.service.Account.Verify(tenv.Ciphertext, tenv.Sig); err == nil {
+		err = h.service.Account.Verify(tenv.Ciphertext, tenv.Sig)
+		if err == nil {
 			accountPeer = true
 		}
 	}
@@ -96,7 +98,8 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
-		if err := h.handleAdd(hash, tenv, accountPeer); err != nil {
+		err = h.handleAdd(hash, tenv, accountPeer)
+		if err != nil {
 			return nil, err
 		}
 		return nil, nil
@@ -131,7 +134,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	case pb.Block_FLAG:
 		err = h.handleFlag(thrd, hash, block)
 	case pb.Block_JOIN:
-		err = h.handleJoin(thrd, hash, block)
+		err = h.handleJoin(thrd, hash, block, accountPeer)
 	case pb.Block_ANNOUNCE:
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.Block_LEAVE:
@@ -275,10 +278,8 @@ func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.
 
 // handleIgnore receives an ignore message
 func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleIgnoreBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+	_, err := thrd.handleIgnoreBlock(hash, block)
+	return err
 }
 
 // handleFlag receives a flag message
@@ -288,12 +289,19 @@ func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.T
 }
 
 // handleJoin receives a join message
-func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleJoinBlock(hash, block); err != nil {
+func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
+	_, err := thrd.handleJoinBlock(hash, block)
+	if err != nil {
 		return err
 	}
 
-	note := h.newNotification(block.Header, pb.Notification_PEER_JOINED)
+	var ntype pb.Notification_Type
+	if accountPeer {
+		ntype = pb.Notification_ACCOUNT_PEER_JOINED
+	} else {
+		ntype = pb.Notification_PEER_JOINED
+	}
+	note := h.newNotification(block.Header, ntype)
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
 	note.Block = hash.B58String()
@@ -314,7 +322,13 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 
-	note := h.newNotification(block.Header, pb.Notification_PEER_LEFT)
+	var ntype pb.Notification_Type
+	if accountPeer {
+		ntype = pb.Notification_ACCOUNT_PEER_LEFT
+	} else {
+		ntype = pb.Notification_PEER_LEFT
+	}
+	note := h.newNotification(block.Header, ntype)
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
 	note.Block = hash.B58String()

@@ -143,10 +143,9 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 	go t.cafeOutbox.Flush()
 
-	t.sendUpdate(&pb.WalletUpdate{
+	t.sendUpdate(&pb.AccountUpdate{
 		Id:   thrd.Id,
-		Key:  thrd.Key,
-		Type: pb.WalletUpdate_THREAD_ADDED,
+		Type: pb.AccountUpdate_THREAD_ADDED,
 	})
 
 	// invite account peers if inviter is not an account peer
@@ -365,10 +364,9 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.loadedThreads[len(t.loadedThreads)-1] = nil
 	t.loadedThreads = t.loadedThreads[:len(t.loadedThreads)-1]
 
-	t.sendUpdate(&pb.WalletUpdate{
+	t.sendUpdate(&pb.AccountUpdate{
 		Id:   thrd.Id,
-		Key:  thrd.Key,
-		Type: pb.WalletUpdate_THREAD_REMOVED,
+		Type: pb.AccountUpdate_THREAD_REMOVED,
 	})
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)

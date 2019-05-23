@@ -30,8 +30,16 @@ func (t *Textile) addPeer(peer *pb.Peer) error {
 	}
 
 	// peer is new / newer, update
-	if err := t.datastore.Peers().AddOrUpdate(peer); err != nil {
+	err := t.datastore.Peers().AddOrUpdate(peer)
+	if err != nil {
 		return err
+	}
+
+	if x == nil && peer.Address == t.account.Address() {
+		t.sendUpdate(&pb.AccountUpdate{
+			Id:   peer.Id,
+			Type: pb.AccountUpdate_ACCOUNT_PEER_ADDED,
+		})
 	}
 
 	// ensure new update is actually different before announcing to account
@@ -46,7 +54,8 @@ func (t *Textile) addPeer(peer *pb.Peer) error {
 		return fmt.Errorf("account thread not found")
 	}
 
-	if _, err := thrd.annouce(&pb.ThreadAnnounce{Peer: peer}); err != nil {
+	_, err = thrd.annouce(&pb.ThreadAnnounce{Peer: peer})
+	if err != nil {
 		return err
 	}
 	return nil
