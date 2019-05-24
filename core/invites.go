@@ -111,7 +111,8 @@ func (t *Textile) AcceptInvite(id string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.IgnoreInvite(id); err != nil {
+	err = t.IgnoreInvite(id)
+	if err != nil {
 		return nil, err
 	}
 
