@@ -489,7 +489,7 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 		return
 	}
 
-	res5, err := mobile1.FileData(list.Items[0].Files[0].File.Hash)
+	res5, err := mobile1.FileContent(list.Items[0].Files[0].File.Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -619,8 +619,8 @@ func TestMobile_FilesBadThread(t *testing.T) {
 	}
 }
 
-func TestMobile_FileData(t *testing.T) {
-	res, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
+func TestMobile_FileContent(t *testing.T) {
+	res, err := mobile1.FileContent(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
@@ -676,18 +676,18 @@ func TestMobile_Feed(t *testing.T) {
 	}
 }
 
-func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
-	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
+func TestMobile_ImageFileContentForMinWidth(t *testing.T) {
+	large, err := mobile1.FileContent(files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
+	small, err := mobile1.FileContent(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := mobile1.FileContent(files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -695,7 +695,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 
 	pth := files[0].Target + "/0"
 
-	d1, err := mobile1.ImageFileDataForMinWidth(pth, 2000)
+	d1, err := mobile1.ImageFileContentForMinWidth(pth, 2000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -705,7 +705,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d2, err := mobile1.ImageFileDataForMinWidth(pth, 600)
+	d2, err := mobile1.ImageFileContentForMinWidth(pth, 600)
 	if err != nil {
 		t.Error(err)
 		return
@@ -715,7 +715,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d3, err := mobile1.ImageFileDataForMinWidth(pth, 320)
+	d3, err := mobile1.ImageFileContentForMinWidth(pth, 320)
 	if err != nil {
 		t.Error(err)
 		return
@@ -725,7 +725,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d4, err := mobile1.ImageFileDataForMinWidth(pth, 80)
+	d4, err := mobile1.ImageFileContentForMinWidth(pth, 80)
 	if err != nil {
 		t.Error(err)
 		return

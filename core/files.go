@@ -215,31 +215,47 @@ func (t *Textile) FileIndex(hash string) (*pb.FileIndex, error) {
 	return file, nil
 }
 
-func (t *Textile) FileData(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
+func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, nil, ErrFileNotFound
+		return nil, ErrFileNotFound
 	}
-	fd, err := ipfs.DataAtPath(t.node, file.Hash)
+	return file, nil
+}
+
+func (t *Textile) FileContent(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
+	var err error
+	var file *pb.FileIndex
+	var reader io.ReadSeeker
+	file, err = t.FileMeta(hash)
 	if err != nil {
 		return nil, nil, err
+	}
+	reader, err = t.FileIndexContent(file)
+	return reader, file, err
+}
+
+func (t *Textile)  FileIndexContent(file  *pb.FileIndex) (io.ReadSeeker, error) {
+	fd, err := ipfs.DataAtPath(t.node, file.Hash)
+	if err != nil {
+		return nil, err
 	}
 
 	var plaintext []byte
 	if file.Key != "" {
 		key, err := base58.Decode(file.Key)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		plaintext, err = crypto.DecryptAES(fd, key)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
 		plaintext = fd
 	}
 
-	return bytes.NewReader(plaintext), file, nil
+	return bytes.NewReader(plaintext), nil
 }
 
 func (t *Textile) TargetNodeKeys(node ipld.Node) (*pb.Keys, error) {

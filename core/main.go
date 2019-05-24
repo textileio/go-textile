@@ -810,3 +810,4 @@ func removeLocks(repoPath string) {
 	if err := os.Remove(dsLockFile); err != nil {
 	}
 }
+

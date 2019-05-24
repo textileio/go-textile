@@ -11,6 +11,59 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
+func getBlock(node *Textile, id string) (*pb.Block, error, int) {
+	block, err := node.BlockView(id)
+	if err != nil {
+		return nil, fmt.Errorf("block not found [id=%s]", id), http.StatusNotFound
+	}
+	return block, nil, http.StatusOK
+}
+
+func getThread(node *Textile, id string) (*Thread, error, int) {
+	thread := node.Thread(id)
+	if thread == nil {
+		return nil, fmt.Errorf("thread not found [id=%s]", id), http.StatusNotFound
+	}
+	return thread, nil, http.StatusOK
+}
+
+func getBlockThread(node *Textile, id string) (*Thread, error, int) {
+	block, err, code := getBlock(node, id)
+	if err != nil {
+		return nil, err, code
+	}
+	return getThread(node, block.Thread)
+}
+
+func getFiles(node *Textile, id string) (*pb.Files, error, int) {
+	files, err := node.File(id)  // despite naming, this is files
+	if err != nil {
+		return nil, err, http.StatusNotFound
+	}
+	return files, nil, http.StatusOK
+}
+
+func getFile(files *pb.Files, indexStr string, path string) (*pb.FileIndex, error, int) {
+	// file
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return nil, err, http.StatusBadRequest
+	}
+	file, ok := files.Files[index].Links[path]
+	if !ok {
+		return nil, err, http.StatusNotFound
+	}
+	return file, nil, http.StatusOK
+}
+
+func getFilesFile(node *Textile, id string, indexStr string, path string) (*pb.FileIndex, error, int) {
+	files, err, code := getFiles(node, id)
+	if err != nil {
+		return nil, err, code
+	}
+	return getFile(files, indexStr, path)
+}
+
 // lsBlocks godoc
 // @Summary Paginates blocks in a thread
 // @Description Paginates blocks in a thread. Blocks are the raw components in a thread.
@@ -41,8 +94,8 @@ func (a *api) lsBlocks(g *gin.Context) {
 		return
 	}
 
-	thrd := a.node.Thread(threadId)
-	if thrd == nil {
+	thread := a.node.Thread(threadId)
+	if thread == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 		return
 	}
@@ -56,7 +109,7 @@ func (a *api) lsBlocks(g *gin.Context) {
 		}
 	}
 
-	query := fmt.Sprintf("threadId='%s'", thrd.Id)
+	query := fmt.Sprintf("threadId='%s'", thread.Id)
 	blocks := a.node.datastore.Blocks().List(opts["offset"], limit, query)
 	for _, block := range blocks.Items {
 		block.User = a.node.PeerUser(block.Author)
@@ -101,25 +154,84 @@ func (a *api) lsBlocks(g *gin.Context) {
 	pbJSON(g, http.StatusOK, viz)
 }
 
-// getBlocks godoc
-// @Summary Gets thread block
-// @Description Gets a thread block by ID
+// getBlockMeta godoc
+// @Summary Gets the metadata for a block
 // @Tags blocks
 // @Produce application/json
+// @Router /blocks/{id}/meta [get]
 // @Param id path string true "block id"
 // @Success 200 {object} pb.Block "block"
 // @Failure 404 {string} string "Not Found"
-// @Router /blocks/{id} [get]
-func (a *api) getBlocks(g *gin.Context) {
-	id := g.Param("id")
-
-	block, err := a.node.BlockView(id)
+func (a *api) getBlockMeta(g *gin.Context) {
+	block, err, code := getBlock(a.node, g.Param("id"))
 	if err != nil {
-		g.String(http.StatusNotFound, "block not found")
+		sendError(g, err, code)
 		return
 	}
-
 	pbJSON(g, http.StatusOK, block)
+}
+
+// getBlockFiles godoc
+// @Summary Gets the metadata for a files block
+// @Tags files
+// @Produce application/json
+// @Router /blocks/{id}/files [get]
+// @Param id path string true "block id"
+// @Success 200 {object} pb.Files "files"
+// @Failure 404 {string} string "Not Found"
+func (a *api) getBlockFiles(g *gin.Context) {
+	files, err, code := getFiles(a.node, g.Param("id"))
+	if err != nil {
+		sendError(g, err, code)
+		return
+	}
+	pbJSON(g, http.StatusOK, files)
+}
+
+// getBlockFileMeta godoc
+// @Summary Gets the metadata of a file within a files block
+// @Tags files
+// @Produce application/json
+// @Router /blocks/{id}/files/{index}/{path}/meta [get]
+// @Param id path string true "block id"
+// @Param index path string true "file index"
+// @Param path path string true "file path"
+// @Success 200 {object} pb.FileIndex "file"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+func (a *api) getBlockFileMeta(g *gin.Context) {
+	file, err, code := getFilesFile(a.node, g.Param("id"), g.Param("index"), g.Param("path"))
+	if err != nil {
+		sendError(g, err, code)
+		return
+	}
+	pbJSON(g, http.StatusOK, file)
+}
+
+
+// getBlockFileContent godoc
+// @Summary Gets the decrypted file content of a file within a files block
+// @Tags files
+// @Produce application/json
+// @Router /blocks/{id}/files/{index}/{path}/content [get]
+// @Param id path string true "block id"
+// @Param index path string true "file index"
+// @Param path path string true "file path"
+// @Success 200 {string} byte
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+func (a *api) getBlockFileContent(g *gin.Context) {
+	file, err, code := getFilesFile(a.node, g.Param("id"), g.Param("index"), g.Param("path"))
+	if err != nil {
+		sendError(g, err, code)
+		return
+	}
+	reader, err := a.node.FileIndexContent(file)
+	if err != nil {
+		sendError(g, err, http.StatusNotFound)
+		return
+	}
+	g.DataFromReader(http.StatusOK, file.Size, file.Media, reader, map[string]string{})
 }
 
 // rmBlocks godoc
@@ -134,40 +246,27 @@ func (a *api) getBlocks(g *gin.Context) {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /blocks/{id} [delete]
 func (a *api) rmBlocks(g *gin.Context) {
-	id := g.Param("id")
+	blockID := g.Param("id")
 
-	thrd := a.getBlockThread(g, id)
-	if thrd == nil {
+	thread, err, code := getBlockThread(a.node, blockID)
+	if err != nil {
+		sendError(g, err, code)
 		return
 	}
 
-	hash, err := thrd.AddIgnore(id)
+	hash, err := thread.AddIgnore(blockID)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	block, err := a.node.BlockView(hash.B58String())
+	block, err, code := getBlock(a.node, hash.B58String())
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		sendError(g, err, code)
 		return
 	}
 
 	pbJSON(g, http.StatusCreated, block)
-}
-
-func (a *api) getBlockThread(g *gin.Context, id string) *Thread {
-	block, err := a.node.Block(id)
-	if err != nil {
-		g.String(http.StatusNotFound, "block not found")
-		return nil
-	}
-	thrd := a.node.Thread(block.Thread)
-	if thrd == nil {
-		g.String(http.StatusNotFound, "thread not found")
-		return nil
-	}
-	return thrd
 }
 
 func (a *api) toDots(blocks *pb.BlockList) (string, error) {

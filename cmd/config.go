@@ -3,100 +3,55 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/textileio/go-textile/util"
 )
 
-func init() {
-	register(&configCmd{})
-}
-
-type configCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *configCmd) Name() string {
-	return "config"
-}
-
-func (x *configCmd) Short() string {
-	return "Get and set config values"
-}
-
-func (x *configCmd) Long() string {
-	return `
-The config command controls configuration variables.
-It works much like 'git config'. The configuration
-values are stored in a config file inside your Textile
-repository.
-
-Getting config values will report the currently active
-config settings. This may differ from the values specified
-when setting values.
-
-When changing values, valid JSON types must be used.
-For example, a string should be escaped or wrapped in
-single quotes (e.g., \"127.0.0.1:40600\") and arrays and
-objects work fine (e.g. '{"API": "127.0.0.1:40600"}')
-but should be wrapped in single quotes. Be sure to restart
-the daemon for changes to take effect.
-
-Examples:
-
-Get the value of the 'Addresses.API' key:
-
-  $ textile config Addresses.API
-  $ textile config Addresses/API # Alternative syntax
-
-Print the entire Textile config file to console:
-
-  $ textile config
-
-Set the value of the 'Addresses.API' key:
-
-  $ textile config Addresses.API \"127.0.0.1:40600\"`
-}
-
-func (x *configCmd) Execute(args []string) error {
-	setApi(x.Client)
-
+func Config(name string, value string) error {
 	patchFmt := `[
   {"op": "replace", "path": "%s", "value": %s}
 ]`
 
 	var path string
-	if len(args) > 0 {
-		path = "/" + strings.Replace(args[0], ".", "/", -1)
+	if name != "" {
+		path = "/" + strings.Replace(name, ".", "/", -1)
 	}
-	if len(args) > 1 {
-		patch := []byte(fmt.Sprintf(patchFmt, path, args[1]))
+	if value == "" {
+		// get
+		res, err := executeJsonCmd(http.MethodGet, "config"+path, params{}, nil)
+		if err != nil {
+			return err
+		}
+		output(res)
+	} else {
+		// set
+		patchString := fmt.Sprintf(patchFmt, path, value)
+		patchBytes := []byte(patchString)
+		patchBuffer := bytes.NewBuffer(patchBytes)
 
-		res, _, err := request(PATCH, "config", params{
-			payload: bytes.NewBuffer(patch),
+		// request
+		res, _, err := request(http.MethodPatch, "config", params{
+			payload: patchBuffer,
 		})
 		if err != nil {
 			return err
 		}
 		defer res.Body.Close()
 
+		// check
 		if res.StatusCode >= 400 {
 			body, err := util.UnmarshalString(res.Body)
 			if err != nil {
 				return err
 			}
-			return fmt.Errorf(body)
+			suggestion := fmt.Sprintf(`textile config '%s' '"%s"'`, name, value)
+			return fmt.Errorf("Applying the configuration patch failed, you may have forgotten to JSON escape your input value.\n\nError: %s\n\n%s\n\nYou could try this instead:\n\n%s", body, patchString, suggestion)
 		}
-
 		output("Updated! Restart daemon for changes to take effect.")
 		return nil
 	}
 
-	res, err := executeJsonCmd(GET, "config"+path, params{}, nil)
-	if err != nil {
-		return err
-	}
-
-	output(res)
 	return nil
 }

@@ -145,25 +145,6 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 	pbJSON(g, http.StatusOK, list)
 }
 
-// getThreadFiles godoc
-// @Summary Get thread file
-// @Description Gets a thread file by block ID
-// @Tags files
-// @Produce application/json
-// @Param block path string true "block id"
-// @Success 200 {object} pb.Files "file"
-// @Failure 400 {string} string "Bad Request"
-// @Router /files/{block} [get]
-func (a *api) getThreadFiles(g *gin.Context) {
-	files, err := a.node.File(g.Param("block"))
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	pbJSON(g, http.StatusOK, files)
-}
-
 // lsThreadFileTargetKeys godoc
 // @Summary Show file keys
 // @Description Shows file keys under the given target from an add
@@ -191,17 +172,36 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 	pbJSON(g, http.StatusOK, keys)
 }
 
-// getFileData godoc
-// @Summary File data at hash
-// @Description Returns raw data for file
+// getFileMeta godoc
+// @Summary File metadata at hash
+// @Description Returns the metadata for file
+// @Tags files
+// @Produce application/json
+// @Param hash path string true "file hash"
+// @Success 200 {object} pb.FileIndex "file"
+// @Failure 404 {string} string "Not Found"
+// @Router /file/{target}/meta [get]
+func (a *api) getFileMeta(g *gin.Context) {
+	file, err := a.node.FileMeta(g.Param("hash"))
+	if err != nil {
+		g.String(http.StatusNotFound, err.Error())
+		return
+	}
+
+	pbJSON(g, http.StatusOK, file)
+}
+
+// getFileContent godoc
+// @Summary File content at hash
+// @Description Returns decrypted raw content for file
 // @Tags files
 // @Produce application/octet-stream
 // @Param hash path string true "file hash"
 // @Success 200 {string} byte
 // @Failure 404 {string} string "Not Found"
-// @Router /file/{hash}/data [get]
-func (a *api) getFileData(g *gin.Context) {
-	reader, file, err := a.node.FileData(g.Param("hash"))
+// @Router /file/{hash}/content [get]
+func (a *api) getFileContent(g *gin.Context) {
+	reader, file, err := a.node.FileContent(g.Param("hash"))
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return

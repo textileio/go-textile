@@ -180,7 +180,21 @@ func (a *api) Start() {
 
 			block := blocks.Group("/:id")
 			{
-				block.GET("", a.getBlocks)
+				block.GET("/meta", a.getBlockMeta)
+				files := block.Group("/files")
+				{
+					files.GET("", a.getBlockFiles)
+					file := files.Group("/:index/:path")
+					{
+						file.GET("/meta", a.getBlockFileMeta)
+						file.GET("/content", a.getBlockFileContent)
+					}
+				}
+
+				block.GET("", func (g *gin.Context) {
+					id := g.Param("id")
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + id + "/meta")
+				})
 				block.DELETE("", a.rmBlocks)
 
 				block.GET("/comment", a.getBlockComment)
@@ -208,12 +222,24 @@ func (a *api) Start() {
 		files := v0.Group("/files")
 		{
 			files.GET("", a.lsThreadFiles)
-			files.GET("/:block", a.getThreadFiles)
+			files.GET("/:block", func (g *gin.Context) {
+				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + g.Param("block") + "/files")
+			})
 		}
 
 		file := v0.Group("/file")
 		{
-			file.GET("/:hash/data", a.getFileData)
+			hash := file.Group("/:hash")
+			{
+				hash.GET("", func (g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/meta")
+				})
+				hash.GET("/data", func (g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/content")
+				})
+				hash.GET("/meta", a.getFileMeta)
+				hash.GET("/content", a.getFileContent)
+			}
 		}
 
 		feed := v0.Group("/feed")
@@ -342,7 +368,7 @@ func (a *api) nodeSummary(g *gin.Context) {
 }
 
 func (a *api) abort500(g *gin.Context, err error) {
-	g.String(http.StatusInternalServerError, err.Error())
+	sendError(g, err, http.StatusInternalServerError)
 }
 
 func (a *api) readArgs(g *gin.Context) ([]string, error) {
@@ -411,7 +437,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 	} else {
 		var file *pb.FileIndex
 		var err error
-		reader, file, err = a.node.FileData(use)
+		reader, file, err = a.node.FileContent(use)
 		if err != nil {
 			return nil, err
 		}
@@ -440,7 +466,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 func pbJSON(g *gin.Context, status int, msg proto.Message) {
 	str, err := pbMarshaler.MarshalToString(msg)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		sendError(g, err, http.StatusBadRequest)
 		return
 	}
 	g.Data(status, "application/json", []byte(str))
@@ -454,4 +480,9 @@ func pbValForEnumString(vals map[string]int32, str string) int32 {
 		}
 	}
 	return 0
+}
+
+// sendError sends the error to the gin context
+func sendError(g *gin.Context, err error, statusCode int) {
+	g.String(statusCode, err.Error())
 }
