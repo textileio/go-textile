@@ -29,10 +29,10 @@ message User {
 }
 
 message Contact {
-    string address      = 1;
-    string name         = 2;
-    string avatar       = 3;
-    repeated Peer peers = 4;
+    string address          = 1;
+    string name             = 2;
+    string avatar           = 3;
+    repeated Peer peers     = 4;
     repeated string threads = 5;
 }
 

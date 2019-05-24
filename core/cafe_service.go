@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	icid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/pin"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
@@ -1005,25 +1004,13 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// ignore cids for data already pinned
-	var decoded []icid.Cid
-	for _, id := range store.Cids {
-		dec, err := icid.Decode(id)
-		if err != nil {
-			return nil, err
-		}
-		decoded = append(decoded, dec)
-	}
-
-	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
+	list, err := ipfs.NotPinned(h.service.Node(), store.Cids)
 	if err != nil {
 		return nil, err
 	}
-
 	var need []string
-	for _, p := range pinned {
-		if p.Mode == pin.NotPinned {
-			need = append(need, p.Key.Hash().B58String())
-		}
+	for _, p := range list {
+		need = append(need, p.Hash().B58String())
 	}
 
 	res := &pb.CafeObjectList{Cids: need}
@@ -1047,29 +1034,17 @@ func (h *CafeService) handleUnstore(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// ignore cids for data not pinned
-	var decoded []icid.Cid
-	for _, id := range unstore.Cids {
-		dec, err := icid.Decode(id)
-		if err != nil {
-			return nil, err
-		}
-		decoded = append(decoded, dec)
-	}
-
-	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
+	list, err := ipfs.Pinned(h.service.Node(), unstore.Cids)
 	if err != nil {
 		return nil, err
 	}
-
 	var unstored []string
-	for _, p := range pinned {
-		if p.Mode != pin.NotPinned {
-			err := ipfs.UnpinCid(h.service.Node(), p.Key, true)
-			if err != nil {
-				return nil, err
-			}
-			unstored = append(unstored, p.Key.Hash().B58String())
+	for _, p := range list {
+		err := ipfs.UnpinCid(h.service.Node(), p, true)
+		if err != nil {
+			return nil, err
 		}
+		unstored = append(unstored, p.Hash().B58String())
 	}
 
 	res := &pb.CafeUnstoreAck{Cids: unstored}
@@ -1195,7 +1170,7 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 	}
 
 	if msg.Env != nil {
-		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true)
+		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true, false)
 		if err != nil {
 			return nil, err
 		}

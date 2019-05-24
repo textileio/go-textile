@@ -37,11 +37,10 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 	if node == nil {
 		return nil, ErrInvalidFileNode
 	}
-	target := node.Cid().Hash().B58String()
 
 	caption = strings.TrimSpace(caption)
 	msg := &pb.ThreadFiles{
-		Target: target,
+		Target: node.Cid().Hash().B58String(),
 		Body:   caption,
 		Keys:   keys,
 	}
@@ -53,22 +52,14 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, err
 	}
 
-	syncGroup := cafeReqOpt.SyncGroup(res.hash.B58String())
-	nodeGroup := cafeReqOpt.Group(ksuid.New().String())
-
-	// each link should point to a dag described by the thread schema
-	for i, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node(), link)
-		if err != nil {
-			return nil, err
-		}
-		err = t.processFileNode(t.Schema, nd, i, keys, nodeGroup, syncGroup, false)
-		if err != nil {
-			return nil, err
-		}
+	// validate and apply schema directives
+	err = t.processFileTarget(t.Schema, node, keys, false)
+	if err != nil {
+		return nil, err
 	}
 
-	err = t.cafeOutbox.Add(target, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+	// add cafe store requests for the entire graph
+	err = t.cafeReqFileTarget(node, res.hash.B58String(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -84,15 +75,9 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, err
 	}
 
-	for _, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node(), link)
-		if err != nil {
-			return nil, err
-		}
-		err = t.indexFileNode(nd, msg.Target)
-		if err != nil {
-			return nil, err
-		}
+	err = t.indexFileTarget(node, msg.Target)
+	if err != nil {
+		return nil, err
 	}
 
 	err = t.updateHead(res.hash)
@@ -152,22 +137,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		if err != nil {
 			return nil, err
 		}
-		syncGroup := cafeReqOpt.SyncGroup(hash.B58String())
-		nodeGroup := cafeReqOpt.Group(ksuid.New().String())
 
-		// each link should point to a dag described by the thread schema
-		for i, link := range node.Links() {
-			nd, err := ipfs.NodeAtLink(t.node(), link)
-			if err != nil {
-				return nil, err
-			}
-			err = t.processFileNode(t.Schema, nd, i, msg.Keys, nodeGroup, syncGroup, true)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		err = t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+		// validate and apply schema directives
+		err = t.processFileTarget(t.Schema, node, msg.Keys, true)
 		if err != nil {
 			return nil, err
 		}
@@ -220,15 +192,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	}
 
 	if !ignore {
-		for _, link := range node.Links() {
-			nd, err := ipfs.NodeAtLink(t.node(), link)
-			if err != nil {
-				return nil, err
-			}
-			err = t.indexFileNode(nd, msg.Target)
-			if err != nil {
-				return nil, err
-			}
+		err = t.indexFileTarget(node, msg.Target)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -270,17 +236,26 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 	return nil
 }
 
-// processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, nodeGroup CafeRequestOption, syncGroup CafeRequestOption, inbound bool) error {
-	hash := inode.Cid().Hash().B58String()
-	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, nodeGroup, syncGroup)
-	if err != nil {
-		return err
+// processFileTarget ensures each link points to a dag described by the thread schema
+func (t *Thread) processFileTarget(node *pb.Node, inode ipld.Node, keys map[string]string, inbound bool) error {
+	for i, link := range inode.Links() {
+		nd, err := ipfs.NodeAtLink(t.node(), link)
+		if err != nil {
+			return err
+		}
+		err = t.processFileNode(t.Schema, nd, i, keys, inbound)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
+// processFileNode walks a file node, validating and applying a dag schema
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, inbound bool) error {
 	if len(node.Links) == 0 {
 		key := keys["/"+strconv.Itoa(index)+"/"]
-		return t.processFileLink(inode, node.Pin, node.Mill, key, nodeGroup, syncGroup, inbound)
+		return t.processFileLink(inode, node.Pin, node.Mill, key, inbound)
 	}
 
 	for name, l := range node.Links {
@@ -296,7 +271,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 		}
 
 		key := keys["/"+strconv.Itoa(index)+"/"+name+"/"]
-		err = t.processFileLink(n, l.Pin, l.Mill, key, nodeGroup, syncGroup, inbound)
+		err = t.processFileLink(n, l.Pin, l.Mill, key, inbound)
 		if err != nil {
 			return err
 		}
@@ -304,7 +279,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 
 	// pin link directory
 	if node.Pin && inbound {
-		err = ipfs.PinNode(t.node(), inode, false)
+		err := ipfs.PinNode(t.node(), inode, false)
 		if err != nil {
 			return err
 		}
@@ -314,25 +289,18 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 }
 
 // processFileLink validates and pins file nodes
-func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, nodeGroup CafeRequestOption, syncGroup CafeRequestOption, inbound bool) error {
-	hash := inode.Cid().Hash().B58String()
-	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, nodeGroup, syncGroup)
-	if err != nil {
-		return err
-	}
-
+func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	flink := schema.LinkByName(inode.Links(), ValidMetaLinkNames)
 	if flink == nil {
 		return ErrMissingMetaLink
 	}
-
 	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}
 
 	if mil == "/json" {
-		err = t.validateJsonNode(inode, key)
+		err := t.validateJsonNode(inode, key)
 		if err != nil {
 			return err
 		}
@@ -340,20 +308,7 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// pin leaf nodes if schema dictates
 	if pin {
-		err = ipfs.PinNode(t.node(), inode, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	// remote pin leaf nodes if files originate locally
-	if !inbound {
-		group := cafeReqOpt.Group(ksuid.New().String())
-		err = t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group, syncGroup)
-		if err != nil {
-			return err
-		}
-		err = t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group, syncGroup)
+		err := ipfs.PinNode(t.node(), inode, true)
 		if err != nil {
 			return err
 		}
@@ -410,6 +365,21 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 		return fmt.Errorf(errs)
 	}
 
+	return nil
+}
+
+// indexFileTarget walks a file target node, indexing file links
+func (t *Thread) indexFileTarget(inode ipld.Node, target string) error {
+	for _, link := range inode.Links() {
+		nd, err := ipfs.NodeAtLink(t.node(), link)
+		if err != nil {
+			return err
+		}
+		err = t.indexFileNode(nd, target)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -499,5 +469,88 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
 		}
 	}
 
+	return nil
+}
+
+// cafeReqFileTarget adds a cafe requests for the target node and all children
+func (t *Thread) cafeReqFileTarget(inode ipld.Node, syncGroup string, cafe string) error {
+	target := inode.Cid().Hash().B58String()
+	ng := cafeReqOpt.Group(ksuid.New().String())
+	sg := cafeReqOpt.SyncGroup(syncGroup)
+	settings := CafeRequestOptions(ng, sg, cafeReqOpt.Cafe(cafe))
+
+	err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE, settings.Options()...)
+	if err != nil {
+		return err
+	}
+
+	for _, link := range inode.Links() {
+		nd, err := ipfs.NodeAtLink(t.node(), link)
+		if err != nil {
+			return err
+		}
+		err = t.cafeReqFileNode(nd, settings)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// cafeReqFileNode adds a cafe request for each link in the node
+func (t *Thread) cafeReqFileNode(inode ipld.Node, settings *CafeRequestSettings) error {
+	hash := inode.Cid().Hash().B58String()
+	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, settings.Options()...)
+	if err != nil {
+		return err
+	}
+
+	if len(inode.Links()) == 0 {
+		return t.cafeReqFileLink(inode, settings)
+	}
+
+	for _, l := range inode.Links() {
+		n, err := ipfs.NodeAtLink(t.node(), l)
+		if err != nil {
+			return err
+		}
+
+		err = t.cafeReqFileLink(n, settings)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *Thread) cafeReqFileLink(inode ipld.Node, settings *CafeRequestSettings) error {
+	hash := inode.Cid().Hash().B58String()
+	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, settings.Options()...)
+	if err != nil {
+		return err
+	}
+
+	flink := schema.LinkByName(inode.Links(), ValidMetaLinkNames)
+	if flink == nil {
+		return ErrMissingMetaLink
+	}
+	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
+	if dlink == nil {
+		return ErrMissingContentLink
+	}
+
+	opts := []CafeRequestOption{
+		cafeReqOpt.Group(ksuid.New().String()),
+		cafeReqOpt.SyncGroup(settings.SyncGroup),
+		cafeReqOpt.Cafe(settings.Cafe),
+	}
+	err = t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE, opts...)
+	if err != nil {
+		return err
+	}
+	err = t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE, opts...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
