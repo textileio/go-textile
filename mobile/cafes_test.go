@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/textileio/go-textile/ipfs"
-
 	"github.com/golang/protobuf/proto"
+	icid "github.com/ipfs/go-cid"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
@@ -95,21 +95,57 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 	c := cafesTestVars.cafe
 
 	// check if blocks are pinned
-	var list []string
-	blocks := m.node.Blocks("", -1, "")
-	for _, b := range blocks.Items {
-		list = append(list, b.Id)
+	var blocks []string
+	var targets []string
+	list := m.node.Blocks("", -1, "")
+	for _, b := range list.Items {
+		blocks = append(blocks, b.Id)
+		if b.Type == pb.Block_FILES {
+			targets = append(targets, b.Target)
+		}
 	}
-	notpinned, err := ipfs.NotPinned(c.Ipfs(), list)
+	missingBlockPins, err := ipfs.NotPinned(c.Ipfs(), blocks)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(notpinned) != 0 {
+	if len(missingBlockPins) != 0 {
 		var strs []string
-		for _, id := range notpinned {
+		for _, id := range missingBlockPins {
 			strs = append(strs, id.Hash().B58String())
 		}
-		t.Fatalf("cids not pinned: %s", strings.Join(strs, ", "))
+		t.Fatalf("blocks not pinned: %s", strings.Join(strs, ", "))
+	}
+
+	// check if targets are pinned
+	missingTargetPins, err := ipfs.NotPinned(c.Ipfs(), targets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(missingTargetPins) != 0 {
+		var strs []string
+		for _, id := range missingTargetPins {
+			strs = append(strs, id.Hash().B58String())
+		}
+		t.Fatalf("targets not pinned: %s", strings.Join(strs, ", "))
+	}
+
+	// try unpinning a target
+	if len(targets) > 0 {
+		dec, err := icid.Decode(targets[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = ipfs.UnpinCid(c.Ipfs(), dec, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		not, err := ipfs.NotPinned(c.Ipfs(), []string{targets[0]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(not) == 0 || not[0].Hash().B58String() != targets[0] {
+			t.Fatal("target was not recursively unpinned")
+		}
 	}
 }
 
@@ -131,32 +167,26 @@ func addTestData(m *Mobile) error {
 	if err != nil {
 		return err
 	}
-
 	_, err = m.AddMessage(thrd.Id, "hi")
 	if err != nil {
 		return err
 	}
-
 	hash, err := m.addFiles([]string{"../mill/testdata/image.png"}, thrd.Id, "hi")
 	if err != nil {
 		return err
 	}
-
 	_, err = m.AddComment(hash.B58String(), "nice")
 	if err != nil {
 		return err
 	}
-
 	hash, err = m.addFiles([]string{"../mill/testdata/image.jpeg", "../mill/testdata/image.png"}, thrd.Id, "hi")
 	if err != nil {
 		return err
 	}
-
 	_, err = m.AddLike(hash.B58String())
 	if err != nil {
 		return err
 	}
-
 	_, err = m.AddMessage(thrd.Id, "bye")
 	if err != nil {
 		return err
