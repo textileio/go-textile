@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
+	icid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
@@ -85,7 +85,7 @@ func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
 }
 
 // AddDataToDirectory adds reader bytes to a virtual dir
-func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, reader io.Reader) (*cid.Cid, error) {
+func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, reader io.Reader) (*icid.Cid, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 		return err
 	}
 
-	id, err := cid.Decode(pth)
+	id, err := icid.Decode(pth)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 }
 
 // AddData takes a reader and adds it, optionally pins it, optionally only hashes it
-func AddData(node *core.IpfsNode, reader io.Reader, pin bool, hashOnly bool) (*cid.Cid, error) {
+func AddData(node *core.IpfsNode, reader io.Reader, pin bool, hashOnly bool) (*icid.Cid, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool, hashOnly bool) (*c
 }
 
 // AddObject takes a reader and adds it as a DAG node, optionally pins it
-func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
+func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*icid.Cid, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 }
 
 // NodeAtCid returns the node behind a cid
-func NodeAtCid(node *core.IpfsNode, id cid.Cid) (ipld.Node, error) {
+func NodeAtCid(node *core.IpfsNode, id icid.Cid) (ipld.Node, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -313,7 +313,7 @@ func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 }
 
 // UnpinCid unpins a cid
-func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
+func UnpinCid(node *core.IpfsNode, id icid.Cid, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 
@@ -326,10 +326,10 @@ func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
 }
 
 // Pinned returns the subset of given cids that are pinned
-func Pinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
-	var decoded []cid.Cid
+func Pinned(node *core.IpfsNode, cids []string) ([]icid.Cid, error) {
+	var decoded []icid.Cid
 	for _, id := range cids {
-		dec, err := cid.Decode(id)
+		dec, err := icid.Decode(id)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +340,7 @@ func Pinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
 		return nil, err
 	}
 
-	var pinned []cid.Cid
+	var pinned []icid.Cid
 	for _, p := range list {
 		if p.Mode != pin.NotPinned {
 			pinned = append(pinned, p.Key)
@@ -351,10 +351,10 @@ func Pinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
 }
 
 // NotPinned returns the subset of given cids that are not pinned
-func NotPinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
-	var decoded []cid.Cid
+func NotPinned(node *core.IpfsNode, cids []string) ([]icid.Cid, error) {
+	var decoded []icid.Cid
 	for _, id := range cids {
-		dec, err := cid.Decode(id)
+		dec, err := icid.Decode(id)
 		if err != nil {
 			return nil, err
 		}
@@ -365,7 +365,7 @@ func NotPinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
 		return nil, err
 	}
 
-	var notPinned []cid.Cid
+	var notPinned []icid.Cid
 	for _, p := range list {
 		if p.Mode == pin.NotPinned {
 			notPinned = append(notPinned, p.Key)
