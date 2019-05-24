@@ -2,12 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/textileio/go-textile/common"
-	"github.com/textileio/go-textile/core"
-	"github.com/textileio/go-textile/gateway"
-	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/repo"
-	"github.com/textileio/go-textile/util"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +9,13 @@ import (
 	"runtime/debug"
 	"strconv"
 	"time"
+
+	"github.com/textileio/go-textile/common"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/gateway"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/util"
 )
 
 // Start the daemon against the user repository
@@ -53,7 +54,6 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	return nil
 }
 
-
 // Output the instance environment for the daemon command
 func printSplash() {
 	pid, err := node.PeerId()
@@ -73,7 +73,6 @@ func printSplash() {
 	fmt.Println(Grey("PeerID:  ") + Green(pid.Pretty()))
 	fmt.Println(Grey("Account: ") + Cyan(node.Account().Address()))
 }
-
 
 // Start the node, the API, and the Gateway
 // And subsribe to updates of the wallet, thread, and notifications
@@ -189,7 +188,7 @@ func startNode(serveDocs bool) error {
 		freeOSMemory("/debug/free-os-memory/")
 		mutexFractionOption("/debug/pprof-mutex/")
 		if err := http.ListenAndServe(node.Config().Addresses.Profiling, http.DefaultServeMux); err != nil {
-			log.Errorf("error staring profile listener: %s", err)
+			log.Errorf("error starting profile listener: %s", err)
 		}
 	}()
 
