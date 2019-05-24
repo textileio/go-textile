@@ -3,6 +3,9 @@ package core
 import (
 	"fmt"
 
+	cid "github.com/ipfs/go-cid"
+	"github.com/textileio/go-textile/ipfs"
+
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/pb"
 )
@@ -16,6 +19,12 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 	}
 
 	err = t.updatePeerInboxes()
+	if err != nil {
+		return nil, err
+	}
+
+	// sync all blocks and files target
+	err = t.cafeRequestThreadsContent(session.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +97,38 @@ func (t *Textile) DeregisterCafe(id string) error {
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
+}
+
+// cafeRequestThreadContent sync the entire thread conents (blocks and files) to the given cafe
+func (t *Textile) cafeRequestThreadsContent(cafe string) error {
+	for _, thrd := range t.loadedThreads {
+		blocks := t.Blocks("", -1, fmt.Sprintf("threadId='%s'", thrd.Id))
+		for _, b := range blocks.Items {
+
+			// store the block itself
+			err := t.cafeOutbox.Add(b.Id, pb.CafeRequest_STORE, cafeReqOpt.SyncGroup(b.Id), cafeReqOpt.Cafe(cafe))
+			if err != nil {
+				return err
+			}
+
+			// store the files DAGs
+			if b.Type == pb.Block_FILES {
+				dec, err := cid.Decode(b.Target)
+				if err != nil {
+					return err
+				}
+				node, err := ipfs.NodeAtCid(t.node, dec)
+				if err != nil {
+					return err
+				}
+				err = thrd.cafeReqFileTarget(node, b.Id, cafe)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // cafesEqual returns whether or not the two cafes are identical

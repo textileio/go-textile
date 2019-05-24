@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
+
+	"github.com/textileio/go-textile/ipfs"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
@@ -79,11 +82,36 @@ func TestMobile_RegisterCafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
+func TestMobile_HandleCafeRequests(t *testing.T) {
 	// manually flush until empty
-	err = flush(10)
+	err := flush(10)
 	if err != nil {
-		fmt.Println(err.Error())
+		t.Fatal(err)
+	}
+
+	m := cafesTestVars.mobile
+	c := cafesTestVars.cafe
+
+	// check if blocks are pinned
+	var list []string
+	blocks := m.node.Blocks("", -1, "")
+	for _, b := range blocks.Items {
+		list = append(list, b.Id)
+	}
+
+	notpinned, err := ipfs.NotPinned(c.Ipfs(), list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(notpinned) != 0 {
+		var strs []string
+		for _, id := range notpinned {
+			strs = append(strs, id.Hash().B58String())
+		}
+		t.Fatalf("cids not pinned: %s", strings.Join(strs, ", "))
 	}
 }
 

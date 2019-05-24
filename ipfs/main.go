@@ -325,6 +325,56 @@ func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
 	return node.Pinning.Flush()
 }
 
+// Pinned returns the subset of given cids that are pinned
+func Pinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
+	var decoded []cid.Cid
+	for _, id := range cids {
+		dec, err := cid.Decode(id)
+		if err != nil {
+			return nil, err
+		}
+		decoded = append(decoded, dec)
+	}
+	list, err := node.Pinning.CheckIfPinned(decoded...)
+	if err != nil {
+		return nil, err
+	}
+
+	var pinned []cid.Cid
+	for _, p := range list {
+		if p.Mode != pin.NotPinned {
+			pinned = append(pinned, p.Key)
+		}
+	}
+
+	return pinned, nil
+}
+
+// NotPinned returns the subset of given cids that are not pinned
+func NotPinned(node *core.IpfsNode, cids []string) ([]cid.Cid, error) {
+	var decoded []cid.Cid
+	for _, id := range cids {
+		dec, err := cid.Decode(id)
+		if err != nil {
+			return nil, err
+		}
+		decoded = append(decoded, dec)
+	}
+	list, err := node.Pinning.CheckIfPinned(decoded...)
+	if err != nil {
+		return nil, err
+	}
+
+	var notPinned []cid.Cid
+	for _, p := range list {
+		if p.Mode == pin.NotPinned {
+			notPinned = append(notPinned, p.Key)
+		}
+	}
+
+	return notPinned, nil
+}
+
 // ResolveLinkByNames resolves a link in a node from a list of valid names
 // Note: This exists for b/c w/ the "f" -> "meta" and "d" -> content migration
 func ResolveLinkByNames(nd ipld.Node, names []string) (*ipld.Link, error) {

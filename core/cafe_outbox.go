@@ -32,6 +32,17 @@ type CafeRequestSettings struct {
 	Size      int
 	Group     string
 	SyncGroup string
+	Cafe      string
+}
+
+// Options converts settings back to options
+func (s *CafeRequestSettings) Options() []CafeRequestOption {
+	return []CafeRequestOption{
+		cafeReqOpt.Size(s.Size),
+		cafeReqOpt.Group(s.Group),
+		cafeReqOpt.SyncGroup(s.SyncGroup),
+		cafeReqOpt.Cafe(s.Cafe),
+	}
 }
 
 // CafeRequestOption returns a request setting from an option
@@ -58,10 +69,16 @@ func (CafeRequestOption) Size(val int) CafeRequestOption {
 	}
 }
 
+// Cafe limits the request to a single cafe
+func (CafeRequestOption) Cafe(val string) CafeRequestOption {
+	return func(settings *CafeRequestSettings) {
+		settings.Cafe = val
+	}
+}
+
 // CafeRequestOptions returns request settings from options
 func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 	options := &CafeRequestSettings{
-		Size:      0,
 		Group:     ksuid.New().String(),
 		SyncGroup: ksuid.New().String(),
 	}
@@ -110,6 +127,9 @@ func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeR
 	// add a request for each session
 	sessions := q.datastore.CafeSessions().List().Items
 	for _, session := range sessions {
+		if settings.Cafe != "" && settings.Cafe != session.Id {
+			continue
+		}
 		// all possible request types are for our own peer
 		if err := q.add(pid, target, session.Cafe, rtype, settings); err != nil {
 			return err
