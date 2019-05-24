@@ -248,6 +248,7 @@ func (t *Thread) processFileTarget(node *pb.Node, inode ipld.Node, keys map[stri
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -380,6 +381,7 @@ func (t *Thread) indexFileTarget(inode ipld.Node, target string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -494,6 +496,7 @@ func (t *Thread) cafeReqFileTarget(inode ipld.Node, syncGroup string, cafe strin
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -505,11 +508,12 @@ func (t *Thread) cafeReqFileNode(inode ipld.Node, settings *CafeRequestSettings)
 		return err
 	}
 
-	if len(inode.Links()) == 0 {
+	links := inode.Links()
+	if looksLikeFileNode(inode) {
 		return t.cafeReqFileLink(inode, settings)
 	}
 
-	for _, l := range inode.Links() {
+	for _, l := range links {
 		n, err := ipfs.NodeAtLink(t.node(), l)
 		if err != nil {
 			return err
@@ -520,6 +524,7 @@ func (t *Thread) cafeReqFileNode(inode ipld.Node, settings *CafeRequestSettings)
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -530,11 +535,12 @@ func (t *Thread) cafeReqFileLink(inode ipld.Node, settings *CafeRequestSettings)
 		return err
 	}
 
-	flink := schema.LinkByName(inode.Links(), ValidMetaLinkNames)
+	links := inode.Links()
+	flink := schema.LinkByName(links, ValidMetaLinkNames)
 	if flink == nil {
 		return ErrMissingMetaLink
 	}
-	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
+	dlink := schema.LinkByName(links, ValidContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}
@@ -552,5 +558,6 @@ func (t *Thread) cafeReqFileLink(inode ipld.Node, settings *CafeRequestSettings)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

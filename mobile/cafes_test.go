@@ -100,12 +100,10 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 	for _, b := range blocks.Items {
 		list = append(list, b.Id)
 	}
-
 	notpinned, err := ipfs.NotPinned(c.Ipfs(), list)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if len(notpinned) != 0 {
 		var strs []string
 		for _, id := range notpinned {
