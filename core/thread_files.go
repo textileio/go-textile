@@ -203,19 +203,21 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 // removeFiles unpins and removes target files unless they are used by another target,
 // and unpins the target itself if not used by another block.
-// TODO: Un-store on cafe(s)?
 func (t *Thread) removeFiles(node ipld.Node) error {
 	if node == nil {
 		return ErrInvalidFileNode
 	}
 
 	target := node.Cid().Hash().B58String()
-
 	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'").Items
-	if len(blocks) == 1 {
-		// safe to unpin target node
-
+	if len(blocks) == 1 { // safe to unpin target node
 		err := ipfs.UnpinNode(t.node(), node, false)
+		if err != nil {
+			return err
+		}
+
+		// unstore on cafes
+		err = t.cafeOutbox.Add(target, pb.CafeRequest_UNSTORE)
 		if err != nil {
 			return err
 		}
