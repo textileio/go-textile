@@ -42,6 +42,7 @@ func TestMobile_SetupCafes(t *testing.T) {
 		Account:     keypair.Random(),
 		RepoPath:    cafesTestVars.cafePath,
 		CafeApiAddr: "0.0.0.0:" + cafesTestVars.cafeApiPort,
+		CafeURL:     "http://127.0.0.1:" + cafesTestVars.cafeApiPort, // set this to avoid using funky IPs in CI
 		CafeOpen:    true,
 	})
 	if err != nil {
