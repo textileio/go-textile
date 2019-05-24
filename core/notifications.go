@@ -60,7 +60,12 @@ func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	return hash, t.datastore.Notifications().Delete(id)
+	err = t.datastore.Notifications().Delete(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return hash, nil
 }
 
 // IgnoreInviteViaNotification uses an invite notification to ignore an invite to a thread
@@ -73,7 +78,8 @@ func (t *Textile) IgnoreInviteViaNotification(id string) error {
 		return fmt.Errorf(fmt.Sprintf("notification type is not invite"))
 	}
 
-	if err := t.IgnoreInvite(notification.Block); err != nil {
+	err := t.IgnoreInvite(notification.Block)
+	if err != nil {
 		return err
 	}
 
