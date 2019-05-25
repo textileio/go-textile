@@ -191,9 +191,9 @@ func (a *api) Start() {
 					}
 				}
 
-				block.GET("", func (g *gin.Context) {
+				block.GET("", func(g *gin.Context) {
 					id := g.Param("id")
-					g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + id + "/meta")
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/"+id+"/meta")
 				})
 				block.DELETE("", a.rmBlocks)
 
@@ -222,8 +222,8 @@ func (a *api) Start() {
 		files := v0.Group("/files")
 		{
 			files.GET("", a.lsThreadFiles)
-			files.GET("/:block", func (g *gin.Context) {
-				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + g.Param("block") + "/files")
+			files.GET("/:block", func(g *gin.Context) {
+				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/"+g.Param("block")+"/files")
 			})
 		}
 
@@ -231,11 +231,11 @@ func (a *api) Start() {
 		{
 			hash := file.Group("/:hash")
 			{
-				hash.GET("", func (g *gin.Context) {
-					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/meta")
+				hash.GET("", func(g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/"+g.Param("hash")+"/meta")
 				})
-				hash.GET("/data", func (g *gin.Context) {
-					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/content")
+				hash.GET("/data", func(g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/"+g.Param("hash")+"/content")
 				})
 				hash.GET("/meta", a.getFileMeta)
 				hash.GET("/content", a.getFileContent)

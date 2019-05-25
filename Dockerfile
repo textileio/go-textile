@@ -59,6 +59,8 @@ EXPOSE 8081
 EXPOSE 40600
 # Web Gateway;
 EXPOSE 5050
+# Profiling API;
+EXPOSE 6060
 
 # Create the fs-repo directory
 ENV TEXTILE_PATH /data/textile
@@ -80,6 +82,7 @@ ENV INIT_ARGS \
   --swarm-ports=4001,8081 \
   --api-bind-addr=0.0.0.0:40600 \
   --gateway-bind-addr=0.0.0.0:5050 \
+  --profile-bind-addr=0.0.0.0:6060 \
   --no-log-files \
   --debug
 

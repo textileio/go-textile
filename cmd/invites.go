@@ -111,7 +111,6 @@ func InviteAccept(inviteID string, key string) error {
 	return nil
 }
 
-
 func InviteIgnore(inviteID string) error {
 	res, err := executeStringCmd(http.MethodPost, "invites/"+inviteID+"/ignore", params{
 		args: []string{inviteID},

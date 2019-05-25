@@ -41,7 +41,6 @@ func IpfsSwarmPeers(verbose bool, streams bool, latency bool, direction bool) er
 	return nil
 }
 
-
 func IpfsCat(hash string, key string) error {
 	return executeBlobCmd(http.MethodGet, "ipfs/cat/"+hash, params{
 		opts: map[string]string{"key": key},

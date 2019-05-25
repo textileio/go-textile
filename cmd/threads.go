@@ -70,7 +70,6 @@ func ThreadAdd(name string, key string, tipe string, sharing string, whitelist [
 	return nil
 }
 
-
 func ThreadList() error {
 	res, err := executeJsonCmd(http.MethodGet, "threads", params{}, nil)
 	if err != nil {
@@ -88,7 +87,6 @@ func ThreadGet(threadID string) error {
 	output(res)
 	return nil
 }
-
 
 func ThreadDefault() error {
 	res, err := executeJsonCmd(http.MethodGet, "threads/default", params{}, nil)
@@ -125,7 +123,6 @@ func ThreadUnsubscribe(threadID string) error {
 	output(res)
 	return nil
 }
-
 
 func ThreadSnapshotCreate() error {
 	res, err := createThreadSnapshot()

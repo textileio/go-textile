@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	ipfsconfig "github.com/ipfs/go-ipfs-config"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -416,8 +415,6 @@ func (t *Textile) Stop() error {
 	if err := t.node.Close(); err != nil {
 		return err
 	}
-	t.context.Close()
-	t.cancel()
 
 	// close db connection
 	t.datastore.Close()
@@ -553,7 +550,8 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 		routing = libp2p.DHTClientOption
 	}
 
-	cfg := &core.BuildCfg{
+	cctx, _ := context.WithCancel(context.Background())
+	nd, err := core.NewNode(cctx, &core.BuildCfg{
 		Repo:      rep,
 		Permanent: true, // temporary way to signify that node is permanent
 		Online:    online,
@@ -563,31 +561,18 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 			"mplex":  true,
 		},
 		Routing: routing,
-	}
-
-	cctx, cancel := context.WithCancel(context.Background())
-	nd, err := core.NewNode(cctx, cfg)
+	})
 	if err != nil {
 		return err
 	}
 	nd.IsDaemon = true
 
-	ctx := oldcmds.Context{}
-	ctx.ConfigRoot = t.repoPath
-	ctx.LoadConfig = func(path string) (*ipfsconfig.Config, error) {
-		return fsrepo.ConfigAt(t.repoPath)
+	if t.node != nil {
+		err = t.node.Close()
+		if err != nil {
+			return err
+		}
 	}
-	ctx.ConstructNode = func() (*core.IpfsNode, error) {
-		return nd, nil
-	}
-	ctx.Plugins = plugins
-
-	if t.cancel != nil {
-		t.cancel()
-	}
-
-	t.context = ctx
-	t.cancel = cancel
 	t.node = nd
 
 	return nil
@@ -810,4 +795,3 @@ func removeLocks(repoPath string) {
 	if err := os.Remove(dsLockFile); err != nil {
 	}
 }
-

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/textileio/go-textile/common"
 )
 
@@ -13,4 +14,3 @@ func Version(git bool) error {
 	}
 	return nil
 }
-

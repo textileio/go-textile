@@ -86,7 +86,6 @@ func ContactList() error {
 	return nil
 }
 
-
 func ContactGet(address string) error {
 	_, res, err := getContact(address)
 	if err != nil {
@@ -104,7 +103,6 @@ func getContact(address string) (*pb.Contact, string, error) {
 	}
 	return &contact, res, nil
 }
-
 
 func ContactDelete(address string) error {
 	res, err := executeStringCmd(http.MethodDelete, "contacts/"+address, params{})

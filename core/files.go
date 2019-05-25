@@ -235,7 +235,7 @@ func (t *Textile) FileContent(hash string) (io.ReadSeeker, *pb.FileIndex, error)
 	return reader, file, err
 }
 
-func (t *Textile)  FileIndexContent(file  *pb.FileIndex) (io.ReadSeeker, error) {
+func (t *Textile) FileIndexContent(file *pb.FileIndex) (io.ReadSeeker, error) {
 	fd, err := ipfs.DataAtPath(t.node, file.Hash)
 	if err != nil {
 		return nil, err

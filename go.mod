@@ -21,30 +21,29 @@ require (
 	github.com/go-openapi/swag v0.19.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
-	github.com/ipfs/go-cid v0.0.1
-	github.com/ipfs/go-ipfs v0.4.21-0.20190502163502-5fd5d444796d
+	github.com/ipfs/go-cid v0.0.2
+	github.com/ipfs/go-ipfs v0.4.21-rc3
 	github.com/ipfs/go-ipfs-addr v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.5
+	github.com/ipfs/go-ipfs-cmds v0.0.7
 	github.com/ipfs/go-ipfs-config v0.0.3
 	github.com/ipfs/go-ipfs-files v0.0.3
-	github.com/ipfs/go-ipld-format v0.0.1
+	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
 	github.com/ipfs/go-merkledag v0.0.3
-	github.com/ipfs/go-path v0.0.3
-	github.com/ipfs/go-unixfs v0.0.5
-	github.com/ipfs/interface-go-ipfs-core v0.0.7
+	github.com/ipfs/go-path v0.0.4
+	github.com/ipfs/go-unixfs v0.0.6
+	github.com/ipfs/interface-go-ipfs-core v0.0.8
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
-	github.com/jessevdk/go-flags v1.4.0
-	github.com/libp2p/go-libp2p-crypto v0.0.1
+	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-net v0.0.2
-	github.com/libp2p/go-libp2p-peer v0.1.0
-	github.com/libp2p/go-libp2p-peerstore v0.0.5
+	github.com/libp2p/go-libp2p-peer v0.1.1
+	github.com/libp2p/go-libp2p-peerstore v0.0.6
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-record v0.0.1
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
-	github.com/multiformats/go-multiaddr v0.0.2
+	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f
 	github.com/onsi/ginkgo v1.8.0
@@ -60,8 +59,9 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
+	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )

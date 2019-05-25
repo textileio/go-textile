@@ -25,8 +25,9 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	// delete author since we want these identical across peers
+	// delete author and address since we want these identical across peers
 	header.Author = ""
+	header.Address = ""
 	// add a second parent
 	header.Parents = append(header.Parents, head.B58String())
 	// sort to ensure a deterministic (the order may be reversed on other peers)
