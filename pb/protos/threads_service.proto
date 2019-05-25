@@ -22,7 +22,7 @@ message ThreadBlock {
 
 message ThreadBlockHeader {
     google.protobuf.Timestamp date = 1;
-    repeated string parents        = 2;
+    repeated string parents        = 2 [deprecated = true];
     string author                  = 3;
     string address                 = 4;
 }
