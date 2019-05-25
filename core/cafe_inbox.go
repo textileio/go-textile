@@ -102,7 +102,8 @@ func (q *CafeInbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize)); err != nil {
+	err := q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize))
+	if err != nil {
 		log.Errorf("cafe inbox batch error: %s", err)
 		return
 	}
@@ -117,11 +118,13 @@ func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
 
 	for _, msg := range msgs {
 		go func(msg pb.CafeMessage) {
-			if err := q.handle(msg); err != nil {
+			err := q.handle(msg)
+			if err != nil {
 				log.Warningf("handle attempt failed for cafe message %s: %s", msg.Id, err)
 				return
 			}
-			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
+			err = q.datastore.CafeMessages().Delete(msg.Id)
+			if err != nil {
 				log.Errorf("failed to delete cafe message %s: %s", msg.Id, err)
 			} else {
 				log.Debugf("handled cafe message %s", msg.Id)
@@ -155,16 +158,19 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 		return q.handleErr(err, msg)
 	}
 	env := new(pb.Envelope)
-	if err := proto.Unmarshal(envb, env); err != nil {
+	err = proto.Unmarshal(envb, env)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 
-	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
+	err = q.threadsService().service.VerifyEnvelope(env, pid)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 
 	// pass to thread service for normal handling
-	if _, err := q.threadsService().Handle(pid, env); err != nil {
+	_, err = q.threadsService().Handle(pid, env)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 	return nil
@@ -172,14 +178,14 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 
 // handleErr deletes or adds an attempt to a message processing error
 func (q *CafeInbox) handleErr(herr error, msg pb.CafeMessage) error {
+	var err error
 	if msg.Attempts+1 >= maxDownloadAttempts {
-		if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
-			return err
-		}
+		err = q.datastore.CafeMessages().Delete(msg.Id)
 	} else {
-		if err := q.datastore.CafeMessages().AddAttempt(msg.Id); err != nil {
-			return err
-		}
+		err = q.datastore.CafeMessages().AddAttempt(msg.Id)
+	}
+	if err != nil {
+		return err
 	}
 	return herr
 }
