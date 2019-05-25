@@ -2,7 +2,13 @@
 
 ## 0.2.2 2019-05-24
 
-Updates go-ipfs to v0.4.21-rc3, which contains a fix for the [too many files open bug](https://github.com/ipfs/go-ipfs/issues/6237). This has been causing our cafes to OOM for quite some time.
+### 
+
+Pulls in a fix for the [too many files open bug](https://github.com/ipfs/go-ipfs/issues/6237), which has been causing our cafes to OOM for quite some time.
+
+#### IPFS:
+
+- Updates go-ipfs to v0.4.21-rc3
 
 #### Docs:
 
@@ -19,7 +25,7 @@ Updates go-ipfs to v0.4.21-rc3, which contains a fix for the [too many files ope
 
 ## 0.2.1 2019-05-23
 
-###  CLI: Fix --version flag (#785)
+### CLI: Fix --version flag (#785)
 
 Fixed v0.2.0 regression where `textile --version` would error with `textile: error: unknown long flag '--version', try --help`.
 

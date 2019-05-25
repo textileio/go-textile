@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -603,7 +602,7 @@ The response contains a base58 encoded version of the random bytes token.`)
 
 func Run() error {
 	// config
-	appCmd.Version(common.Version)
+	//appCmd.Version(common.Version)
 
 	// commands
 	switch kingpin.MustParse(appCmd.Parse(os.Args[1:])) {

@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/textileio/go-textile/cmd"
 	"os"
+
+	"github.com/textileio/go-textile/cmd"
 )
 
 func main() {
