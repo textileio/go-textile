@@ -25,6 +25,7 @@ Join us on our [public Slack channel](https://slack.textile.io/) for news, discu
 -   [Usage](#usage)
 -   [Develop](#develop)
 -   [Contribute](#contribute)
+-   [Changelog](#changelog)
 -   [License](#license)
 
 ## Security
@@ -140,6 +141,10 @@ This project is a work in progress. As such, there's a few things you can do rig
 -   **Add tests**. There can never be enough tests.
 
 Before you get started, be sure to read our [contributors guide](./CONTRIBUTING.md) and our [contributor covenant code of conduct](./CODE_OF_CONDUCT.md).
+
+## Changelog
+
+[Changelog is published to Releases.](https://github.com/textileio/go-textile/releases)
 
 ## License
 
