@@ -70,6 +70,7 @@ var (
 	appCmd     = kingpin.New("textile", "Textile is a set of tools and trust-less infrastructure for building censorship resistant and privacy preserving applications")
 	apiAddr    = appCmd.Flag("api", "API Address to use").Envar("API").Default("http://127.0.0.1:40600").String()
 	apiVersion = appCmd.Flag("api-version", "API version to use").Envar("API_VERSION").Default("v0").String()
+	logDebug   = appCmd.Flag("debug", "Set the logging level to debug").Bool()
 
 	// @note removes the short names for the above, as they w ere conflicting with command ones
 
@@ -215,7 +216,6 @@ An access token is required to register, and should be obtained separately from 
 	daemonCmd      = appCmd.Command("daemon", "Start a node daemon session")
 	daemonRepoPath = daemonCmd.Flag("repo-dir", "Specify a custom repository path").Short('r').String()
 	daemonPinCode  = daemonCmd.Flag("pin-code", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
-	daemonLogDebug = daemonCmd.Flag("debug", "Set the logging level to debug").Bool()
 	daemonDocs     = daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
 	// @note use global debug flag, as otherwise conflict arises
 
@@ -288,10 +288,9 @@ Stacks may include:
 	initAccountSeed       = initCmd.Flag("seed", "Account seed (run 'wallet' command to generate new seeds)").Short('s').Required().String()
 	initPinCode           = initCmd.Flag("pin-code", "Specify a pin code for datastore encryption").Short('p').String()
 	initRepoPath          = initCmd.Flag("repo-dir", "Specify a custom repository path").Short('r').String()
-	ipfsServerMode        = initCmd.Flag("server", "Apply IPFS server profile").Bool()
-	ipfsSwarmPorts        = initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
+	initIpfsServerMode    = initCmd.Flag("server", "Apply IPFS server profile").Bool()
+	initIpfsSwarmPorts    = initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
 	initLogFiles          = initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("true").Bool()
-	initLogDebug          = initCmd.Flag("debug", "Set the logging level to debug").Bool()
 	initApiBindAddr       = initCmd.Flag("api-bind-addr", "Set the local API address").Default("127.0.0.1:40600").String()
 	initCafeApiBindAddr   = initCmd.Flag("cafe-bind-addr", "Set the cafe REST API address").Default("0.0.0.0:40601").String()
 	initGatewayBindAddr   = initCmd.Flag("gateway-bind-addr", "Set the IPFS gateway address").Default("127.0.0.1:5050").String()
@@ -689,7 +688,7 @@ func Run() error {
 		if err != nil {
 			return err
 		}
-		return Daemon(repoPath, *daemonPinCode, *daemonDocs, *daemonLogDebug)
+		return Daemon(repoPath, *daemonPinCode, *daemonDocs, *logDebug)
 
 	// docs
 	case docsCmd.FullCommand():
@@ -736,15 +735,15 @@ func Run() error {
 			Account:         account,
 			PinCode:         *initPinCode,
 			RepoPath:        repoPath,
-			SwarmPorts:      *ipfsSwarmPorts,
+			SwarmPorts:      *initIpfsSwarmPorts,
 			ApiAddr:         *initApiBindAddr,
 			CafeApiAddr:     *initCafeApiBindAddr,
 			GatewayAddr:     *initGatewayBindAddr,
 			ProfilingAddr:   *initProfilingBindAddr,
 			IsMobile:        false,
-			IsServer:        *ipfsServerMode,
+			IsServer:        *initIpfsServerMode,
 			LogToDisk:       *initLogFiles,
-			Debug:           *initLogDebug,
+			Debug:           *logDebug,
 			CafeOpen:        *initCafeOpen,
 			CafeURL:         *initCafeURL,
 			CafeNeighborURL: *initCafeNeighborURL,
@@ -1014,7 +1013,7 @@ func executeBlobCmd(meth method, pth string, pars params) error {
 
 func request(meth method, pth string, pars params) (*http.Response, func(), error) {
 	apiURL := fmt.Sprintf("%s/api/%s/%s", *apiAddr, *apiVersion, pth)
-	if *daemonLogDebug {
+	if *logDebug {
 		fmt.Println(apiURL)
 	}
 	req, err := http.NewRequest(string(meth), apiURL, pars.payload)
