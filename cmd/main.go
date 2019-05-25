@@ -601,9 +601,6 @@ The response contains a base58 encoded version of the random bytes token.`)
 )
 
 func Run() error {
-	// config
-	//appCmd.Version(common.Version)
-
 	// commands
 	switch kingpin.MustParse(appCmd.Parse(os.Args[1:])) {
 

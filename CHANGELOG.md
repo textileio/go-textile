@@ -2,9 +2,9 @@
 
 ## 0.2.2 2019-05-24
 
-### 
+### Update `go-ipfs` to 0.4.21-rc3
 
-Pulls in a fix for the [too many files open bug](https://github.com/ipfs/go-ipfs/issues/6237), which has been causing our cafes to OOM for quite some time.
+Pulls in a fix for the [too many files open bug](https://github.com/ipfs/go-ipfs/issues/6237), which has been causing OOMs on the production cafe peers.
 
 #### IPFS:
 
