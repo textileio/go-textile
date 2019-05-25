@@ -4,7 +4,6 @@ import (
 	"net/http"
 )
 
-
 func CommentAdd(blockID string, commentBody string) error {
 	res, err := executeJsonCmd(http.MethodGet, "blocks/"+blockID+"/comments", params{args: []string{commentBody}}, nil)
 	if err != nil {
@@ -13,7 +12,6 @@ func CommentAdd(blockID string, commentBody string) error {
 	output(res)
 	return nil
 }
-
 
 func CommentList(blockID string) error {
 	res, err := executeJsonCmd(http.MethodGet, "blocks/"+blockID+"/comments", params{}, nil)
@@ -32,7 +30,6 @@ func CommentGet(blockID string) error {
 	output(res)
 	return nil
 }
-
 
 func CommentIgnore(blockID string) error {
 	return BlockIgnore(blockID)

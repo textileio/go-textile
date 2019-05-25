@@ -89,7 +89,7 @@ func BlockIgnore(blockID string) error {
 }
 
 func BlockFile(blockID string, index int, path string, content bool) error {
-	urlPath := "blocks/"+blockID+"/files"
+	urlPath := "blocks/" + blockID + "/files"
 	if path != "" {
 		urlPath += "/" + strconv.Itoa(index) + "/" + strings.Trim(path, "/")
 		if content {

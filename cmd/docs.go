@@ -1,11 +1,10 @@
-
-
 package cmd
 
 import (
 	"fmt"
-	"strings"
 	"html"
+	"strings"
+
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

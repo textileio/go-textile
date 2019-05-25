@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"net/http"
+
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
-	"net/http"
 )
 
 func ProfileGet() error {

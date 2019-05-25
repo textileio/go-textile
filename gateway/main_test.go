@@ -2,10 +2,11 @@ package gateway_test
 
 import (
 	"fmt"
-	"github.com/textileio/go-textile/util"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/textileio/go-textile/util"
 
 	"github.com/textileio/go-textile/core"
 	. "github.com/textileio/go-textile/gateway"

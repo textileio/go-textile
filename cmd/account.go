@@ -44,7 +44,6 @@ func AccountAddress() error {
 	return nil
 }
 
-
 func AccountSync(wait int) error {
 	results := handleSearchStream("snapshots/search", params{
 		opts: map[string]string{

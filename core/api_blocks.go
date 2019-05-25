@@ -36,7 +36,7 @@ func getBlockThread(node *Textile, id string) (*Thread, error, int) {
 }
 
 func getFiles(node *Textile, id string) (*pb.Files, error, int) {
-	files, err := node.File(id)  // despite naming, this is files
+	files, err := node.File(id) // despite naming, this is files
 	if err != nil {
 		return nil, err, http.StatusNotFound
 	}
@@ -207,7 +207,6 @@ func (a *api) getBlockFileMeta(g *gin.Context) {
 	}
 	pbJSON(g, http.StatusOK, file)
 }
-
 
 // getBlockFileContent godoc
 // @Summary Gets the decrypted file content of a file within a files block

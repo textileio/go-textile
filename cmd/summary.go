@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/textileio/go-textile/pb"
 	"net/http"
+
+	"github.com/textileio/go-textile/pb"
 )
 
 func Summary() error {
