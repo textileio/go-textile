@@ -234,8 +234,8 @@ type Link struct {
 	Size       uint64
 }
 
-// GetObjectAtPath returns the DAG object at the given path
-func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
+// ObjectAtPath returns the DAG object at the given path
+func ObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err

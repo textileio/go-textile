@@ -7,6 +7,8 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/ptypes"
 	cid "github.com/ipfs/go-cid"
@@ -176,14 +178,37 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		return
 	}
 
-	mid, err := cid.Decode(string(buf.Bytes()))
+	// pin inner node
+	env := new(pb.Envelope)
+	err = proto.Unmarshal(buf.Bytes(), env)
 	if err != nil {
-		c.abort(g, http.StatusBadRequest, err)
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	tenv := new(pb.ThreadEnvelope)
+	err = ptypes.UnmarshalAny(env.Message.Payload, tenv)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	id, err := ipfs.AddObject(c.node.Ipfs(), bytes.NewReader(tenv.Node), true)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	node, err := ipfs.NodeAtCid(c.node.Ipfs(), *id)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	bnode, err := extractNode(c.node.Ipfs(), node)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = c.node.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
-		Id:     mid.Hash().B58String(),
+		Id:     bnode.hash.B58String(),
 		Peer:   pid,
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
@@ -205,7 +230,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		}
 	}()
 
-	log.Debugf("delivered message %s", mid.Hash().B58String())
+	log.Debugf("delivered message %s", bnode.hash.B58String())
 
 	g.Status(http.StatusOK)
 }

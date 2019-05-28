@@ -83,6 +83,28 @@ func (c *CafeRequestDB) GetGroup(group string) *pb.CafeRequestList {
 	return c.handleQuery("SELECT * FROM cafe_requests WHERE groupId='" + group + "';")
 }
 
+func (c *CafeRequestDB) GetSyncGroup(group string) string {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	total, err := c.db.Query(`
+		SELECT DISTINCT syncGroupId FROM cafe_requests WHERE groupId=?
+	`, group)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return ""
+	}
+	for total.Next() {
+		var syncGroupId string
+		if err := total.Scan(&syncGroupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		return syncGroupId
+	}
+	return ""
+}
+
 func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -129,8 +151,40 @@ func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
 	defer c.lock.Unlock()
 
 	var syncGroups []string
-	total, err := c.db.Query(`
+	rows, err := c.db.Query(`
         SELECT DISTINCT syncGroupId FROM cafe_requests WHERE status!=? ORDER BY date ASC;
+    `, pb.CafeRequest_COMPLETE)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for rows.Next() {
+		var syncGroupId string
+		if err := rows.Scan(&syncGroupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		syncGroups = append(syncGroups, syncGroupId)
+	}
+
+	return syncGroups
+}
+
+func (c *CafeRequestDB) ListCompleteSyncGroups() []string {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	var syncGroups []string
+	total, err := c.db.Query(`
+        SELECT a.syncGroupId
+		FROM   (SELECT syncGroupId, COUNT(*) as total
+		        FROM   cafe_requests
+		        GROUP BY syncGroupId) a
+		JOIN   (SELECT syncGroupId, COUNT(*) as total_complete
+		        FROM   cafe_requests
+    		    WHERE  status=?
+	    	    GROUP BY syncGroupId) b
+		ON     a.syncGroupId = b.syncGroupId AND a.total = b.total_complete
     `, pb.CafeRequest_COMPLETE)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -148,10 +202,43 @@ func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
 	return syncGroups
 }
 
+func (c *CafeRequestDB) SyncGroupComplete(syncGroupId string) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	var syncGroups []string
+	total, err := c.db.Query(`
+        SELECT a.syncGroupId
+		FROM   (SELECT syncGroupId, COUNT(*) as total
+		        FROM   cafe_requests
+		        WHERE  syncGroupId=?
+		        GROUP BY syncGroupId) a
+		JOIN   (SELECT syncGroupId, COUNT(*) as total_complete
+		        FROM   cafe_requests
+    		    WHERE  syncGroupId=? AND status=?
+	    	    GROUP BY syncGroupId) b
+		ON     a.syncGroupId = b.syncGroupId AND a.total = b.total_complete
+    `, syncGroupId, syncGroupId, pb.CafeRequest_COMPLETE)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return false
+	}
+	for total.Next() {
+		var syncGroupId string
+		if err := total.Scan(&syncGroupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		syncGroups = append(syncGroups, syncGroupId)
+	}
+
+	return len(syncGroups) > 0
+}
+
 func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	group := &pb.CafeSyncGroupStatus{}
+	status := &pb.CafeSyncGroupStatus{}
 
 	rows, err := c.db.Query(`
         SELECT cafeId, size, status, syncGroupId FROM cafe_requests WHERE syncGroupId=(
@@ -160,32 +247,32 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 	`, groupId)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return group
+		return status
 	}
 
 	for rows.Next() {
 		var cafeId, syncGroupId string
 		var size int64
-		var status int
-		if err := rows.Scan(&cafeId, &size, &status, &syncGroupId); err != nil {
+		var stat int
+		if err := rows.Scan(&cafeId, &size, &stat, &syncGroupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 
-		group.Id = syncGroupId
-		group.NumTotal += 1
-		group.SizeTotal += size
-		switch status {
+		status.Id = syncGroupId
+		status.NumTotal += 1
+		status.SizeTotal += size
+		switch stat {
 		case 1:
-			group.NumPending += 1
-			group.SizePending += size
+			status.NumPending += 1
+			status.SizePending += size
 		case 2:
-			group.NumComplete += 1
-			group.SizeComplete += size
+			status.NumComplete += 1
+			status.SizeComplete += size
 		}
 	}
 
-	return group
+	return status
 }
 
 func (c *CafeRequestDB) UpdateStatus(id string, status pb.CafeRequest_Status) error {

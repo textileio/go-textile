@@ -89,7 +89,8 @@ func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
 		return "", err
 	}
 
-	if _, err := srv.SendRequest(p, env); err != nil {
+	_, err = srv.SendRequest(p, env)
+	if err != nil {
 		log.Errorf("ping error: %s", err)
 		return PeerOffline, nil
 	}
@@ -121,7 +122,8 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
-	if err := srv.handleError(rpmes); err != nil {
+	err = srv.handleError(rpmes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -168,7 +170,8 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	rpmes := new(pb.Envelope)
-	if err := proto.Unmarshal(body, rpmes); err != nil {
+	err = proto.Unmarshal(body, rpmes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -177,7 +180,8 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-	if err := srv.handleError(rpmes); err != nil {
+	err = srv.handleError(rpmes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -234,7 +238,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
 			var rpmes *pb.Envelope
-			if err := decoder.Decode(&rpmes); err == io.EOF {
+			err = decoder.Decode(&rpmes)
+			if err == io.EOF {
 				return
 			} else if err != nil {
 				errCh <- err
@@ -247,7 +252,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			}
 
 			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-			if err := srv.handleError(rpmes); err != nil {
+			err := srv.handleError(rpmes)
+			if err != nil {
 				errCh <- err
 				return
 			}
@@ -374,7 +380,8 @@ func (srv *Service) handleError(env *pb.Envelope) error {
 		return nil
 	} else {
 		errMsg := new(pb.Error)
-		if err := ptypes.UnmarshalAny(env.Message.Payload, errMsg); err != nil {
+		err := ptypes.UnmarshalAny(env.Message.Payload, errMsg)
+		if err != nil {
 			return err
 		}
 		return fmt.Errorf(errMsg.Message)

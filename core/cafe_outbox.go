@@ -152,7 +152,7 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	}
 
 	target := id.Hash().B58String()
-	settings := CafeRequestOptions(cafeReqOpt.SyncGroup(target))
+	settings := CafeRequestOptions()
 	for _, inbox := range inboxes {
 		err = q.add(pid, target, inbox, pb.CafeRequest_INBOX, settings)
 		if err != nil {

@@ -44,10 +44,10 @@ func (c *BlockDB) Add(block *pb.Block) error {
 		block.Body,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -88,8 +88,15 @@ func (c *BlockDB) Count(query string) int {
 	}
 	row := c.db.QueryRow("select Count(*) from blocks" + q + ";")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
+}
+
+func (c *BlockDB) UpdateParents(id string, parents []string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update blocks set parents=? where id=?", strings.Join(parents, ","), id)
+	return err
 }
 
 func (c *BlockDB) Delete(id string) error {

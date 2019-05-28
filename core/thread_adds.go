@@ -21,6 +21,7 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
+		Invitee: p.Id,
 	}
 
 	pid, err := peer.IDB58Decode(p.Id)
@@ -35,14 +36,6 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 	res, err := t.commitBlock(msg, pb.Block_ADD, true, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(pk, plaintext)
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	// create new peer for posting (it will get added if+when they accept)
-	target := pb.ThreadPeer{Id: p.Id}
-
-	err = t.post(res, []pb.ThreadPeer{target})
 	if err != nil {
 		return nil, err
 	}
@@ -86,15 +79,15 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 // handleAddBlock handles an incoming add.
 // This happens right before a join. The invite is not kept on-chain,
 // so we only need to follow parents and update HEAD.
-func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
-	_, err := t.followParents(block.Header.Parents)
+func (t *Thread) handleAddBlock(parents []string) error {
+	_, err := t.followParents(parents)
 	if err != nil {
 		return err
 	}
 
 	// update HEAD if parents of the invite are actual updates
-	if len(block.Header.Parents) > 0 {
-		hash, err := mh.FromB58String(block.Header.Parents[0])
+	if len(parents) > 0 {
+		hash, err := mh.FromB58String(parents[0])
 		if err != nil {
 			return err
 		}

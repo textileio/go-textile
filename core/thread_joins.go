@@ -9,40 +9,6 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// joinInitial creates an outgoing join block for an emtpy thread
-func (t *Thread) joinInitial() (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
-	}
-
-	msg, err := t.buildJoin(t.node().Identity.Pretty())
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_JOIN, true, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.indexBlock(res, pb.Block_JOIN, "", "")
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
-
-	return res.hash, nil
-}
-
 // join creates an outgoing join block
 func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
@@ -52,7 +18,11 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	msg, err := t.buildJoin(inviterId.Pretty())
+	var inviter string
+	if inviterId != "" {
+		inviter = inviterId.Pretty()
+	}
+	msg, err := t.buildJoin(inviter)
 	if err != nil {
 		return nil, err
 	}
@@ -63,16 +33,6 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	}
 
 	err = t.indexBlock(res, pb.Block_JOIN, "", "")
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.post(res, t.Peers())
 	if err != nil {
 		return nil, err
 	}

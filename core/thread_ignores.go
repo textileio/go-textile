@@ -42,16 +42,6 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.post(res, t.Peers())
-	if err != nil {
-		return nil, err
-	}
-
 	// cleanup
 	err = t.datastore.Notifications().DeleteByBlock(block)
 	if err != nil {

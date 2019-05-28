@@ -46,10 +46,10 @@ func (c *ThreadDB) Add(thread *pb.Thread) error {
 		int(thread.Sharing),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -84,7 +84,7 @@ func (c *ThreadDB) Count() int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from threads;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

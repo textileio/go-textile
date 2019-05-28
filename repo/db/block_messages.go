@@ -53,20 +53,10 @@ func (c *BlockMessageDB) Add(msg *pb.BlockMessage) error {
 	return nil
 }
 
-func (c *BlockMessageDB) List(offset string, limit int, exclude []string) []pb.BlockMessage {
+func (c *BlockMessageDB) List(offset string, limit int) []pb.BlockMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var q string
-	if len(exclude) > 0 {
-		q = " id not in ("
-		for i, e := range exclude {
-			q += "'" + e + "'"
-			if i != len(exclude)-1 {
-				q += ","
-			}
-		}
-		q += ") "
-	}
 	if offset != "" {
 		if q != "" {
 			q += "and "

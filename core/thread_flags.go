@@ -34,16 +34,6 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.post(res, t.Peers())
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debugf("added FLAG to %s: %s", t.Id, res.hash.B58String())
 
 	return res.hash, nil

@@ -9,9 +9,10 @@ import "model.proto";
 // for wire transport
 message ThreadEnvelope {
     string thread    = 1;
-    string hash      = 2; // hash of encrypted block
-    bytes ciphertext = 3; // encrypted ThreadBlock, also stored on ipfs for recovery
+    string hash      = 2 [deprecated = true]; // hash of encrypted block
+    bytes ciphertext = 3 [deprecated = true]; // encrypted ThreadBlock, also stored on ipfs for recovery
     bytes sig        = 4; // account signature
+	bytes node       = 5; // block node (v2)
 }
 
 message ThreadBlock {
@@ -28,8 +29,9 @@ message ThreadBlockHeader {
 }
 
 message ThreadAdd { // not kept on-chain
-    Peer inviter  = 1;
-    Thread thread = 2;
+    Peer inviter   = 1;
+    Thread thread  = 2;
+	string invitee = 3;
 }
 
 message ThreadIgnore {

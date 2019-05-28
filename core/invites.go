@@ -106,7 +106,7 @@ func (t *Textile) AcceptInvite(id string) (mh.Multihash, error) {
 		return nil, ErrThreadInviteNotFound
 	}
 
-	hash, err := t.handleThreadAdd(invite.Block)
+	hash, err := t.handleThreadAdd(invite.Block, invite.Parents)
 	if err != nil {
 		return nil, err
 	}
@@ -122,17 +122,21 @@ func (t *Textile) AcceptInvite(id string) (mh.Multihash, error) {
 // AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", id))
+	node, err := ipfs.NodeAtPath(t.node, fmt.Sprintf("%s", id))
+	if err != nil {
+		return nil, err
+	}
+	bnode, err := extractNode(t.node, node)
 	if err != nil {
 		return nil, err
 	}
 
 	// attempt decrypt w/ key
-	plaintext, err := crypto.DecryptAES(ciphertext, key)
+	plaintext, err := crypto.DecryptAES(bnode.ciphertext, key)
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
-	return t.handleThreadAdd(plaintext)
+	return t.handleThreadAdd(plaintext, bnode.parents)
 }
 
 // IgnoreInvite deletes the invite and removes the associated notification.
@@ -145,7 +149,7 @@ func (t *Textile) IgnoreInvite(id string) error {
 }
 
 // handleThreadAdd uses an add block to join a thread
-func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
+func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
 	err := proto.Unmarshal(plaintext, block)
 	if err != nil {
@@ -212,7 +216,10 @@ func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 	}
 
 	// follow parents, update head
-	err = thrd.handleAddBlock(block)
+	if len(block.Header.Parents) > 0 {
+		parents = block.Header.Parents
+	}
+	err = thrd.handleAddBlock(parents)
 	if err != nil {
 		return nil, err
 	}

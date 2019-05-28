@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -25,7 +26,7 @@ func (c *InviteDB) Add(invite *pb.Invite) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into invites(id, block, name, inviter, date) values(?,?,?,?,?)`
+	stm := `insert into invites(id, block, name, inviter, date, parents) values(?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -44,12 +45,13 @@ func (c *InviteDB) Add(invite *pb.Invite) error {
 		invite.Name,
 		inviter,
 		util.ProtoNanos(invite.Date),
+		strings.Join(invite.Parents, ","),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -84,10 +86,10 @@ func (c *InviteDB) handleQuery(stm string) *pb.InviteList {
 		return list
 	}
 	for rows.Next() {
-		var id, name string
+		var id, name, parents string
 		var block, inviterb []byte
 		var dateInt int64
-		if err := rows.Scan(&id, &block, &name, &inviterb, &dateInt); err != nil {
+		if err := rows.Scan(&id, &block, &name, &inviterb, &dateInt, &parents); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -104,6 +106,7 @@ func (c *InviteDB) handleQuery(stm string) *pb.InviteList {
 			Name:    name,
 			Inviter: inviter,
 			Date:    util.ProtoTs(dateInt),
+			Parents: util.SplitString(parents, ","),
 		})
 	}
 	return list

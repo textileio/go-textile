@@ -56,7 +56,7 @@ func (q *BlockOutbox) Flush() {
 		return
 	}
 
-	q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize, nil))
+	q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize))
 }
 
 // batch flushes a batch of messages
@@ -96,8 +96,7 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
-	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
-	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize, syncing)
+	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize)
 
 	var deleted []string
 	for _, id := range toDelete {
