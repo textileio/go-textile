@@ -34,7 +34,8 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 		Node: node,
 	}
 
-	if err := startNode(docs); err != nil {
+	err = startNode(docs)
+	if err != nil {
 		return fmt.Errorf(fmt.Sprintf("start node failed: %s", err))
 	}
 	printSplash()
@@ -45,7 +46,8 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	<-quit
 	fmt.Println("Interrupted")
 	fmt.Printf("Shutting down...")
-	if err := stopNode(); err != nil && err != core.ErrStopped {
+	err = stopNode()
+	if err != nil && err != core.ErrStopped {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Print("done\n")
@@ -79,7 +81,8 @@ func printSplash() {
 func startNode(serveDocs bool) error {
 	listener := node.ThreadUpdateListener()
 
-	if err := node.Start(); err != nil {
+	err := node.Start()
+	if err != nil {
 		return err
 	}
 
@@ -92,13 +95,13 @@ func startNode(serveDocs bool) error {
 					return
 				}
 				switch update.Type {
-				case pb.WalletUpdate_THREAD_ADDED:
+				case pb.AccountUpdate_THREAD_ADDED:
 					break
-				case pb.WalletUpdate_THREAD_REMOVED:
+				case pb.AccountUpdate_THREAD_REMOVED:
 					break
-				case pb.WalletUpdate_ACCOUNT_PEER_ADDED:
+				case pb.AccountUpdate_ACCOUNT_PEER_ADDED:
 					break
-				case pb.WalletUpdate_ACCOUNT_PEER_REMOVED:
+				case pb.AccountUpdate_ACCOUNT_PEER_REMOVED:
 					break
 				}
 			}
@@ -187,7 +190,8 @@ func startNode(serveDocs bool) error {
 		writeHeapDump("/debug/write-heap-dump/")
 		freeOSMemory("/debug/free-os-memory/")
 		mutexFractionOption("/debug/pprof-mutex/")
-		if err := http.ListenAndServe(node.Config().Addresses.Profiling, http.DefaultServeMux); err != nil {
+		err := http.ListenAndServe(node.Config().Addresses.Profiling, http.DefaultServeMux)
+		if err != nil {
 			log.Errorf("error starting profile listener: %s", err)
 		}
 	}()
@@ -203,13 +207,16 @@ func startNode(serveDocs bool) error {
 // Stop the api, then the gateway, then the node, then if possible, the channels
 // If a former fails, do not continue with the latter
 func stopNode() error {
-	if err := node.StopApi(); err != nil {
+	err := node.StopApi()
+	if err != nil {
 		return err
 	}
-	if err := gateway.Host.Stop(); err != nil {
+	err = gateway.Host.Stop()
+	if err != nil {
 		return err
 	}
-	if err := node.Stop(); err != nil {
+	err = node.Stop()
+	if err != nil {
 		return err
 	}
 
@@ -225,7 +232,8 @@ func mutexFractionOption(path string) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		if err := r.ParseForm(); err != nil {
+		err := r.ParseForm()
+		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(err.Error()))
 			return
