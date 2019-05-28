@@ -159,8 +159,6 @@ type CafeRequestStore interface {
 	GetSyncGroup(group string) string
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
-	ListCompleteSyncGroups() []string
-	ListIncompleteSyncGroups() []string
 	SyncGroupComplete(syncGroupId string) bool
 	SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error

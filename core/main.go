@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"github.com/textileio/go-textile/repo/config"
 	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
+	"github.com/textileio/go-textile/util"
 	logger "github.com/whyrusleeping/go-logging"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -551,9 +553,13 @@ func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
 // FlushBlocks flushes the block message outbox
 func (t *Textile) FlushBlocks() {
 	pending := t.datastore.Blocks().List("", -1, "parents='pending'")
+	sort.SliceStable(pending.Items, func(i, j int) bool {
+		return util.ProtoTime(pending.Items[i].Date).Before(
+			util.ProtoTime(pending.Items[j].Date))
+	})
 	for _, block := range pending.Items {
 		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
-			thrd := t.Thread(block.Id)
+			thrd := t.Thread(block.Thread)
 			if thrd == nil {
 				continue
 			}
