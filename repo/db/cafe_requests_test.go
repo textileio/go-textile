@@ -177,23 +177,9 @@ func TestCafeRequestDB_ListGroups(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListIncompleteSyncGroups(t *testing.T) {
-	list := cafeRequestStore.ListIncompleteSyncGroups()
-	if len(list) != 2 {
-		t.Error("list incomplete groups failed")
-	}
-}
-
 func TestCafeRequestDB_SyncGroupComplete(t *testing.T) {
 	if cafeRequestStore.SyncGroupComplete("sync_group2") {
 		t.Error("sync group complete failed")
-	}
-}
-
-func TestCafeRequestDB_ListCompleteSyncGroups(t *testing.T) {
-	list := cafeRequestStore.ListCompleteSyncGroups()
-	if len(list) != 0 {
-		t.Error("list complete groups failed")
 	}
 }
 
@@ -272,26 +258,12 @@ func TestCafeRequestDB_DeleteCompleteSyncGroups(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListIncompleteSyncGroupsAgain(t *testing.T) {
+func TestCafeRequestDB_SyncGroupCompleteAgain(t *testing.T) {
 	err := cafeRequestStore.UpdateStatus("abcdefg", pb.CafeRequest_COMPLETE)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	list := cafeRequestStore.ListIncompleteSyncGroups()
-	if len(list) != 1 {
-		t.Error("list incomplete groups failed")
-	}
-}
-
-func TestCafeRequestDB_ListCompleteSyncGroupsAgain(t *testing.T) {
-	list := cafeRequestStore.ListCompleteSyncGroups()
-	if len(list) != 1 {
-		t.Error("list complete groups failed")
-	}
-}
-
-func TestCafeRequestDB_SyncGroupCompleteAgain(t *testing.T) {
 	if !cafeRequestStore.SyncGroupComplete("sync_group2") {
 		t.Error("sync group complete failed")
 	}
