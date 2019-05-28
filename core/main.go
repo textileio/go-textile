@@ -549,7 +549,29 @@ func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
 
 // FlushBlocks flushes the block message outbox
 func (t *Textile) FlushBlocks() {
-	t.blockOutbox.Flush()
+	pending := t.datastore.Blocks().List("", -1, "parents='pending'")
+	for _, block := range pending.Items {
+		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
+			thrd := t.Thread(block.Id)
+			if thrd == nil {
+				continue
+			}
+
+			err := thrd.post(block.Id, thrd.Peers(), true)
+			if err != nil {
+				log.Errorf("error posting block %s: %s", block.Id, err)
+				return
+			}
+
+			err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}
+	}
+
+	go t.blockOutbox.Flush()
 }
 
 // threadsService returns the threads service
@@ -638,7 +660,7 @@ func (t *Textile) runJobs() {
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
 	t.cafeOutbox.Flush()
-	t.blockOutbox.Flush()
+	t.FlushBlocks()
 	err := t.cafeInbox.CheckMessages()
 	if err != nil {
 		log.Errorf("error checking messages: %s", err)

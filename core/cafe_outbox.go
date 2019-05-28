@@ -11,7 +11,6 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
@@ -150,7 +149,7 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	}
 
 	target := hash.B58String()
-	settings := CafeRequestOptions(cafeReqOpt.SyncGroup(target))
+	settings := CafeRequestOptions()
 	for _, inbox := range inboxes {
 		err := q.add(pid, target, inbox, pb.CafeRequest_INBOX, settings)
 		if err != nil {
@@ -190,31 +189,15 @@ func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.Caf
 	})
 }
 
-// prepForInbox encrypts and pins a message intended for a peer inbox
+// prepForInbox pins a message intended for a peer inbox
 func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, error) {
 	// encrypt envelope w/ recipient's pk
 	envb, err := proto.Marshal(env)
 	if err != nil {
 		return nil, err
 	}
-	pk, err := pid.ExtractPublicKey()
-	if err != nil {
-		return nil, err
-	}
 
-	ciphertext, err := crypto.Encrypt(pk, envb)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: remove pin after req is handled
-	id, err := ipfs.AddData(q.node(), bytes.NewReader(ciphertext), true, false)
-	if err != nil {
-		return nil, err
-	}
-	hash := id.Hash().B58String()
-
-	err = q.Add(hash, pb.CafeRequest_STORE)
+	id, err := ipfs.AddData(q.node(), bytes.NewReader(envb), true, false)
 	if err != nil {
 		return nil, err
 	}

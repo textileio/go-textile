@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/golang/protobuf/proto"
+	cid "github.com/ipfs/go-cid"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -229,7 +230,7 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 				data, err := ipfs.DataAtPath(m.node.Ipfs(), req.Target)
 				if err != nil {
 					if err == iface.ErrIsDir {
-						data, err := ipfs.GetObjectAtPath(m.node.Ipfs(), req.Target)
+						data, err := ipfs.ObjectAtPath(m.node.Ipfs(), req.Target)
 						if err != nil {
 							return nil, err
 						}
@@ -258,6 +259,7 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 			if len(reqs) > 1 {
 				return fail("type does not allow multiple requests per group")
 			}
+			unpin := make(map[string]struct{})
 			for _, req := range reqs {
 				hreq = &pb.CafeHTTPRequest{
 					Url: session.Cafe.Url + "/api/v1",
@@ -302,10 +304,26 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 				case pb.CafeRequest_INBOX:
 					hreq.Type = pb.CafeHTTPRequest_POST
 					hreq.Url += "/inbox/" + req.Peer
-					body = []byte(req.Target)
+					body, err = ipfs.DataAtPath(m.node.Ipfs(), req.Target)
+					if err != nil {
+						return nil, err
+					}
+					unpin[req.Target] = struct{}{}
 				}
 
 				err = util.WriteFileByPath(hreq.Path, body)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// unpin tmp objects
+			for p := range unpin {
+				id, err := cid.Decode(p)
+				if err != nil {
+					return nil, err
+				}
+				err = ipfs.UnpinCid(m.node.Ipfs(), id, false)
 				if err != nil {
 					return nil, err
 				}
@@ -333,28 +351,23 @@ func (m *Mobile) handleCafeRequestDone(id string, failed bool) error {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_FAILED, status)
 
 		// delete pending blocks
-		// TODO: not quite right. we need to:
-		// 1. remove block
-		// 2. update HEAD
-		// 3. rewrite newer history
-		err := m.node.Datastore().BlockMessages().Delete(id)
+		syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
+		err := m.node.Datastore().Blocks().Delete(syncGroup)
 		if err != nil {
 			return err
 		}
-
+		err = m.node.Datastore().CafeRequests().DeleteByGroup(id)
+		if err != nil {
+			return err
+		}
 	} else if status.NumComplete == status.NumTotal {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_COMPLETE, status)
-
-		// release pending blocks
-		m.node.FlushBlocks()
 	} else {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_UPDATE, status)
 	}
 
-	err := m.node.Datastore().CafeRequests().DeleteCompleteSyncGroups()
-	if err != nil {
-		return err
-	}
+	// release pending blocks
+	m.node.FlushBlocks()
 
 	return m.deleteCafeRequestBody(id)
 }

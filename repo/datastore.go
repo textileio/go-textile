@@ -108,6 +108,7 @@ type BlockStore interface {
 	Get(id string) *pb.Block
 	List(offset string, limit int, query string) *pb.BlockList
 	Count(query string) int
+	UpdateParents(id string, parents []string) error
 	Delete(id string) error
 	DeleteByThread(threadId string) error
 }
@@ -115,7 +116,7 @@ type BlockStore interface {
 type BlockMessageStore interface {
 	Queryable
 	Add(msg *pb.BlockMessage) error
-	List(offset string, limit int, exclude []string) []pb.BlockMessage
+	List(offset string, limit int) []pb.BlockMessage
 	Delete(id string) error
 }
 
@@ -155,9 +156,12 @@ type CafeRequestStore interface {
 	Add(req *pb.CafeRequest) error
 	Get(id string) *pb.CafeRequest
 	GetGroup(group string) *pb.CafeRequestList
+	GetSyncGroup(group string) string
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
+	ListCompleteSyncGroups() []string
 	ListIncompleteSyncGroups() []string
+	SyncGroupComplete(syncGroupId string) bool
 	SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error

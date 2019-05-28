@@ -71,7 +71,7 @@ func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messa
 func (ms *messageSender) invalidate() {
 	ms.invalid = true
 	if ms.s != nil {
-		ms.s.Reset()
+		_ = ms.s.Reset()
 		ms.s = nil
 	}
 }
@@ -121,7 +121,7 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Envelope) err
 		}
 
 		if err := ms.writeMsg(pmes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {
@@ -155,7 +155,7 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 		}
 
 		if err := ms.writeMsg(pmes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {
@@ -170,7 +170,7 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 
 		mes := new(pb.Envelope)
 		if err := ms.ctxReadMsg(ctx, mes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {

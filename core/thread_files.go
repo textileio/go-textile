@@ -80,16 +80,6 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, err
 	}
 
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.post(res, t.Peers())
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debugf("added FILES to %s: %s", t.Id, res.hash.B58String())
 
 	return res.hash, nil

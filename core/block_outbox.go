@@ -56,11 +56,7 @@ func (q *BlockOutbox) Flush() {
 		return
 	}
 
-	// exclude blocks that have an incomplete sync group
-	// TODO: also exclude newer
-	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
-
-	err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize, syncing))
+	err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize))
 	if err != nil {
 		log.Errorf("block outbox batch error: %s", err)
 		return
@@ -104,8 +100,7 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
-	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
-	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize, syncing)
+	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize)
 
 	var deleted []string
 	for _, id := range toDelete {

@@ -50,7 +50,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 				c.abort(g, http.StatusBadRequest, fmt.Errorf("directories are not supported"))
 				return
 			case tar.TypeReg:
-				if _, err := ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr); err != nil {
+				_, err = ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr)
+				if err != nil {
 					c.abort(g, http.StatusInternalServerError, err)
 					return
 				}
@@ -65,7 +66,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
-		if err := ipfs.PinNode(c.node.Ipfs(), dir, true); err != nil {
+		err = ipfs.PinNode(c.node.Ipfs(), dir, true)
+		if err != nil {
 			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
@@ -106,7 +108,8 @@ func (c *cafeApi) service(g *gin.Context) {
 
 	// parse body as a service envelope
 	pmes := new(pb.Envelope)
-	if err := proto.Unmarshal(buf.Bytes(), pmes); err != nil {
+	err = proto.Unmarshal(buf.Bytes(), pmes)
+	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -122,7 +125,8 @@ func (c *cafeApi) service(g *gin.Context) {
 		return
 	}
 
-	if err := c.node.cafe.service.VerifyEnvelope(pmes, mPeer); err != nil {
+	err = c.node.cafe.service.VerifyEnvelope(pmes, mPeer)
+	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -165,7 +169,7 @@ func (c *cafeApi) service(g *gin.Context) {
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 			g.JSON(http.StatusOK, rpmes)
-			g.Writer.Write([]byte("\n"))
+			_, _ = g.Writer.Write([]byte("\n"))
 		}
 		return true
 	})

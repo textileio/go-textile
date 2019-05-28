@@ -135,7 +135,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 	// we join here if we're the creator
 	if join {
-		_, err = thrd.joinInitial()
+		_, err = thrd.join("")
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +214,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 
 	index := t.datastore.Blocks().Get(thrd.Head)
 	if index != nil {
-		// exists, abort
+		// old block exists, abort
 		log.Debugf("%s exists, aborting", thrd.Head)
 		return nil
 	}

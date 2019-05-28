@@ -87,7 +87,7 @@ func (d *SQLiteDatastore) Ping() error {
 }
 
 func (d *SQLiteDatastore) Close() {
-	d.db.Close()
+	_ = d.db.Close()
 }
 
 func (d *SQLiteDatastore) Config() repo.ConfigStore {
@@ -236,7 +236,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);
 
-    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
+    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null, parents text not null);
     create index invite_date on invites (date);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, target text, type integer not null, body text not null, read integer not null);

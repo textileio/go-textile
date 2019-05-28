@@ -33,16 +33,6 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.updateHead(res.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.post(res, t.Peers())
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debugf("added COMMENT to %s: %s", t.Id, res.hash.B58String())
 
 	return res.hash, nil

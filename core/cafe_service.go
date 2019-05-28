@@ -571,7 +571,7 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 	data, err := ipfs.DataAtPath(h.service.Node(), hash)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			data, err := ipfs.GetObjectAtPath(h.service.Node(), hash)
+			data, err := ipfs.ObjectAtPath(h.service.Node(), hash)
 			if err != nil {
 				return err
 			}

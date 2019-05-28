@@ -89,7 +89,8 @@ func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
 		return "", err
 	}
 
-	if _, err := srv.SendRequest(p, env); err != nil {
+	_, err = srv.SendRequest(p, env)
+	if err != nil {
 		return PeerOffline, nil
 	}
 
@@ -114,13 +115,14 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 	}
 
 	if rpmes == nil {
-		err := fmt.Errorf("no response from %s", p.Pretty())
+		err = fmt.Errorf("no response from %s", p.Pretty())
 		log.Debug(err.Error())
 		return nil, err
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
-	if err := srv.handleError(rpmes); err != nil {
+	err = srv.handleError(rpmes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -167,18 +169,20 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	rpmes := new(pb.Envelope)
-	if err := proto.Unmarshal(body, rpmes); err != nil {
+	err = proto.Unmarshal(body, rpmes)
+	if err != nil {
 		return nil, err
 	}
 
 	if rpmes.Message == nil {
-		err := fmt.Errorf("no response from %s", addr)
+		err = fmt.Errorf("no response from %s", addr)
 		log.Debug(err.Error())
 		return nil, err
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-	if err := srv.handleError(rpmes); err != nil {
+	err = srv.handleError(rpmes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -235,7 +239,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
 			var rpmes *pb.Envelope
-			if err := decoder.Decode(&rpmes); err == io.EOF {
+			err = decoder.Decode(&rpmes)
+			if err == io.EOF {
 				return
 			} else if err != nil {
 				errCh <- err
@@ -243,14 +248,15 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			}
 
 			if rpmes == nil || rpmes.Message == nil {
-				err := fmt.Errorf("no response from %s", addr)
+				err = fmt.Errorf("no response from %s", addr)
 				log.Debug(err.Error())
 				errCh <- err
 				return
 			}
 
 			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-			if err := srv.handleError(rpmes); err != nil {
+			err := srv.handleError(rpmes)
+			if err != nil {
 				errCh <- err
 				return
 			}
@@ -276,7 +282,8 @@ func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelop
 		return err
 	}
 
-	if err := ms.SendMessage(ctx, pmes); err != nil {
+	err = ms.SendMessage(ctx, pmes)
+	if err != nil {
 		return err
 	}
 
@@ -383,7 +390,8 @@ func (srv *Service) handleError(env *pb.Envelope) error {
 		return nil
 	} else {
 		errMsg := new(pb.Error)
-		if err := ptypes.UnmarshalAny(env.Message.Payload, errMsg); err != nil {
+		err := ptypes.UnmarshalAny(env.Message.Payload, errMsg)
+		if err != nil {
 			return err
 		}
 		return fmt.Errorf(errMsg.Message)
@@ -545,12 +553,14 @@ func (srv *Service) listen(tag string) {
 			}
 
 			pmes := new(pb.Envelope)
-			if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
+			err := proto.Unmarshal(msg.Data(), pmes)
+			if err != nil {
 				log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
 				continue
 			}
 
-			if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+			err = srv.VerifyEnvelope(pmes, mPeer)
+			if err != nil {
 				log.Warningf("error verifying message: %s", err)
 				continue
 			}
@@ -578,7 +588,8 @@ func (srv *Service) listen(tag string) {
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-			if err := srv.SendMessage(ctx, mPeer, rpmes); err != nil {
+			err = srv.SendMessage(ctx, mPeer, rpmes)
+			if err != nil {
 				log.Errorf("error sending message response to %s: %s", mPeer, err)
 			}
 			cancel()

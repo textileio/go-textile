@@ -26,11 +26,6 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.post(res, t.Peers())
-	if err != nil {
-		return nil, err
-	}
-
 	// cleanup
 	query := fmt.Sprintf("threadId='%s'", t.Id)
 	for _, block := range t.datastore.Blocks().List("", -1, query).Items {

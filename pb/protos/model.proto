@@ -144,6 +144,7 @@ message Invite {
     string name                    = 3;
     Peer inviter                   = 4;
     google.protobuf.Timestamp date = 5;
+	repeated string parents        = 6;
 }
 
 message InviteList {

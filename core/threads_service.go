@@ -1,8 +1,11 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+
+	"github.com/textileio/go-textile/ipfs"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -28,7 +31,7 @@ type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
 	getThread        func(string) *Thread
-	addThread        func([]byte) (mh.Multihash, error)
+	addThread        func([]byte, []string) (mh.Multihash, error)
 	removeThread     func(string) (mh.Multihash, error)
 	sendNotification func(*pb.Notification) error
 	online           bool
@@ -40,7 +43,7 @@ func NewThreadsService(
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(string) *Thread,
-	addThread func([]byte) (mh.Multihash, error),
+	addThread func([]byte, []string) (mh.Multihash, error),
 	removeThread func(string) (mh.Multihash, error),
 	sendNotification func(*pb.Notification) error,
 ) *ThreadsService {
@@ -75,37 +78,62 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
 		return nil, nil
 	}
+
 	tenv := new(pb.ThreadEnvelope)
 	err := ptypes.UnmarshalAny(env.Message.Payload, tenv)
 	if err != nil {
 		return nil, err
 	}
 
+	var hash mh.Multihash
+	var ciphertext []byte
+	var parents []string
+	if tenv.Ciphertext != nil {
+		// old block
+		hash, err = mh.FromB58String(tenv.Hash)
+		if err != nil {
+			return nil, err
+		}
+		ciphertext = tenv.Ciphertext
+		// parents are not yet known
+	} else {
+		id, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), false)
+		if err != nil {
+			return nil, err
+		}
+		node, err := ipfs.NodeAtCid(h.service.Node(), *id)
+		if err != nil {
+			return nil, err
+		}
+		bnode, err := extractNode(h.service.Node(), node)
+		if err != nil {
+			return nil, err
+		}
+		hash = bnode.hash
+		ciphertext = bnode.ciphertext
+		parents = bnode.parents
+	}
+
 	// check for an account signature
 	var accountPeer bool
 	if tenv.Sig != nil {
-		err = h.service.Account.Verify(tenv.Ciphertext, tenv.Sig)
+		err = h.service.Account.Verify(ciphertext, tenv.Sig)
 		if err == nil {
 			accountPeer = true
 		}
 	}
 
-	hash, err := mh.FromB58String(tenv.Hash)
-	if err != nil {
-		return nil, err
-	}
-
 	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
-		err = h.handleAdd(hash, tenv, accountPeer)
+		err = h.handleAdd(hash, ciphertext, parents, tenv.Thread, accountPeer)
 		if err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
-	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
+	block, err := thrd.handleBlock(hash, ciphertext)
 	if err != nil {
 		if err == ErrBlockExists {
 			// exists, abort
@@ -113,6 +141,9 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 			return nil, nil
 		}
 		return nil, err
+	}
+	if len(block.Header.Parents) > 0 {
+		parents = block.Header.Parents
 	}
 
 	if accountPeer {
@@ -157,7 +188,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	parents, err := thrd.followParents(block.Header.Parents)
+	parents, err = thrd.followParents(parents)
 	if err != nil {
 		return nil, err
 	}
@@ -199,19 +230,18 @@ func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.E
 }
 
 // NewEnvelope signs and wraps an encypted block for transport
-func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte, sig []byte) (*pb.Envelope, error) {
+func (h *ThreadsService) NewEnvelope(threadId string, node []byte, sig []byte) (*pb.Envelope, error) {
 	tenv := &pb.ThreadEnvelope{
-		Thread:     threadId,
-		Hash:       hash.B58String(),
-		Ciphertext: ciphertext,
-		Sig:        sig,
+		Thread: threadId,
+		Node:   node,
+		Sig:    sig,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
 
 // handleAdd receives an invite message
-func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, accountPeer bool) error {
-	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, tenv.Ciphertext)
+func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents []string, threadId string, accountPeer bool) error {
+	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
 		return nil
@@ -234,7 +264,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
 
 		// can auto-join
-		_, err = h.addThread(plaintext)
+		_, err = h.addThread(plaintext, parents)
 		if err != nil {
 			return err
 		}
@@ -250,6 +280,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 	err = h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
+		Parents: parents,
 		Name:    msg.Thread.Name,
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
@@ -264,7 +295,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 
 	note := h.newNotification(block.Header, pb.Notification_INVITE_RECEIVED)
 	note.SubjectDesc = msg.Thread.Name
-	note.Subject = tenv.Thread
+	note.Subject = threadId
 	note.Block = hash.B58String() // invite block
 	note.Body = "invited you to join"
 
