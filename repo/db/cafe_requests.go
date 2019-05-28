@@ -146,62 +146,6 @@ func (c *CafeRequestDB) ListGroups(offset string, limit int) []string {
 	return groups
 }
 
-func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	var syncGroups []string
-	rows, err := c.db.Query(`
-        SELECT DISTINCT syncGroupId FROM cafe_requests WHERE status!=? ORDER BY date ASC;
-    `, pb.CafeRequest_COMPLETE)
-	if err != nil {
-		log.Errorf("error in db query: %s", err)
-		return nil
-	}
-	for rows.Next() {
-		var syncGroupId string
-		if err := rows.Scan(&syncGroupId); err != nil {
-			log.Errorf("error in db scan: %s", err)
-			continue
-		}
-		syncGroups = append(syncGroups, syncGroupId)
-	}
-
-	return syncGroups
-}
-
-func (c *CafeRequestDB) ListCompleteSyncGroups() []string {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	var syncGroups []string
-	total, err := c.db.Query(`
-        SELECT a.syncGroupId
-		FROM   (SELECT syncGroupId, COUNT(*) as total
-		        FROM   cafe_requests
-		        GROUP BY syncGroupId) a
-		JOIN   (SELECT syncGroupId, COUNT(*) as total_complete
-		        FROM   cafe_requests
-    		    WHERE  status=?
-	    	    GROUP BY syncGroupId) b
-		ON     a.syncGroupId = b.syncGroupId AND a.total = b.total_complete
-    `, pb.CafeRequest_COMPLETE)
-	if err != nil {
-		log.Errorf("error in db query: %s", err)
-		return nil
-	}
-	for total.Next() {
-		var syncGroupId string
-		if err := total.Scan(&syncGroupId); err != nil {
-			log.Errorf("error in db scan: %s", err)
-			continue
-		}
-		syncGroups = append(syncGroups, syncGroupId)
-	}
-
-	return syncGroups
-}
-
 func (c *CafeRequestDB) SyncGroupComplete(syncGroupId string) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()

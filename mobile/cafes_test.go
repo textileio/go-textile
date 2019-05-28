@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/protobuf/jsonpb"
+
 	"github.com/golang/protobuf/proto"
 	icid "github.com/ipfs/go-cid"
 	"github.com/segmentio/ksuid"
@@ -99,6 +101,7 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 	var blocks []string
 	var targets []string
 	list := m.node.Blocks("", -1, "")
+	printBlocks(list)
 	for _, b := range list.Items {
 		blocks = append(blocks, b.Id)
 		if b.Type == pb.Block_FILES {
@@ -297,4 +300,12 @@ func handleReq(r *pb.CafeHTTPRequest) (*http.Response, error) {
 	}
 	client := &http.Client{}
 	return client.Do(req)
+}
+
+func printBlocks(msg proto.Message) {
+	marshaler := jsonpb.Marshaler{
+		OrigName: true,
+	}
+	str, _ := marshaler.MarshalToString(msg)
+	fmt.Println(str)
 }

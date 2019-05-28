@@ -46,6 +46,5 @@ func TestURL(t *testing.T, addr string, method string, status int) {
 	t.Logf("\nSTATUS: %d", resp.StatusCode)
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("bad status: got %v want %v", resp.StatusCode, http.StatusNoContent)
-		return
 	}
 }
