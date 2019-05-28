@@ -262,7 +262,14 @@ func (m *Mobile) shareFiles(target string, threadId string, caption string) (mh.
 		return nil, err
 	}
 
-	return thrd.AddFiles(node, caption, keys.Files)
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	if err != nil {
+		return nil, err
+	}
+
+	m.node.FlushCafes()
+
+	return hash, nil
 }
 
 func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.Directory, error) {
@@ -478,5 +485,12 @@ func (m *Mobile) writeFiles(dirs *pb.DirectoryList, threadId string, caption str
 		return nil, fmt.Errorf("no files found")
 	}
 
-	return thrd.AddFiles(node, caption, keys.Files)
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	if err != nil {
+		return nil, err
+	}
+
+	m.node.FlushCafes()
+
+	return hash, nil
 }

@@ -12,7 +12,14 @@ func (m *Mobile) AddInvite(threadId string, address string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.AddInvite(threadId, address)
+	err := m.node.AddInvite(threadId, address)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // AddExternalInvite generates a new external invite link to a thread
@@ -25,6 +32,8 @@ func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	m.node.FlushCafes()
 
 	return proto.Marshal(invite)
 }
@@ -45,6 +54,8 @@ func (m *Mobile) AcceptInvite(id string) (string, error) {
 		return "", err
 	}
 
+	m.node.FlushCafes()
+
 	return hash.B58String(), nil
 }
 
@@ -64,6 +75,8 @@ func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 		return "", err
 	}
 
+	m.node.FlushCafes()
+
 	return hash.B58String(), nil
 }
 
@@ -72,6 +85,8 @@ func (m *Mobile) IgnoreInvite(id string) error {
 	if !m.node.Online() {
 		return core.ErrOffline
 	}
+
+	m.node.FlushCafes()
 
 	return m.node.IgnoreInvite(id)
 }

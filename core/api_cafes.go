@@ -48,6 +48,8 @@ func (a *api) addCafes(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, session)
 }
 
@@ -107,6 +109,8 @@ func (a *api) rmCafes(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	g.Status(http.StatusNoContent)
 }
 
@@ -124,6 +128,8 @@ func (a *api) checkCafeMessages(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
+	go a.node.cafeOutbox.Flush()
 
 	g.String(http.StatusOK, "ok")
 }

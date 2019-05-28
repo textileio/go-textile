@@ -141,8 +141,6 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 	}
 
-	go t.cafeOutbox.Flush()
-
 	t.sendUpdate(&pb.AccountUpdate{
 		Id:   thrd.Id,
 		Type: pb.AccountUpdate_THREAD_ADDED,
@@ -249,9 +247,6 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 			return err
 		}
 	}
-
-	// flush cafe queue _at the very end_
-	go nthrd.cafeOutbox.Flush()
 
 	return nil
 }

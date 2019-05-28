@@ -19,6 +19,7 @@ func (t *Textile) AddContact(card *pb.Contact) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

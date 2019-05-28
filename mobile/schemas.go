@@ -34,5 +34,7 @@ func (m *Mobile) AddSchema(node []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	m.node.FlushCafes()
+
 	return proto.Marshal(added)
 }

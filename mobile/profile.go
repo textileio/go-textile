@@ -37,7 +37,14 @@ func (m *Mobile) SetName(username string) error {
 		return core.ErrOffline
 	}
 
-	return m.node.SetName(username)
+	err := m.node.SetName(username)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // Avatar calls core Avatar
@@ -77,6 +84,8 @@ func (m *Mobile) setAvatar(pth string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	m.node.FlushCafes()
 
 	return hash, nil
 }

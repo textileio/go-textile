@@ -23,6 +23,8 @@ func (a *api) createThreadSnapshots(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	g.String(http.StatusCreated, "ok")
 }
 

@@ -47,6 +47,9 @@ func (a *api) setName(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
+	go a.node.cafeOutbox.Flush()
+
 	g.JSON(http.StatusCreated, "ok")
 }
 
@@ -64,5 +67,8 @@ func (a *api) setAvatar(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
+	go a.node.cafeOutbox.Flush()
+
 	g.JSON(http.StatusCreated, "ok")
 }
