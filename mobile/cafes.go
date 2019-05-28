@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/golang/protobuf/proto"
-	cid "github.com/ipfs/go-cid"
+	icid "github.com/ipfs/go-cid"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -20,9 +20,13 @@ func (m *Mobile) RegisterCafe(host string, token string) error {
 		return core.ErrStopped
 	}
 
-	if _, err := m.node.RegisterCafe(host, token); err != nil {
+	_, err := m.node.RegisterCafe(host, token)
+	if err != nil {
 		return err
 	}
+
+	m.node.FlushCafes()
+
 	return nil
 }
 
@@ -84,7 +88,14 @@ func (m *Mobile) DeregisterCafe(id string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.DeregisterCafe(id)
+	err := m.node.DeregisterCafe(id)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // CheckCafeMessages calls core CheckCafeMessages
@@ -93,7 +104,14 @@ func (m *Mobile) CheckCafeMessages() error {
 		return core.ErrOffline
 	}
 
-	return m.node.CheckCafeMessages()
+	err := m.node.CheckCafeMessages()
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // CafeRequests paginates new requests
@@ -319,7 +337,7 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 
 			// unpin tmp objects
 			for p := range unpin {
-				id, err := cid.Decode(p)
+				id, err := icid.Decode(p)
 				if err != nil {
 					return nil, err
 				}

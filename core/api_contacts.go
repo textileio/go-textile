@@ -38,6 +38,8 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	g.Status(http.StatusNoContent)
 }
 
@@ -95,6 +97,8 @@ func (a *api) rmContacts(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
+	go a.node.cafeOutbox.Flush()
 
 	g.Status(http.StatusNoContent)
 }

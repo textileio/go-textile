@@ -38,6 +38,8 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, like)
 }
 

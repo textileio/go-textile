@@ -23,5 +23,7 @@ func (m *Mobile) AddComment(blockId string, body string) (string, error) {
 		return "", err
 	}
 
+	m.node.FlushCafes()
+
 	return hash.B58String(), nil
 }

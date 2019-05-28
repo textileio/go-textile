@@ -40,7 +40,7 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("sent ADD to %s for %s", p.Id, t.Id)
+	log.Debugf("created ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -68,12 +68,14 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	go t.cafeOutbox.Flush()
+	nhash, err := t.commitNode(res.hash.B58String(), nil, false)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	log.Debugf("created external ADD for %s", t.Id)
 
-	return res.hash, key, nil
+	return nhash, key, nil
 }
 
 // handleAddBlock handles an incoming add.

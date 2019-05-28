@@ -39,6 +39,7 @@ func (t *Textile) AddInvite(threadId string, address string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -136,7 +137,12 @@ func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, err
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
-	return t.handleThreadAdd(plaintext, bnode.parents)
+	hash, err := t.handleThreadAdd(plaintext, bnode.parents)
+	if err != nil {
+		return nil, err
+	}
+
+	return hash, nil
 }
 
 // IgnoreInvite deletes the invite and removes the associated notification.

@@ -440,10 +440,6 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 
 // commitNode writes the block to an IPLD node
 func (t *Thread) commitNode(block string, additionalParents []string, updateHead bool) (mh.Multihash, error) {
-	index := t.datastore.Blocks().Get(block)
-	if index == nil {
-		return nil, ErrBlockNotFound
-	}
 	dir := uio.NewDirectory(t.node().DAG)
 
 	// add block
@@ -663,6 +659,9 @@ func (t *Thread) post(block string, peers []pb.ThreadPeer, updateHead bool) erro
 			return err
 		}
 		peers = append(peers, pb.ThreadPeer{Id: msg.Invitee})
+		if len(peers) == 0 { // external invite
+			return nil
+		}
 	} else if len(peers) == 0 {
 		peers = t.Peers()
 	}

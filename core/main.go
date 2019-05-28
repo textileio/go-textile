@@ -378,6 +378,7 @@ func (t *Textile) Start() error {
 		if err != nil {
 			log.Errorf(err.Error())
 		}
+		go t.cafeOutbox.Flush()
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
@@ -572,6 +573,11 @@ func (t *Textile) FlushBlocks() {
 	}
 
 	go t.blockOutbox.Flush()
+}
+
+// FlushCafes flushes the cafe request outbox
+func (t *Textile) FlushCafes() {
+	go t.cafeOutbox.Flush()
 }
 
 // threadsService returns the threads service
