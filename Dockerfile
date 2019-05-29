@@ -83,7 +83,6 @@ ENV INIT_ARGS \
   --api-bind-addr=0.0.0.0:40600 \
   --gateway-bind-addr=0.0.0.0:5050 \
   --profile-bind-addr=0.0.0.0:6060 \
-  --no-log-files \
   --debug
 
 # This just makes sure that:

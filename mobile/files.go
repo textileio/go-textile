@@ -381,12 +381,12 @@ func (m *Mobile) getFileConfig(mil mill.Mill, opts ...fileConfigOption) (*core.A
 			if err != nil {
 				if err == core.ErrFileNotFound {
 					// just cat the data from ipfs
-					b, err := ipfs.DataAtPath(m.node.Ipfs(), hash)
+					b, err := ipfs.DataAtPath(m.node.Ipfs(), ref.String())
 					if err != nil {
 						return nil, err
 					}
 					reader = bytes.NewReader(b)
-					conf.Use = hash
+					conf.Use = ref.String()
 				} else {
 					return nil, err
 				}

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,11 +16,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	ipfspath "github.com/ipfs/go-path"
 	gincors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/docs"
+	ipfsutil "github.com/textileio/go-textile/ipfs"
 	m "github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 )
@@ -425,7 +428,6 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 	var reader io.ReadSeeker
 	conf := &AddFileConfig{}
 
-	// TODO: post @balupton's cmd refactor, allow raw IPFS paths like the mobile API
 	if use == "" {
 		f, fn, err := a.openFile(g)
 		if err != nil {
@@ -434,16 +436,30 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		defer f.Close()
 		reader = f
 		conf.Name = fn
-
 	} else {
-		var file *pb.FileIndex
-		var err error
-		reader, file, err = a.node.FileContent(use)
+		ref, err := ipfspath.ParsePath(use)
 		if err != nil {
 			return nil, err
 		}
-		conf.Name = file.Name
-		conf.Use = file.Checksum
+		parts := strings.Split(ref.String(), "/")
+		hash := parts[len(parts)-1]
+		var file *pb.FileIndex
+		reader, file, err = a.node.FileContent(hash)
+		if err != nil {
+			if err == ErrFileNotFound {
+				// just cat the data from ipfs
+				b, err := ipfsutil.DataAtPath(a.node.Ipfs(), ref.String())
+				if err != nil {
+					return nil, err
+				}
+				reader = bytes.NewReader(b)
+				conf.Use = ref.String()
+			} else {
+				return nil, err
+			}
+		} else {
+			conf.Use = file.Checksum
+		}
 	}
 
 	media, err := a.node.GetMedia(reader, mill)
