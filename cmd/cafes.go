@@ -44,7 +44,7 @@ func CafeDelete(cafeID string) error {
 }
 
 func CafeMessages() error {
-	res, err := executeStringCmd(http.MethodGet, "cafes/messages", params{})
+	res, err := executeStringCmd(http.MethodPost, "cafes/messages", params{})
 	if err != nil {
 		return err
 	}
