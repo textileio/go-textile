@@ -93,7 +93,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 
 	start := time.Now()
 
-	// if a  directory,  add each file inside it
+	// if a directory, add each file inside it
 	if fi != nil && fi.IsDir() {
 		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
 			if fi.IsDir() || fi.Name() == ".DS_Store" {
@@ -215,8 +215,7 @@ func add(dirs []*pb.Directory, threadID string, caption string, verbose bool) (*
 func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 	ref, err := ipfspath.ParsePath(pth)
 	if err == nil {
-		parts := strings.Split(ref.String(), "/")
-		pth = parts[len(parts)-1]
+		pth = ref.String()
 	}
 
 	var f *os.File
