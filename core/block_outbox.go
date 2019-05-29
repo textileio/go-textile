@@ -80,21 +80,17 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 	var toDelete []string
 	wg := sync.WaitGroup{}
 	for id, group := range groups {
-		pid, err := peer.IDB58Decode(id)
-		if err != nil {
-			return err
-		}
 		wg.Add(1)
-		go func(pid peer.ID, msgs []pb.BlockMessage) {
+		go func(id string, msgs []pb.BlockMessage) {
 			for _, msg := range msgs {
-				if err := q.handle(pid, msg); err != nil {
+				if err := q.handle(id, msg); err != nil {
 					berr = err
 					return
 				}
 				toDelete = append(toDelete, msg.Id)
 			}
 			wg.Done()
-		}(pid, group)
+		}(id, group)
 	}
 	wg.Wait()
 
@@ -120,11 +116,11 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 }
 
 // handle handles a single message
-func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
+func (q *BlockOutbox) handle(peerId string, msg pb.BlockMessage) error {
 	// first, attempt to send the message directly to the recipient
 	sendable := q.service().online
 	if sendable {
-		connected, err := ipfs.SwarmConnected(q.node(), pid)
+		connected, err := ipfs.SwarmConnected(q.node(), peerId)
 		if err != nil {
 			return err
 		}
@@ -134,20 +130,20 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 	}
 	var err error
 	if sendable {
-		err = q.service().SendMessage(nil, pid, msg.Env)
+		err = q.service().SendMessage(nil, peerId, msg.Env)
 	}
 	if !sendable || err != nil {
 		if err != nil {
-			log.Debugf("send block message direct to %s failed: %s", pid.Pretty(), err)
+			log.Debugf("send block message direct to %s failed: %s", peerId, err)
 		}
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-		contact := q.datastore.Peers().Get(pid.Pretty())
+		contact := q.datastore.Peers().Get(peerId)
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
+			log.Debugf("sending block message for %s to inbox(es)", peerId)
 
 			// add an inbox request for message delivery
-			err = q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes)
+			err = q.cafeOutbox.AddForInbox(peerId, msg.Env, contact.Inboxes)
 			if err != nil {
 				return err
 			}

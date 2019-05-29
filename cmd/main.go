@@ -127,8 +127,8 @@ var (
 	// add
 	cafeAddCmd = cafeCmd.Command("add", `Registers with a cafe and saves an expiring service session token.
 An access token is required to register, and should be obtained separately from the target cafe.`)
-	cafeAddURL   = cafeAddCmd.Arg("url", "The host cafe public URL").Required().String()
-	cafeAddToken = cafeAddCmd.Flag("token", "An access token supplied by the cafe").Short('t').Required().String()
+	cafeAddPeerID = cafeAddCmd.Arg("peer", "The host cafe's IPFS peer ID").Required().String()
+	cafeAddToken  = cafeAddCmd.Flag("token", "An access token supplied by the cafe").Short('t').Required().String()
 
 	// list
 	cafeListCmd = cafeCmd.Command("list", "List info about all active cafe sessions").Alias("ls")
@@ -631,7 +631,7 @@ func Run() error {
 
 	// cafe
 	case cafeAddCmd.FullCommand():
-		return CafeAdd(*cafeAddURL, *cafeAddToken)
+		return CafeAdd(*cafeAddPeerID, *cafeAddToken)
 
 	case cafeListCmd.FullCommand():
 		return CafeList()

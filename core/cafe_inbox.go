@@ -63,18 +63,13 @@ func (q *CafeInbox) CheckMessages() error {
 	wg := sync.WaitGroup{}
 	var cerr error
 	for _, session := range sessions {
-		cafe, err := peer.IDB58Decode(session.Id)
-		if err != nil {
-			cerr = err
-			continue
-		}
 		wg.Add(1)
-		go func(cafe peer.ID) {
-			if err := q.service().CheckMessages(cafe); err != nil {
+		go func(cafeId string) {
+			if err := q.service().CheckMessages(cafeId); err != nil {
 				cerr = err
 			}
 			wg.Done()
-		}(cafe)
+		}(session.Id)
 	}
 	wg.Wait()
 	return cerr

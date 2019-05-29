@@ -13,7 +13,7 @@ import (
 // @Description Cafe
 // @Tags cafes
 // @Produce application/json
-// @Param X-Textile-Args header string true "cafe host"
+// @Param X-Textile-Args header string true "cafe id"
 // @Param X-Textile-Opts header string false "token: An access token supplied by the Cafe" default(token=)
 // @Success 201 {object} pb.CafeSession "cafe session"
 // @Failure 400 {string} string "Bad Request"
@@ -26,7 +26,7 @@ func (a *api) addCafes(g *gin.Context) {
 		return
 	}
 	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing cafe host")
+		g.String(http.StatusBadRequest, "missing cafe id")
 		return
 	}
 
@@ -104,7 +104,8 @@ func (a *api) getCafes(g *gin.Context) {
 func (a *api) rmCafes(g *gin.Context) {
 	id := g.Param("id")
 
-	if err := a.node.DeregisterCafe(id); err != nil {
+	err := a.node.DeregisterCafe(id)
+	if err != nil {
 		a.abort500(g, err)
 		return
 	}
@@ -124,7 +125,8 @@ func (a *api) rmCafes(g *gin.Context) {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/messages [post]
 func (a *api) checkCafeMessages(g *gin.Context) {
-	if err := a.node.CheckCafeMessages(); err != nil {
+	err := a.node.CheckCafeMessages()
+	if err != nil {
 		a.abort500(g, err)
 		return
 	}
