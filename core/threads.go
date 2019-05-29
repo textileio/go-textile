@@ -17,6 +17,7 @@ import (
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/db"
+	"github.com/textileio/go-textile/schema"
 	"github.com/textileio/go-textile/schema/textile"
 )
 
@@ -45,7 +46,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		return nil, err
 	}
 
-	var schema string
+	var sch string
 	if conf.Schema != nil {
 		var sjson string
 
@@ -55,7 +56,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 			if err != nil {
 				return nil, err
 			}
-			schema = conf.Schema.Id
+			sch = conf.Schema.Id
 		} else if conf.Schema.Json != "" {
 			sjson = conf.Schema.Json
 		} else {
@@ -77,11 +78,11 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 			if err != nil {
 				return nil, err
 			}
-			schema = sfile.Hash
+			sch = sfile.Hash
 		}
 
-		if schema != "" {
-			err = t.cafeOutbox.Add(schema, pb.CafeRequest_STORE)
+		if sch != "" {
+			err = t.cafeOutbox.Add(sch, pb.CafeRequest_STORE)
 			if err != nil {
 				return nil, err
 			}
@@ -112,7 +113,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Key:       conf.Key,
 		Sk:        skb,
 		Name:      strings.TrimSpace(conf.Name),
-		Schema:    schema,
+		Schema:    sch,
 		Initiator: initiator,
 		Type:      conf.Type,
 		Sharing:   conf.Sharing,
@@ -394,7 +395,18 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	// add extra view info
 	mod.SchemaNode = thrd.Schema
 	if mod.Head != "" {
-		mod.HeadBlock = t.datastore.Blocks().Get(mod.Head)
+		var hid string
+		node, err := ipfs.NodeAtPath(t.node, mod.Head)
+		if err != nil {
+			hid = mod.Head
+		} else {
+			link := schema.LinkByName(node.Links(), []string{blockLinkName})
+			if link == nil {
+				return nil, ErrInvalidNode
+			}
+			hid = link.Cid.Hash().B58String()
+		}
+		mod.HeadBlock = t.datastore.Blocks().Get(hid)
 		if mod.HeadBlock != nil {
 			mod.HeadBlock.User = t.PeerUser(mod.HeadBlock.Author)
 		}
