@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -82,7 +81,7 @@ func (srv *Service) Start() {
 }
 
 // Ping pings another peer and returns status
-func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
+func (srv *Service) Ping(p string) (PeerStatus, error) {
 	id := rand.Int31()
 	env, err := srv.NewEnvelope(pb.Message_PING, nil, &id, false)
 	if err != nil {
@@ -99,13 +98,18 @@ func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
 }
 
 // SendRequest sends out a request
-func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p)
+
+	pid, err := peer.IDB58Decode(p)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	ms, err := srv.messageSenderForPeer(ctx, p)
+	ms, err := srv.messageSenderForPeer(ctx, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -115,71 +119,13 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 		return nil, err
 	}
 
-	_ = srv.updateFromMessage(ctx, p)
-
 	if rpmes == nil {
+		err = fmt.Errorf("no response from %s", p)
+		log.Debug(err.Error())
 		return nil, err
 	}
 
-	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
-	err = srv.handleError(rpmes)
-	if err != nil {
-		return nil, err
-	}
-
-	return rpmes, nil
-}
-
-// SendHTTPRequest sends a request over HTTP
-func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
-
-	payload, err := proto.Marshal(pmes)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		res, err := util.UnmarshalString(res.Body)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf(res)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if body == nil {
-		return nil, nil
-	}
-
-	rpmes := new(pb.Envelope)
-	err = proto.Unmarshal(body, rpmes)
-	if err != nil {
-		return nil, err
-	}
-
-	if rpmes.Message == nil {
-		return nil, err
-	}
-
-	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p)
 	err = srv.handleError(rpmes)
 	if err != nil {
 		return nil, err
@@ -265,8 +211,13 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 }
 
 // SendMessage sends out a message
-func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+func (srv *Service) SendMessage(ctx context.Context, p string, pmes *pb.Envelope) error {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p)
+
+	pid, err := peer.IDB58Decode(p)
+	if err != nil {
+		return err
+	}
 
 	if ctx == nil {
 		var cancel context.CancelFunc
@@ -274,7 +225,7 @@ func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelop
 		defer cancel()
 	}
 
-	ms, err := srv.messageSenderForPeer(ctx, p)
+	ms, err := srv.messageSenderForPeer(ctx, pid)
 	if err != nil {
 		return err
 	}
@@ -583,7 +534,7 @@ func (srv *Service) listen(tag string) {
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-			err = srv.SendMessage(ctx, mPeer, rpmes)
+			err = srv.SendMessage(ctx, mPeer.Pretty(), rpmes)
 			if err != nil {
 				log.Warningf("error sending message response to %s: %s", mPeer, err)
 			}

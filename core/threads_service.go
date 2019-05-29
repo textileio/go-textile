@@ -70,7 +70,7 @@ func (h *ThreadsService) Start() {
 
 // Ping pings another peer
 func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
-	return h.service.Ping(pid)
+	return h.service.Ping(pid.Pretty())
 }
 
 // Handle is called by the underlying service handler method
@@ -225,8 +225,8 @@ func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.E
 }
 
 // SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
-	return h.service.SendMessage(ctx, pid, env)
+func (h *ThreadsService) SendMessage(ctx context.Context, peerId string, env *pb.Envelope) error {
+	return h.service.SendMessage(ctx, peerId, env)
 }
 
 // NewEnvelope signs and wraps an encypted block for transport

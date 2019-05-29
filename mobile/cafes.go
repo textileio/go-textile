@@ -15,12 +15,12 @@ import (
 )
 
 // RegisterCafe calls core RegisterCafe
-func (m *Mobile) RegisterCafe(host string, token string) error {
+func (m *Mobile) RegisterCafe(id string, token string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	_, err := m.node.RegisterCafe(host, token)
+	_, err := m.node.RegisterCafe(id, token)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
@@ -73,11 +72,7 @@ func (t *Textile) publishPeer() error {
 		return nil
 	}
 	for _, session := range sessions {
-		pid, err := peer.IDB58Decode(session.Id)
-		if err != nil {
-			return err
-		}
-		if err := t.cafe.PublishPeer(self, pid); err != nil {
+		if err := t.cafe.PublishPeer(self, session.Id); err != nil {
 			return err
 		}
 	}

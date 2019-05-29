@@ -13,7 +13,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/pin"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )
@@ -219,12 +218,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 	}
 
 	go func() {
-		cpid, err := peer.IDB58Decode(client.Id)
-		if err != nil {
-			log.Errorf("error parsing client id %s: %s", client.Id, err)
-			return
-		}
-		err = c.node.cafe.notifyClient(cpid)
+		err = c.node.cafe.notifyClient(client.Id)
 		if err != nil {
 			log.Debugf("unable to notify client: %s", client.Id)
 		}

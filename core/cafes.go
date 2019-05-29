@@ -4,16 +4,21 @@ import (
 	"fmt"
 
 	cid "github.com/ipfs/go-cid"
-	"github.com/textileio/go-textile/ipfs"
-
 	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, error) {
-	session, err := t.cafe.Register(host, token)
+func (t *Textile) RegisterCafe(id string, token string) (*pb.CafeSession, error) {
+	// ensure id is a peer id
+	_, err := peer.IDB58Decode(id)
+	if err != nil {
+		return nil, fmt.Errorf("not a valid peerID: %s", id)
+	}
+
+	session, err := t.cafe.Register(id, token)
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +75,13 @@ func (t *Textile) RefreshCafeSession(id string) (*pb.CafeSession, error) {
 
 // DeregisterCafe removes the session associated with the given cafe
 func (t *Textile) DeregisterCafe(id string) error {
-	cafe, err := peer.IDB58Decode(id)
+	// ensure id is a peer id
+	_, err := peer.IDB58Decode(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("not a valid peerID: %s", id)
 	}
-	err = t.cafe.Deregister(cafe)
+
+	err = t.cafe.Deregister(id)
 	if err != nil {
 		return err
 	}

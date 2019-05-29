@@ -36,16 +36,14 @@ func TestCafeApi_Setup(t *testing.T) {
 		Account:  accnt1,
 		RepoPath: repoPath1,
 	}); err != nil {
-		t.Errorf("init node1 failed: %s", err)
-		return
+		t.Fatalf("init node1 failed: %s", err)
 	}
 	var err error
 	node1, err = NewTextile(RunConfig{
 		RepoPath: repoPath1,
 	})
 	if err != nil {
-		t.Errorf("create node1 failed: %s", err)
-		return
+		t.Fatalf("create node1 failed: %s", err)
 	}
 	err = node1.Start()
 	if err != nil {
@@ -62,15 +60,13 @@ func TestCafeApi_Setup(t *testing.T) {
 		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}); err != nil {
-		t.Errorf("init node2 failed: %s", err)
-		return
+		t.Fatalf("init node2 failed: %s", err)
 	}
 	node2, err = NewTextile(RunConfig{
 		RepoPath: repoPath2,
 	})
 	if err != nil {
-		t.Errorf("create node2 failed: %s", err)
-		return
+		t.Fatalf("create node2 failed: %s", err)
 	}
 	err = node2.Start()
 	if err != nil {
@@ -83,21 +79,22 @@ func TestCafeApi_Setup(t *testing.T) {
 	// create token on cafe
 	token, err := node2.CreateCafeToken("", true)
 	if err != nil {
-		t.Error(fmt.Errorf("error creating cafe token: %s", err))
-		return
+		t.Fatalf("error creating cafe token: %s", err)
 	}
 
 	ok, err := node2.ValidateCafeToken(token)
 	if !ok || err != nil {
-		t.Error(fmt.Errorf("error checking token: %s", err))
-		return
+		t.Fatalf("error checking token: %s", err)
 	}
 
 	// register with cafe
-	_, err = node1.RegisterCafe("http://127.0.0.1:5000", token)
+	cid, err := node2.PeerId()
 	if err != nil {
-		t.Errorf("register node1 w/ node2 failed: %s", err)
-		return
+		t.Fatal(err)
+	}
+	_, err = node1.RegisterCafe(cid.Pretty(), token)
+	if err != nil {
+		t.Fatalf("register node1 w/ node2 failed: %s", err)
 	}
 
 	// get sessions
@@ -105,69 +102,60 @@ func TestCafeApi_Setup(t *testing.T) {
 	if len(sessions.Items) > 0 {
 		session = sessions.Items[0]
 	} else {
-		t.Errorf("no active sessions")
+		t.Fatalf("no active sessions")
 	}
 }
 
 func TestCafeApi_Pin(t *testing.T) {
 	block, err := os.Open("testdata/" + blockHash)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	defer block.Close()
 	res, err := pin(block, "application/octet-stream", session.Access, session.Cafe.Url)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 201 {
-		t.Errorf("got bad status: %d", res.StatusCode)
-		return
+		t.Fatalf("got bad status: %d", res.StatusCode)
 	}
 	resp := &pinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if resp.Id == "" {
-		t.Error("response should contain id")
-		return
+		t.Fatal("response should contain id")
+
 	}
 	if resp.Id != blockHash {
-		t.Errorf("hashes do not match: %s, %s", resp.Id, blockHash)
+		t.Fatalf("hashes do not match: %s, %s", resp.Id, blockHash)
 	}
 }
 
 func TestCafeApi_PinArchive(t *testing.T) {
 	archive, err := os.Open("testdata/" + photoHash + ".tar.gz")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	defer archive.Close()
 	res, err := pin(archive, "application/gzip", session.Access, session.Cafe.Url)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 201 {
-		t.Errorf("got bad status: %d", res.StatusCode)
-		return
+		t.Fatalf("got bad status: %d", res.StatusCode)
 	}
 	resp := &pinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if resp.Id == "" {
-		t.Error("response should contain id")
-		return
+		t.Fatal("response should contain id")
 	}
 	if resp.Id != photoHash {
-		t.Errorf("hashes do not match: %s, %s", resp.Id, photoHash)
+		t.Fatalf("hashes do not match: %s, %s", resp.Id, photoHash)
 	}
 }
 

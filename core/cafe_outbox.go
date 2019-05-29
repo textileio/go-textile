@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -106,7 +105,7 @@ func NewCafeOutbox(node func() *core.IpfsNode, datastore repo.Datastore, handler
 
 // Add adds a request for each active cafe session
 func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeRequestOption) error {
-	pid := q.node().Identity
+	peerId := q.node().Identity.Pretty()
 	settings := CafeRequestOptions(opts...)
 
 	switch rtype {
@@ -124,12 +123,14 @@ func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeR
 
 	// add a request for each session
 	sessions := q.datastore.CafeSessions().List().Items
+	var err error
 	for _, session := range sessions {
 		if settings.Cafe != "" && settings.Cafe != session.Id {
 			continue
 		}
 		// all possible request types are for our own peer
-		if err := q.add(pid, target, session.Cafe, rtype, settings); err != nil {
+		err = q.add(peerId, target, session.Cafe, rtype, settings)
+		if err != nil {
 			return err
 		}
 	}
@@ -137,7 +138,7 @@ func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeR
 }
 
 // AddForInbox adds a request for a peer's inbox(es)
-func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Cafe) error {
+func (q *CafeOutbox) AddForInbox(peerId string, env *pb.Envelope, inboxes []*pb.Cafe) error {
 	if len(inboxes) == 0 {
 		return nil
 	}
@@ -154,7 +155,7 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	target := id.Hash().B58String()
 	settings := CafeRequestOptions()
 	for _, inbox := range inboxes {
-		err = q.add(pid, target, inbox, pb.CafeRequest_INBOX, settings)
+		err = q.add(peerId, target, inbox, pb.CafeRequest_INBOX, settings)
 		if err != nil {
 			return err
 		}
@@ -175,12 +176,12 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type, settings *CafeRequestSettings) error {
+func (q *CafeOutbox) add(peerId string, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type, settings *CafeRequestSettings) error {
 	log.Debugf("adding cafe %s request: %s", rtype.String(), target)
 
 	return q.datastore.CafeRequests().Add(&pb.CafeRequest{
 		Id:        ksuid.New().String(),
-		Peer:      pid.Pretty(),
+		Peer:      peerId,
 		Target:    target,
 		Cafe:      cafe,
 		Group:     settings.Group,

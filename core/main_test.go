@@ -191,14 +191,19 @@ func TestTextile_CafeTokens(t *testing.T) {
 }
 
 func TestTextile_CafeRegistration(t *testing.T) {
+	oid, err := other.PeerId()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// register w/ wrong credentials
-	_, err := node.RegisterCafe("http://127.0.0.1:5000", "blah")
+	_, err = node.RegisterCafe(oid.Pretty(), "blah")
 	if err == nil {
 		t.Fatal("register node w/ other should have failed")
 	}
 
 	// register cafe
-	_, err = node.RegisterCafe("http://127.0.0.1:5000", token)
+	_, err = node.RegisterCafe(oid.Pretty(), token)
 	if err != nil {
 		t.Fatalf("register node w/ other failed: %s", err)
 	}
