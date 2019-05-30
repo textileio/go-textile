@@ -35,7 +35,7 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 }
 
 // handleLikeBlock handles an incoming like block
-func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadLike, error) {
+func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadLike, error) {
 	msg := new(pb.ThreadLike)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -50,8 +50,9 @@ func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_LIKE, msg.Target, "")
 	if err != nil {
 		return nil, err

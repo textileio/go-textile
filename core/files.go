@@ -217,14 +217,6 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 	return node, keys, nil
 }
 
-func (t *Textile) FileIndex(hash string) (*pb.FileIndex, error) {
-	file := t.datastore.Files().Get(hash)
-	if file == nil {
-		return nil, ErrFileNotFound
-	}
-	return file, nil
-}
-
 func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {

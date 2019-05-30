@@ -43,7 +43,7 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 }
 
 // handleJoinBlock handles an incoming join block
-func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadJoin, error) {
+func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadJoin, error) {
 	msg := new(pb.ThreadJoin)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -63,8 +63,9 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_JOIN, "", "")
 	if err != nil {
 		return nil, err

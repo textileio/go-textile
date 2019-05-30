@@ -254,6 +254,9 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 		}
 		return nil, err
 	}
+	if len(block.Header.Parents) > 0 {
+		parents = block.Header.Parents
+	}
 
 	if block.Header.Author != "" {
 		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
@@ -263,34 +266,30 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 
 	switch block.Type {
 	case pb.Block_MERGE:
-		err = t.handleMergeBlock(hash, block)
+		err = t.handleMergeBlock(hash, block, parents)
 	case pb.Block_IGNORE:
-		_, err = t.handleIgnoreBlock(hash, block)
+		_, err = t.handleIgnoreBlock(hash, block, parents)
 	case pb.Block_FLAG:
-		_, err = t.handleFlagBlock(hash, block)
+		_, err = t.handleFlagBlock(hash, block, parents)
 	case pb.Block_JOIN:
-		_, err = t.handleJoinBlock(hash, block)
+		_, err = t.handleJoinBlock(hash, block, parents)
 	case pb.Block_ANNOUNCE:
-		_, err = t.handleAnnounceBlock(hash, block)
+		_, err = t.handleAnnounceBlock(hash, block, parents)
 	case pb.Block_LEAVE:
-		err = t.handleLeaveBlock(hash, block)
+		err = t.handleLeaveBlock(hash, block, parents)
 	case pb.Block_TEXT:
-		_, err = t.handleMessageBlock(hash, block)
+		_, err = t.handleMessageBlock(hash, block, parents)
 	case pb.Block_FILES:
-		_, err = t.handleFilesBlock(hash, block)
+		_, err = t.handleFilesBlock(hash, block, parents)
 	case pb.Block_COMMENT:
-		_, err = t.handleCommentBlock(hash, block)
+		_, err = t.handleCommentBlock(hash, block, parents)
 	case pb.Block_LIKE:
-		_, err = t.handleLikeBlock(hash, block)
+		_, err = t.handleLikeBlock(hash, block, parents)
 	default:
 		return nil, fmt.Errorf(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	if len(block.Header.Parents) > 0 {
-		parents = block.Header.Parents
 	}
 
 	return t.followParents(parents)
@@ -335,6 +334,7 @@ type commitResult struct {
 	hash       mh.Multihash
 	ciphertext []byte
 	header     *pb.ThreadBlockHeader
+	parents    []string
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
@@ -373,7 +373,12 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, add bo
 		return nil, err
 	}
 
-	return &commitResult{hash, ciphertext, header}, nil
+	return &commitResult{
+		hash:       hash,
+		ciphertext: ciphertext,
+		header:     header,
+		parents:    []string{"pending"},
+	}, nil
 }
 
 // addBlock adds to ipfs
@@ -524,7 +529,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 		Id:      commit.hash.B58String(),
 		Type:    blockType,
 		Date:    commit.header.Date,
-		Parents: []string{"pending"},
+		Parents: commit.parents,
 		Thread:  t.Id,
 		Author:  commit.header.Author,
 		Target:  target,

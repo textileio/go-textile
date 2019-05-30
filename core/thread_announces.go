@@ -49,7 +49,7 @@ func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 }
 
 // handleAnnounceBlock handles an incoming announce block
-func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadAnnounce, error) {
+func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadAnnounce, error) {
 	msg := new(pb.ThreadAnnounce)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -78,8 +78,9 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_ANNOUNCE, "", "")
 	if err != nil {
 		return nil, err

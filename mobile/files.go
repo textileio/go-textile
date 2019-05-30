@@ -179,7 +179,7 @@ func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, 
 			continue
 		}
 
-		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
+		file, err := m.node.FileMeta(dlink.Cid.Hash().B58String())
 		if err != nil {
 			if err == core.ErrFileNotFound {
 				return "", nil

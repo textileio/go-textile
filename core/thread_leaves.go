@@ -53,7 +53,7 @@ func (t *Thread) leave() (mh.Multihash, error) {
 }
 
 // handleLeaveBlock handles an incoming leave block
-func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
+func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
 	if !t.readable(t.config.Account.Address) {
 		return ErrNotReadable
 	}
@@ -71,7 +71,8 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 	}
 
 	return t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_LEAVE, "", "")
 }

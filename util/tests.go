@@ -6,10 +6,80 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/textileio/go-textile/pb"
 )
 
-func TestURL(t *testing.T, addr string, method string, status int) {
-	// prepare the request
+var (
+	TestContact = &pb.Contact{
+		Address: "address1",
+		Name:    "joe",
+		Avatar:  "Qm123",
+		Peers: []*pb.Peer{
+			{
+				Id:      "abcde",
+				Address: "address1",
+				Name:    "joe",
+				Avatar:  "Qm123",
+				Inboxes: []*pb.Cafe{{
+					Peer:     "peer",
+					Address:  "address",
+					Api:      "v0",
+					Protocol: "/textile/cafe/1.0.0",
+					Node:     "v1.0.0",
+					Url:      "https://mycafe.com",
+				}},
+			},
+		},
+	}
+)
+
+const (
+	TestLogSchema = `
+	{
+	  "pin": true,
+	  "mill": "/json",
+	  "json_schema": {
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"$ref": "#/definitions/Log",
+		"definitions": {
+		  "Log": {
+			"required": [
+			  "priority",
+			  "timestamp",
+			  "hostname",
+			  "application",
+			  "pid",
+			  "message"
+			],
+			"properties": {
+			  "application": {
+				"type": "string"
+			  },
+			  "hostname": {
+				"type": "string"
+			  },
+			  "message": {
+				"type": "string"
+			  },
+			  "pid": {
+				"type": "integer"
+			  },
+			  "priority": {
+				"type": "integer"
+			  },
+			  "timestamp": {
+				"type": "string"
+			  }
+			},
+			"additionalProperties": false,
+			"type": "object"
+		  }
+		}
+	  }
+	}`
+)
+
+func TestURL(t *testing.T, addr string) {
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
 	assert.NoError(t, err)
 
@@ -20,11 +90,9 @@ func TestURL(t *testing.T, addr string, method string, status int) {
 	// 4. Could not find any go client implementations that offer CORS enforcement
 	// 5. All that exists in go, is the server sending the headers, for client enforcement
 
-	// perform the response
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
-	// body
 	t.Log("\nBODY:")
 	defer func() {
 		err := resp.Body.Close()
@@ -36,13 +104,11 @@ func TestURL(t *testing.T, addr string, method string, status int) {
 		t.Log(scanner.Text())
 	}
 
-	// headers
 	t.Log("\nHEADERS:")
 	for k, v := range resp.Header {
 		t.Logf("%s: %s\n", k, v)
 	}
 
-	// status
 	t.Logf("\nSTATUS: %d", resp.StatusCode)
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("bad status: got %v want %v", resp.StatusCode, http.StatusNoContent)
