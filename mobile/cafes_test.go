@@ -14,64 +14,52 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
-	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
 
 var cafesTestVars = struct {
+	mobilePath  string
+	mobile      *Mobile
 	cafePath    string
 	cafe        *core.Textile
 	cafeApiPort string
-	mobilePath  string
-	mobile      *Mobile
 }{
-	cafePath:    "./testdata/.textile3",
+	mobilePath:  "./testdata/.textile3",
+	cafePath:    "./testdata/.textile4",
 	cafeApiPort: "5000",
-	mobilePath:  "./testdata/.textile4",
 }
 
 func TestMobile_SetupCafes(t *testing.T) {
 	var err error
-	cafesTestVars.mobile, err = createAndStartMobile(
-		cafesTestVars.mobilePath, false, &testHandler{}, &testMessenger{})
+	cafesTestVars.mobile, err = createAndStartPeer(InitConfig{
+		RepoPath: cafesTestVars.mobilePath,
+		Debug:    true,
+	}, true, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// start a cafe
-	_ = os.RemoveAll(cafesTestVars.cafePath)
-	err = core.InitRepo(core.InitConfig{
-		Account:     keypair.Random(),
+	cafesTestVars.cafe, err = core.CreateAndStartPeer(core.InitConfig{
 		RepoPath:    cafesTestVars.cafePath,
+		Debug:       true,
 		SwarmPorts:  "4001",
 		CafeApiAddr: "0.0.0.0:" + cafesTestVars.cafeApiPort,
-		CafeURL:     "http://127.0.0.1:" + cafesTestVars.cafeApiPort, // set this to avoid using funky IPs in CI
+		CafeURL:     "http://127.0.0.1:" + cafesTestVars.cafeApiPort,
 		CafeOpen:    true,
-		Debug:       true,
-	})
+	}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cafesTestVars.cafe, err = core.NewTextile(core.RunConfig{
-		RepoPath: cafesTestVars.cafePath,
-		Debug:    true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cafesTestVars.cafe.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	<-cafesTestVars.mobile.OnlineCh()
-	<-cafesTestVars.cafe.OnlineCh()
 }
 
 func TestMobile_RegisterCafe(t *testing.T) {
-	// create a token
 	token, err := cafesTestVars.cafe.CreateCafeToken("", true)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := cafesTestVars.cafe.ValidateCafeToken(token)
+	if !ok || err != nil {
 		t.Fatal(err)
 	}
 
@@ -158,6 +146,15 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 			t.Fatal("target was not recursively unpinned")
 		}
 	}
+}
+
+func TestMobile_TeardownCafes(t *testing.T) {
+	_ = cafesTestVars.mobile.Stop()
+	_ = cafesTestVars.cafe.Stop()
+	cafesTestVars.mobile = nil
+	cafesTestVars.cafe = nil
+	_ = os.RemoveAll(cafesTestVars.mobilePath)
+	_ = os.RemoveAll(cafesTestVars.cafePath)
 }
 
 func addTestData(m *Mobile) error {

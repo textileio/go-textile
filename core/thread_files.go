@@ -86,7 +86,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 }
 
 // handleFilesBlock handles an incoming files block
-func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadFiles, error) {
+func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadFiles, error) {
 	msg := new(pb.ThreadFiles)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -175,8 +175,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_FILES, msg.Target, msg.Body)
 	if err != nil {
 		return nil, err

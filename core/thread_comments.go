@@ -39,7 +39,7 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 }
 
 // handleCommentBlock handles an incoming comment block
-func (t *Thread) handleCommentBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadComment, error) {
+func (t *Thread) handleCommentBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadComment, error) {
 	msg := new(pb.ThreadComment)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -54,8 +54,9 @@ func (t *Thread) handleCommentBlock(hash mh.Multihash, block *pb.ThreadBlock) (*
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_COMMENT, msg.Target, msg.Body)
 	if err != nil {
 		return nil, err

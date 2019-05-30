@@ -54,7 +54,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 }
 
 // handleIgnoreBlock handles an incoming ignore block
-func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadIgnore, error) {
+func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadIgnore, error) {
 	msg := new(pb.ThreadIgnore)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
@@ -76,8 +76,9 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 	}
 
 	err = t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
 	}, pb.Block_IGNORE, msg.Target, "")
 	if err != nil {
 		return nil, err

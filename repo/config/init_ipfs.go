@@ -144,7 +144,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 				GracePeriod: connMgrGracePeriod.String(),
 				Type:        "basic",
 			},
-			DisableBandwidthMetrics: false,
+			DisableBandwidthMetrics: mobile,
 			DisableNatPortMap:       server,
 			DisableRelay:            false,
 			EnableRelayHop:          false,

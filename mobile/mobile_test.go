@@ -10,7 +10,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
@@ -31,78 +30,9 @@ var testVars = struct {
 	files      []*pb.Files
 	invite     *pb.ExternalInvite
 	avatar     string
-
-	contact *pb.Contact
-	schema  string
 }{
 	repoPath1: "testdata/.textile1",
 	repoPath2: "testdata/.textile2",
-
-	contact: &pb.Contact{
-		Address: "address1",
-		Name:    "joe",
-		Avatar:  "Qm123",
-		Peers: []*pb.Peer{
-			{
-				Id:      "abcde",
-				Address: "address1",
-				Name:    "joe",
-				Avatar:  "Qm123",
-				Inboxes: []*pb.Cafe{{
-					Peer:     "peer",
-					Address:  "address",
-					Api:      "v0",
-					Protocol: "/textile/cafe/1.0.0",
-					Node:     "v1.0.0",
-					Url:      "https://mycafe.com",
-				}},
-			},
-		},
-	},
-
-	schema: `
-	{
-	  "pin": true,
-	  "mill": "/json",
-	  "json_schema": {
-		"$schema": "http://json-schema.org/draft-04/schema#",
-		"$ref": "#/definitions/Log",
-		"definitions": {
-		  "Log": {
-			"required": [
-			  "priority",
-			  "timestamp",
-			  "hostname",
-			  "application",
-			  "pid",
-			  "message"
-			],
-			"properties": {
-			  "application": {
-				"type": "string"
-			  },
-			  "hostname": {
-				"type": "string"
-			  },
-			  "message": {
-				"type": "string"
-			  },
-			  "pid": {
-				"type": "integer"
-			  },
-			  "priority": {
-				"type": "integer"
-			  },
-			  "timestamp": {
-				"type": "string"
-			  }
-			},
-			"additionalProperties": false,
-			"type": "object"
-		  }
-		}
-	  }
-	}`,
 }
 
 type testHandler struct{}
@@ -322,7 +252,7 @@ func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
 		Key:  ksuid.New().String(),
 		Name: "test",
 		Schema: &pb.AddThreadConfig_Schema{
-			Json: testVars.schema,
+			Json: util.TestLogSchema,
 		},
 		Type:    pb.Thread_READ_ONLY,
 		Sharing: pb.Thread_INVITE_ONLY,
@@ -678,7 +608,7 @@ func TestMobile_Profile(t *testing.T) {
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	payload, err := proto.Marshal(testVars.contact)
+	payload, err := proto.Marshal(util.TestContact)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -689,7 +619,7 @@ func TestMobile_AddContact(t *testing.T) {
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	payload, err := proto.Marshal(testVars.contact)
+	payload, err := proto.Marshal(util.TestContact)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -717,7 +647,10 @@ func TestMobile_Contact(t *testing.T) {
 
 func TestMobile_AddInvite(t *testing.T) {
 	var err error
-	testVars.mobile2, err = createAndStartMobile(testVars.repoPath2, true, &testHandler{}, &testMessenger{})
+	testVars.mobile2, err = createAndStartPeer(InitConfig{
+		RepoPath: testVars.repoPath2,
+		Debug:    true,
+	}, true, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -852,69 +785,4 @@ func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile2 = nil
 	_ = os.RemoveAll(testVars.repoPath1)
 	_ = os.RemoveAll(testVars.repoPath2)
-}
-
-func createAndStartMobile(rpth string, wait bool, h core.CafeOutboxHandler, m Messenger) (*Mobile, error) {
-	_ = os.RemoveAll(rpth)
-
-	recovery, err := NewWallet(12)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := WalletAccountAt(recovery, 0, "")
-	if err != nil {
-		return nil, err
-	}
-	accnt := new(pb.MobileWalletAccount)
-	err = proto.Unmarshal(res, accnt)
-	if err != nil {
-		return nil, err
-	}
-
-	err = InitRepo(&InitConfig{
-		Seed:     accnt.Seed,
-		RepoPath: rpth,
-		Debug:    true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	mobile, err := NewTextile(&RunConfig{
-		RepoPath:          rpth,
-		Debug:             true,
-		CafeOutboxHandler: h,
-	}, m)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mobile.Start()
-	if err != nil {
-		return nil, err
-	}
-
-	if wait {
-		<-mobile.OnlineCh()
-	}
-
-	return mobile, nil
-}
-
-func addTestThread(m *Mobile, conf *pb.AddThreadConfig) (*pb.Thread, error) {
-	mconf, err := proto.Marshal(conf)
-	if err != nil {
-		return nil, err
-	}
-	res, err := m.AddThread(mconf)
-	if err != nil {
-		return nil, err
-	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal(res, thrd)
-	if err != nil {
-		return nil, err
-	}
-	return thrd, nil
 }

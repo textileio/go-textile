@@ -159,28 +159,28 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 	var leave bool
 	switch block.Type {
 	case pb.Block_MERGE:
-		err = h.handleMerge(thrd, hash, block)
+		err = h.handleMerge(thrd, hash, block, parents)
 	case pb.Block_IGNORE:
-		err = h.handleIgnore(thrd, hash, block)
+		err = h.handleIgnore(thrd, hash, block, parents)
 	case pb.Block_FLAG:
-		err = h.handleFlag(thrd, hash, block)
+		err = h.handleFlag(thrd, hash, block, parents)
 	case pb.Block_JOIN:
-		err = h.handleJoin(thrd, hash, block, accountPeer)
+		err = h.handleJoin(thrd, hash, block, parents, accountPeer)
 	case pb.Block_ANNOUNCE:
-		err = h.handleAnnounce(thrd, hash, block)
+		err = h.handleAnnounce(thrd, hash, block, parents)
 	case pb.Block_LEAVE:
-		err = h.handleLeave(thrd, hash, block, accountPeer)
+		err = h.handleLeave(thrd, hash, block, parents, accountPeer)
 		if accountPeer {
 			leave = true // we will leave as well
 		}
 	case pb.Block_TEXT:
-		err = h.handleMessage(thrd, hash, block)
+		err = h.handleMessage(thrd, hash, block, parents)
 	case pb.Block_FILES:
-		err = h.handleFiles(thrd, hash, block)
+		err = h.handleFiles(thrd, hash, block, parents)
 	case pb.Block_COMMENT:
-		err = h.handleComment(thrd, hash, block)
+		err = h.handleComment(thrd, hash, block, parents)
 	case pb.Block_LIKE:
-		err = h.handleLike(thrd, hash, block)
+		err = h.handleLike(thrd, hash, block, parents)
 	default:
 		return nil, nil
 	}
@@ -303,25 +303,25 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents
 }
 
 // handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	return thrd.handleMergeBlock(hash, block)
+func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	return thrd.handleMergeBlock(hash, block, parents)
 }
 
 // handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	_, err := thrd.handleIgnoreBlock(hash, block)
+func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleIgnoreBlock(hash, block, parents)
 	return err
 }
 
 // handleFlag receives a flag message
-func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	_, err := thrd.handleFlagBlock(hash, block)
+func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleFlagBlock(hash, block, parents)
 	return err
 }
 
 // handleJoin receives a join message
-func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
-	_, err := thrd.handleJoinBlock(hash, block)
+func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
+	_, err := thrd.handleJoinBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -342,14 +342,15 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 }
 
 // handleAnnounce receives an announce message
-func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	_, err := thrd.handleAnnounceBlock(hash, block)
+func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleAnnounceBlock(hash, block, parents)
 	return err
 }
 
 // handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
-	if err := thrd.handleLeaveBlock(hash, block); err != nil {
+func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
+	err := thrd.handleLeaveBlock(hash, block, parents)
+	if err != nil {
 		return err
 	}
 
@@ -369,8 +370,8 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 }
 
 // handleMessage receives a message message
-func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleMessageBlock(hash, block)
+func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleMessageBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -385,8 +386,8 @@ func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *p
 }
 
 // handleData receives a files message
-func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleFilesBlock(hash, block)
+func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleFilesBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -402,8 +403,8 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 }
 
 // handleComment receives a comment message
-func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleCommentBlock(hash, block)
+func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleCommentBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -430,8 +431,8 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 }
 
 // handleLike receives a like message
-func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleLikeBlock(hash, block)
+func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleLikeBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
