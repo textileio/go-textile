@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
@@ -73,8 +74,12 @@ func TestCafeApi_Setup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// wait for cafe to be online
+	// wait for online
+	<-node1.OnlineCh()
 	<-node2.OnlineCh()
+
+	timer := time.NewTimer(time.Second * 5)
+	<-timer.C
 
 	// create token on cafe
 	token, err := node2.CreateCafeToken("", true)

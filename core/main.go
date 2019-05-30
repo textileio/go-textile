@@ -311,7 +311,8 @@ func (t *Textile) Start() error {
 	t.cafeOutbox = NewCafeOutbox(
 		t.Ipfs,
 		t.datastore,
-		t.cafeOutboxHandler)
+		t.cafeOutboxHandler,
+		t.FlushBlocks)
 	t.blockOutbox = NewBlockOutbox(
 		t.threadsService,
 		t.Ipfs,
@@ -672,7 +673,6 @@ func (t *Textile) runJobs() {
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
 	t.cafeOutbox.Flush()
-	t.FlushBlocks()
 	err := t.cafeInbox.CheckMessages()
 	if err != nil {
 		log.Errorf("error checking messages: %s", err)

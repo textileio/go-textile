@@ -133,7 +133,7 @@ func (c *cafeApi) service(g *gin.Context) {
 
 	// handle the message as normal
 	log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-	rpmes, err := c.node.cafe.Handle(mPeer, pmes)
+	rpmes, err := c.node.cafe.Handle(pmes, mPeer)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -150,7 +150,7 @@ func (c *cafeApi) service(g *gin.Context) {
 	}
 
 	// handle the message as a JSON stream
-	rpmesCh, errCh, cancel := c.node.cafe.HandleStream(mPeer, pmes)
+	rpmesCh, errCh, cancel := c.node.cafe.HandleStream(pmes, mPeer)
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():
