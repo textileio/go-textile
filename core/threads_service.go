@@ -74,7 +74,7 @@ func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // Handle is called by the underlying service handler method
-func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
 		return nil, nil
 	}
@@ -219,7 +219,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
+func (h *ThreadsService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{}) {
 	// no-op
 	return make(chan *pb.Envelope), make(chan error), make(chan interface{})
 }

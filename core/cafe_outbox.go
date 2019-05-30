@@ -88,18 +88,20 @@ func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 
 // CafeOutbox queues and processes outbound cafe requests
 type CafeOutbox struct {
-	node      func() *core.IpfsNode
-	datastore repo.Datastore
-	handler   CafeOutboxHandler
-	mux       sync.Mutex
+	node        func() *core.IpfsNode
+	datastore   repo.Datastore
+	handler     CafeOutboxHandler
+	flushBlocks func()
+	mux         sync.Mutex
 }
 
 // NewCafeOutbox creates a new outbox queue
-func NewCafeOutbox(node func() *core.IpfsNode, datastore repo.Datastore, handler CafeOutboxHandler) *CafeOutbox {
+func NewCafeOutbox(node func() *core.IpfsNode, datastore repo.Datastore, handler CafeOutboxHandler, flushBlocks func()) *CafeOutbox {
 	return &CafeOutbox{
-		node:      node,
-		datastore: datastore,
-		handler:   handler,
+		node:        node,
+		datastore:   datastore,
+		handler:     handler,
+		flushBlocks: flushBlocks,
 	}
 }
 
@@ -173,6 +175,14 @@ func (q *CafeOutbox) Flush() {
 		return
 	}
 	q.handler.Flush()
+	q.flushBlocks()
+
+	// clean up
+	err := q.datastore.CafeRequests().DeleteCompleteSyncGroups()
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
 }
 
 // add queues a single request

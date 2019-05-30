@@ -154,7 +154,7 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 	}
 
 	// pass to thread service for normal handling
-	_, err = q.threadsService().Handle(pid, env)
+	_, err = q.threadsService().Handle(env, pid)
 	if err != nil {
 		return q.handleErr(err, msg)
 	}

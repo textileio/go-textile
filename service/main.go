@@ -59,8 +59,8 @@ type Handler interface {
 	Protocol() protocol.ID
 	Start()
 	Ping(pid peer.ID) (PeerStatus, error)
-	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
-	HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{})
+	Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error)
+	HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{})
 }
 
 // NewService returns a service for the given config
@@ -118,6 +118,8 @@ func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, erro
 	if err != nil {
 		return nil, err
 	}
+
+	_ = srv.updateFromMessage(ctx, pid)
 
 	if rpmes == nil {
 		err = fmt.Errorf("no response from %s", p)
@@ -233,39 +235,6 @@ func (srv *Service) SendMessage(ctx context.Context, p string, pmes *pb.Envelope
 	return ms.SendMessage(ctx, pmes)
 }
 
-// SendHTTPMessage sends a message over HTTP
-func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
-
-	payload, err := proto.Marshal(pmes)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		res, err := util.UnmarshalString(req.Body)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf(res)
-	}
-
-	return nil
-}
-
 // NewEnvelope returns a signed pb message for transport
 func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int32, response bool) (*pb.Envelope, error) {
 	var payload *any.Any
@@ -340,7 +309,7 @@ func (srv *Service) handleError(env *pb.Envelope) error {
 }
 
 // handleCore provides service level handlers for common message types
-func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+func (srv *Service) handleCore(mtype pb.Message_Type) func(*pb.Envelope, peer.ID) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_PING:
 		return srv.handlePing
@@ -350,7 +319,7 @@ func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope
 }
 
 // handlePing receives a PING message
-func (srv *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (srv *Service) handlePing(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.Request, true)
 }
 
@@ -436,7 +405,7 @@ func (srv *Service) handleNewMessage(s inet.Stream) bool {
 		}
 
 		log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-		rpmes, err := handler(mPeer, &pmes)
+		rpmes, err := handler(&pmes, mPeer)
 		if err != nil {
 			log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
 			return false
@@ -519,7 +488,7 @@ func (srv *Service) listen(tag string) {
 			}
 
 			log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-			rpmes, err := handler(mPeer, pmes)
+			rpmes, err := handler(pmes, mPeer)
 			if err != nil {
 				log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
 				continue

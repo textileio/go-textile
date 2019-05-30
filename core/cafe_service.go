@@ -111,7 +111,7 @@ func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // Handle is called by the underlying service handler method
-func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	switch env.Message.Type {
 	case pb.Message_CAFE_CHALLENGE:
 		return h.handleChallenge(pid, env)
@@ -151,7 +151,7 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
+func (h *CafeService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{}) {
 	renvCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 	cancelCh := make(chan interface{})
@@ -1496,6 +1496,13 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		}
 		if req.Attempts+1 >= maxRequestAttempts {
 			err = h.datastore.CafeRequests().Delete(id)
+
+			// delete pending block
+			err := h.datastore.Blocks().Delete(req.SyncGroup)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
 		} else {
 			err = h.datastore.CafeRequests().AddAttempt(id)
 		}
@@ -1514,14 +1521,6 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		}
 		completed = append(completed, id)
 	}
-	if len(completed) > 0 {
-		err = h.datastore.CafeRequests().DeleteCompleteSyncGroups()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-	}
-
 	log.Debugf("handled %d cafe requests", len(completed))
 
 	h.batchRequests(next)
