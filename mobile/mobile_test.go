@@ -875,6 +875,7 @@ func createAndStartMobile(rpth string, wait bool, h core.CafeOutboxHandler, m Me
 	err = InitRepo(&InitConfig{
 		Seed:     accnt.Seed,
 		RepoPath: rpth,
+		Debug:    true,
 	})
 	if err != nil {
 		return nil, err

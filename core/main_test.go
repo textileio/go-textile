@@ -8,9 +8,8 @@ import (
 	"os"
 	"testing"
 
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
-
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
@@ -198,23 +197,21 @@ func TestTextile_CafeTokens(t *testing.T) {
 }
 
 func TestTextile_CafeRegistration(t *testing.T) {
-	oid, err := other.PeerId()
-	if err != nil {
-		t.Fatal(err)
-	}
+	otherID := other.Ipfs().Identity
+
+	// because local discovery almost _always_ fails initially, a backoff is
+	// set and we fail to register until it's removed... this cheats around that.
+	node.Ipfs().Peerstore.AddAddrs(
+		otherID, other.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 
 	// register w/ wrong credentials
-	_, err = node.RegisterCafe(oid.Pretty(), "blah")
+	_, err := node.RegisterCafe(otherID.Pretty(), "blah")
 	if err == nil {
 		t.Fatal("register node w/ other should have failed")
 	}
 
-	// because local discovery almost _always_ fails initially, a backoff is
-	// set and we fail to register until it's removed... this cheats around that.
-	node.Ipfs().Peerstore.AddAddrs(oid, other.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
-
 	// register cafe
-	_, err = node.RegisterCafe(oid.Pretty(), token)
+	_, err = node.RegisterCafe(otherID.Pretty(), token)
 	if err != nil {
 		t.Fatalf("register node w/ other failed: %s", err)
 	}
