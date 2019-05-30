@@ -95,17 +95,14 @@ func TestCafeApi_Setup(t *testing.T) {
 		t.Fatalf("error checking token: %s", err)
 	}
 
-	// register with cafe
-	cid, err := node2.PeerId()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// because local discovery almost _always_ fails initially, a backoff is
 	// set and we fail to register until it's removed... this cheats around that.
-	node1.Ipfs().Peerstore.AddAddrs(cid, node2.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
+	cafeID := node2.Ipfs().Identity
+	node1.Ipfs().Peerstore.AddAddrs(
+		cafeID, node2.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 
-	_, err = node1.RegisterCafe(cid.Pretty(), token)
+	// register with cafe
+	_, err = node1.RegisterCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatalf("register node1 w/ node2 failed: %s", err)
 	}

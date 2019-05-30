@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/jsonpb"
-
 	"github.com/golang/protobuf/proto"
 	icid "github.com/ipfs/go-cid"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -43,9 +43,11 @@ func TestMobile_SetupCafes(t *testing.T) {
 	err = core.InitRepo(core.InitConfig{
 		Account:     keypair.Random(),
 		RepoPath:    cafesTestVars.cafePath,
+		SwarmPorts:  "4001",
 		CafeApiAddr: "0.0.0.0:" + cafesTestVars.cafeApiPort,
 		CafeURL:     "http://127.0.0.1:" + cafesTestVars.cafeApiPort, // set this to avoid using funky IPs in CI
 		CafeOpen:    true,
+		Debug:       true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -73,9 +75,14 @@ func TestMobile_RegisterCafe(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// because local discovery almost _always_ fails initially, a backoff is
+	// set and we fail to register until it's removed... this cheats around that.
+	cafeID := cafesTestVars.cafe.Ipfs().Identity
+	cafesTestVars.mobile.node.Ipfs().Peerstore.AddAddrs(
+		cafeID, cafesTestVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
+
 	// register with cafe
-	url := "http://127.0.0.1:" + cafesTestVars.cafeApiPort
-	err = cafesTestVars.mobile.RegisterCafe(url, token)
+	err = cafesTestVars.mobile.RegisterCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatal(err)
 	}
