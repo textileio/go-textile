@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
+
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/go-textile/core"
@@ -59,6 +61,7 @@ func TestInitRepo(t *testing.T) {
 		Account:  accnt,
 		RepoPath: repoPath,
 		ApiAddr:  fmt.Sprintf("127.0.0.1:%s", GetRandomPort()),
+		Debug:    true,
 	}); err != nil {
 		t.Fatalf("init node failed: %s", err)
 	}
@@ -68,6 +71,7 @@ func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
 		RepoPath: repoPath,
+		Debug:    true,
 	})
 	if err != nil {
 		t.Fatalf("create node failed: %s", err)
@@ -124,15 +128,18 @@ func TestTextile_CafeSetup(t *testing.T) {
 	err := InitRepo(InitConfig{
 		Account:     accnt,
 		RepoPath:    otherPath,
+		SwarmPorts:  "4001",
 		CafeApiAddr: "127.0.0.1:5000",
 		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
+		Debug:       true,
 	})
 	if err != nil {
 		t.Fatalf("init other failed: %s", err)
 	}
 	other, err = NewTextile(RunConfig{
 		RepoPath: otherPath,
+		Debug:    true,
 	})
 	if err != nil {
 		t.Fatalf("create other failed: %s", err)
@@ -201,6 +208,10 @@ func TestTextile_CafeRegistration(t *testing.T) {
 	if err == nil {
 		t.Fatal("register node w/ other should have failed")
 	}
+
+	// because local discovery almost _always_ fails initially, a backoff is
+	// set and we fail to register until it's removed... this cheats around that.
+	node.Ipfs().Peerstore.AddAddrs(oid, other.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 
 	// register cafe
 	_, err = node.RegisterCafe(oid.Pretty(), token)

@@ -830,11 +830,20 @@ func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, er
 
 	var err error
 	for key, value := range level.Systems {
+		if key == "*" {
+			for _, s := range logging.GetSubsystems() {
+				err = logging.SetLogLevel(s, value.String())
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 		err = logging.SetLogLevel(key, value.String())
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return writer, nil
 }
 

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	. "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -33,15 +33,17 @@ func TestCafeApi_Setup(t *testing.T) {
 	// start one node
 	_ = os.RemoveAll(repoPath1)
 	accnt1 := keypair.Random()
-	if err := InitRepo(InitConfig{
+	err := InitRepo(InitConfig{
 		Account:  accnt1,
 		RepoPath: repoPath1,
-	}); err != nil {
+		Debug:    true,
+	})
+	if err != nil {
 		t.Fatalf("init node1 failed: %s", err)
 	}
-	var err error
 	node1, err = NewTextile(RunConfig{
 		RepoPath: repoPath1,
+		Debug:    true,
 	})
 	if err != nil {
 		t.Fatalf("create node1 failed: %s", err)
@@ -54,17 +56,21 @@ func TestCafeApi_Setup(t *testing.T) {
 	// start another
 	_ = os.RemoveAll(repoPath2)
 	accnt2 := keypair.Random()
-	if err := InitRepo(InitConfig{
+	err = InitRepo(InitConfig{
 		Account:     accnt2,
 		RepoPath:    repoPath2,
+		SwarmPorts:  "4001",
 		CafeApiAddr: "127.0.0.1:5000",
 		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
-	}); err != nil {
+		Debug:       true,
+	})
+	if err != nil {
 		t.Fatalf("init node2 failed: %s", err)
 	}
 	node2, err = NewTextile(RunConfig{
 		RepoPath: repoPath2,
+		Debug:    true,
 	})
 	if err != nil {
 		t.Fatalf("create node2 failed: %s", err)
@@ -77,9 +83,6 @@ func TestCafeApi_Setup(t *testing.T) {
 	// wait for online
 	<-node1.OnlineCh()
 	<-node2.OnlineCh()
-
-	timer := time.NewTimer(time.Second * 5)
-	<-timer.C
 
 	// create token on cafe
 	token, err := node2.CreateCafeToken("", true)
@@ -97,6 +100,11 @@ func TestCafeApi_Setup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// because local discovery almost _always_ fails initially, a backoff is
+	// set and we fail to register until it's removed... this cheats around that.
+	node1.Ipfs().Peerstore.AddAddrs(cid, node2.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
+
 	_, err = node1.RegisterCafe(cid.Pretty(), token)
 	if err != nil {
 		t.Fatalf("register node1 w/ node2 failed: %s", err)
@@ -126,7 +134,8 @@ func TestCafeApi_Pin(t *testing.T) {
 		t.Fatalf("got bad status: %d", res.StatusCode)
 	}
 	resp := &pinResponse{}
-	if err := unmarshalJSON(res.Body, resp); err != nil {
+	err = unmarshalJSON(res.Body, resp)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if resp.Id == "" {
@@ -153,7 +162,8 @@ func TestCafeApi_PinArchive(t *testing.T) {
 		t.Fatalf("got bad status: %d", res.StatusCode)
 	}
 	resp := &pinResponse{}
-	if err := unmarshalJSON(res.Body, resp); err != nil {
+	err = unmarshalJSON(res.Body, resp)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if resp.Id == "" {
