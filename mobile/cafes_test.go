@@ -92,6 +92,17 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 	m := cafesTestVars.mobile
 	c := cafesTestVars.cafe
 
+	err = m.node.Datastore().CafeRequests().DeleteCompleteSyncGroups()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// ensure all requests have been deleted
+	cnt := m.node.Datastore().CafeRequests().Count(-1)
+	if cnt != 0 {
+		t.Fatalf("expected all requests to be handled, got %d", cnt)
+	}
+
 	// check if blocks are pinned
 	var blocks []string
 	var targets []string
@@ -153,8 +164,6 @@ func TestMobile_TeardownCafes(t *testing.T) {
 	_ = cafesTestVars.cafe.Stop()
 	cafesTestVars.mobile = nil
 	cafesTestVars.cafe = nil
-	_ = os.RemoveAll(cafesTestVars.mobilePath)
-	_ = os.RemoveAll(cafesTestVars.cafePath)
 }
 
 func addTestData(m *Mobile) error {

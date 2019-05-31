@@ -1521,7 +1521,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		}
 		completed = append(completed, id)
 	}
-	log.Debugf("handled %d cafe requests", len(completed))
+	log.Debugf("handled %d cafe requests, %d next", len(completed), len(next.Items))
 
 	h.batchRequests(next)
 }

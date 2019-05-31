@@ -40,10 +40,10 @@ func (c *CafeClientDB) Add(client *pb.CafeClient) error {
 		client.Token,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -62,7 +62,7 @@ func (c *CafeClientDB) Count() int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from cafe_clients;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

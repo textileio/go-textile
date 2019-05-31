@@ -558,6 +558,7 @@ func (t *Textile) FlushBlocks() {
 		return util.ProtoTime(pending.Items[i].Date).Before(
 			util.ProtoTime(pending.Items[j].Date))
 	})
+	var posted bool
 	for _, block := range pending.Items {
 		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
 			thrd := t.Thread(block.Thread)
@@ -570,16 +571,21 @@ func (t *Textile) FlushBlocks() {
 				log.Errorf("error posting block %s: %s", block.Id, err)
 				return
 			}
+			posted = true
 
 			err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
 			if err != nil {
 				log.Error(err)
 				return
 			}
+			log.Debugf("deleted sync group: %s", block.Id)
 		}
 	}
 
 	go t.blockOutbox.Flush()
+	if posted {
+		go t.cafeOutbox.Flush()
+	}
 }
 
 // FlushCafes flushes the cafe request outbox
