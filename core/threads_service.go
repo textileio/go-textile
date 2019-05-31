@@ -193,7 +193,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		return nil, err
 	}
 
-	_, err = thrd.handleHead(hash, parents)
+	err = thrd.handleHead(hash.B58String(), parents)
 	if err != nil {
 		return nil, err
 	}

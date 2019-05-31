@@ -17,7 +17,6 @@ import (
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/db"
-	"github.com/textileio/go-textile/schema"
 	"github.com/textileio/go-textile/schema/textile"
 )
 
@@ -222,12 +221,8 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	if err != nil {
 		return err
 	}
-	hash, err := mh.FromB58String(thrd.Head)
-	if err != nil {
-		return err
-	}
 
-	_, err = nthrd.handleHead(hash, parents)
+	err = nthrd.handleHead(thrd.Head, parents)
 	if err != nil {
 		return err
 	}
@@ -395,16 +390,9 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	// add extra view info
 	mod.SchemaNode = thrd.Schema
 	if mod.Head != "" {
-		var hid string
-		node, err := ipfs.NodeAtPath(t.node, mod.Head)
+		hid, err := thrd.blockCIDFromNode(mod.Head)
 		if err != nil {
-			hid = mod.Head
-		} else {
-			link := schema.LinkByName(node.Links(), []string{blockLinkName})
-			if link == nil {
-				return nil, ErrInvalidNode
-			}
-			hid = link.Cid.Hash().B58String()
+			return nil, err
 		}
 		mod.HeadBlock = t.datastore.Blocks().Get(hid)
 		if mod.HeadBlock != nil {

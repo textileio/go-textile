@@ -7,7 +7,7 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-// merge updates the head block node with an additional parent
+// merge updates head with an additional parent
 func (t *Thread) merge(head string, inbound string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -39,6 +39,7 @@ func (t *Thread) merge(head string, inbound string) (mh.Multihash, error) {
 }
 
 // handleMergeBlock handles an incoming merge block
+// Deprecated
 func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
 	if !t.readable(t.config.Account.Address) {
 		return ErrNotReadable

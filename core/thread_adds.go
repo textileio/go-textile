@@ -89,11 +89,7 @@ func (t *Thread) handleAddBlock(parents []string) error {
 
 	// update HEAD if parents of the invite are actual updates
 	if len(parents) > 0 {
-		hash, err := mh.FromB58String(parents[0])
-		if err != nil {
-			return err
-		}
-		err = t.updateHead(hash)
+		err = t.updateHead(parents)
 		if err != nil {
 			return err
 		}
