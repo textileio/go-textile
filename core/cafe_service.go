@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	cid "github.com/ipfs/go-cid"
+	icid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -479,7 +479,7 @@ func (h *CafeService) refresh(session *pb.CafeSession) (*pb.CafeSession, error) 
 }
 
 // sendObject sends data or an object by cid to a cafe peer
-func (h *CafeService) sendObject(id cid.Cid, cafeId string, token string) error {
+func (h *CafeService) sendObject(id icid.Cid, cafeId string, token string) error {
 	hash := id.Hash().B58String()
 	obj := &pb.CafeObject{
 		Token: token,
@@ -986,7 +986,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		return rerr, nil
 	}
 
-	var aid *cid.Cid
+	var aid *icid.Cid
 	if obj.Data != nil {
 		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true, false)
 	} else if obj.Node != nil {
@@ -1088,13 +1088,36 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		return nil, nil
 	}
 
-	message := &pb.CafeClientMessage{
-		Id:     msg.Id,
+	// pin inner node
+	nenv := new(pb.Envelope)
+	err = proto.Unmarshal(msg.Env, env)
+	if err != nil {
+		return nil, err
+	}
+	tenv := new(pb.ThreadEnvelope)
+	err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
+	if err != nil {
+		return nil, err
+	}
+	id, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), true)
+	if err != nil {
+		return nil, err
+	}
+	node, err := ipfs.NodeAtCid(h.service.Node(), *id)
+	if err != nil {
+		return nil, err
+	}
+	bnode, err := extractNode(h.service.Node(), node)
+	if err != nil {
+		return nil, err
+	}
+
+	err = h.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
+		Id:     bnode.hash.B58String(),
 		Peer:   pid.Pretty(),
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
-	}
-	err = h.datastore.CafeClientMessages().AddOrUpdate(message)
+	})
 	if err != nil {
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
@@ -1645,7 +1668,7 @@ loop:
 
 	// send each object
 	for _, id := range req.Cids {
-		decoded, err := cid.Decode(id)
+		decoded, err := icid.Decode(id)
 		if err != nil {
 			return stored, err
 		}
@@ -1720,15 +1743,30 @@ func (h *CafeService) unstoreThread(id string, cafeId string) error {
 
 // deliverMessage delivers a message content id to a peer's cafe inbox
 func (h *CafeService) deliverMessage(mid string, peerId string, cafe *pb.Cafe) error {
+	body, err := ipfs.DataAtPath(h.service.Node(), mid)
+	if err != nil {
+		return err
+	}
+
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:     mid,
 		Client: peerId,
+		Env:    body,
 	}, nil, false)
 	if err != nil {
 		return err
 	}
 
-	return h.service.SendMessage(nil, cafe.Peer, env)
+	err = h.service.SendMessage(nil, cafe.Peer, env)
+	if err != nil {
+		return err
+	}
+
+	id, err := icid.Decode(mid)
+	if err != nil {
+		return err
+	}
+	return ipfs.UnpinCid(h.service.Node(), id, false)
 }
 
 // queryDefaults ensures the query is within the expected bounds

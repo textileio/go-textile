@@ -93,6 +93,7 @@ message CafeUnstoreThreadAck {
 message CafeDeliverMessage {
     string id     = 1;
     string client = 2;
+	bytes env     = 3;
 }
 
 message CafeCheckMessages {
