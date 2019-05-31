@@ -80,10 +80,7 @@ func TestTextile_API_Addr(t *testing.T) {
 }
 
 func TestTextile_API_Health(t *testing.T) {
-	// prepare the URL
 	addr := "http://" + vars.node.ApiAddr() + "/health"
-
-	// test the request
 	util.TestURL(t, addr)
 }
 
@@ -229,5 +226,4 @@ func TestTextile_OnlineAgain(t *testing.T) {
 
 func TestTextile_Teardown(t *testing.T) {
 	vars.node = nil
-	_ = os.RemoveAll(vars.repoPath)
 }

@@ -1,8 +1,9 @@
 package core
 
 import (
-	"os"
+	"fmt"
 	"testing"
+	"time"
 
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/segmentio/ksuid"
@@ -114,10 +115,18 @@ func TestCore_RegisterCafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cafeVars.node.FlushCafes()
 }
 
 func TestCore_HandleCafeRequests(t *testing.T) {
-	cafeVars.node.FlushCafes()
+	waitOnRequests(time.Second * 60)
+
+	// ensure all requests have been deleted
+	total := cafeVars.node.datastore.CafeRequests().Count(-1)
+	neww := cafeVars.node.datastore.CafeRequests().Count(0)
+	if neww != 0 {
+		t.Fatalf("expected all requests to be handled, got %d total, %d new", total, neww)
+	}
 }
 
 func TestCore_TeardownCafes(t *testing.T) {
@@ -125,8 +134,6 @@ func TestCore_TeardownCafes(t *testing.T) {
 	_ = cafeVars.cafe.Stop()
 	cafeVars.node = nil
 	cafeVars.cafe = nil
-	_ = os.RemoveAll(cafeVars.nodePath)
-	_ = os.RemoveAll(cafeVars.cafePath)
 }
 
 func addTestData(n *Textile) error {
@@ -173,4 +180,26 @@ func addTestData(n *Textile) error {
 	}
 
 	return nil
+}
+
+func waitOnRequests(total time.Duration) {
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+
+	var waited time.Duration
+	for {
+		select {
+		case <-tick.C:
+			cnt := cafeVars.node.datastore.CafeRequests().Count(-1)
+			if cnt == 0 {
+				return
+			} else {
+				fmt.Printf("waiting on %d requests to complete\n", cnt)
+			}
+			waited += time.Second
+			if waited >= total {
+				return
+			}
+		}
+	}
 }

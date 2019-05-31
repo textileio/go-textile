@@ -1432,7 +1432,6 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	}
 
 	// process each cafe group concurrently
-	var berr error
 	var toComplete, toFail []string
 	wg := sync.WaitGroup{}
 	for cafeId, group := range groups {
@@ -1446,7 +1445,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 			for t, group := range types {
 				handled, failed, err := h.handleRequests(group, t, cafeId)
 				if err != nil {
-					berr = err
+					log.Warningf("error handling request group: %s", group)
 				}
 				for _, id := range handled {
 					toComplete = append(toComplete, id)
@@ -1496,12 +1495,10 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		}
 		completed = append(completed, id)
 	}
-	log.Debugf("handled %d cafe requests", len(completed))
+	log.Debugf("handled %d cafe requests, %d next", len(completed), len(next.Items))
 
 	// keep going unless an error occurred
-	if berr == nil {
-		h.batchRequests(next)
-	}
+	h.batchRequests(next)
 }
 
 // handleRequest handles a group of requests for a single cafe

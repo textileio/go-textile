@@ -157,6 +157,7 @@ type CafeRequestStore interface {
 	Get(id string) *pb.CafeRequest
 	GetGroup(group string) *pb.CafeRequestList
 	GetSyncGroup(group string) string
+	Count(status pb.CafeRequest_Status) int
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
 	SyncGroupComplete(syncGroupId string) bool

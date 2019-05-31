@@ -105,6 +105,22 @@ func (c *CafeRequestDB) GetSyncGroup(group string) string {
 	return ""
 }
 
+func (c *CafeRequestDB) Count(status pb.CafeRequest_Status) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	stm := "SELECT COUNT(*) FROM cafe_requests"
+	if status != -1 {
+		stm += " WHERE status=" + strconv.Itoa(int(status))
+	}
+	stm += ";"
+
+	row := c.db.QueryRow(stm)
+	var count int
+	_ = row.Scan(&count)
+	return count
+}
+
 func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -272,7 +288,7 @@ func (c *CafeRequestDB) DeleteCompleteSyncGroups() error {
 	defer c.lock.Unlock()
 
 	_, err := c.db.Exec(`
-        DELETE FROM cafe_requests WHERE syncGroupId=(
+        DELETE FROM cafe_requests WHERE syncGroupId IN (
 		    SELECT a.syncGroupId
 		    FROM   (SELECT syncGroupId, COUNT(*) as total
 		            FROM   cafe_requests
@@ -284,6 +300,10 @@ func (c *CafeRequestDB) DeleteCompleteSyncGroups() error {
 		    ON     a.syncGroupId = b.syncGroupId AND a.total = b.total_complete
         )
 	`, pb.CafeRequest_COMPLETE)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 

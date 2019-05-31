@@ -162,6 +162,12 @@ func TestCafeRequestDB_List(t *testing.T) {
 	}
 }
 
+func TestCafeRequestDB_Count(t *testing.T) {
+	if cafeRequestStore.Count(pb.CafeRequest_NEW) != 3 {
+		t.Errorf("returned incorrect count")
+	}
+}
+
 func TestCafeRequestDB_ListGroups(t *testing.T) {
 	all := cafeRequestStore.ListGroups("", -1)
 	if len(all) != 3 {
@@ -282,6 +288,10 @@ func TestCafeRequestDB_DeleteCompleteSyncGroupsAgain(t *testing.T) {
 	}
 	defer stmt.Close()
 	var id string
+	err = stmt.QueryRow("abcdef").Scan(&id)
+	if err == nil {
+		t.Error("delete failed")
+	}
 	err = stmt.QueryRow("abcdefg").Scan(&id)
 	if err == nil {
 		t.Error("delete failed")
