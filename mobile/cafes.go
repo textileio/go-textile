@@ -225,10 +225,9 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 		if rtype == pb.CafeRequest_STORE {
 			hreq = &pb.CafeHTTPRequest{
 				Type: pb.CafeHTTPRequest_PUT,
-				Url:  session.Cafe.Url + "/api/v1/store",
+				Url:  session.Cafe.Url + "/api/" + core.CafeApiVersion + "/store",
 				Headers: map[string]string{
-					"Authorization":  "Basic " + session.Access,
-					"X-Textile-Peer": m.node.Ipfs().Identity.Pretty(),
+					"Authorization": "Basic " + session.Access,
 				},
 				Path: fmt.Sprintf("%s/tmp/%s", m.RepoPath, group),
 			}
@@ -252,7 +251,6 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 						if err != nil {
 							return nil, err
 						}
-						hreq.Headers["X-Textile-Store-Type"] = "object"
 						_, err = part.Write(data)
 						if err != nil {
 							return nil, err
@@ -261,7 +259,6 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 						return nil, err
 					}
 				} else {
-					hreq.Headers["X-Textile-Store-Type"] = "data"
 					_, err = part.Write(data)
 					if err != nil {
 						return nil, err
@@ -280,11 +277,10 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 			unpin := make(map[string]struct{})
 			for _, req := range reqs {
 				hreq = &pb.CafeHTTPRequest{
-					Url: session.Cafe.Url + "/api/v1",
+					Url: session.Cafe.Url + "/api/" + core.CafeApiVersion,
 					Headers: map[string]string{
-						"Authorization":  "Basic " + session.Access,
-						"X-Textile-Peer": m.node.Ipfs().Identity.Pretty(),
-						"Content-Type":   "application/octet-stream",
+						"Authorization": "Basic " + session.Access,
+						"Content-Type":  "application/octet-stream",
 					},
 					Path: fmt.Sprintf("%s/tmp/%s", m.RepoPath, group),
 				}
@@ -321,7 +317,7 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 
 				case pb.CafeRequest_INBOX:
 					hreq.Type = pb.CafeHTTPRequest_POST
-					hreq.Url += "/inbox/" + req.Peer
+					hreq.Url += "/inbox/" + m.node.Ipfs().Identity.Pretty() + "/" + req.Peer
 					body, err = ipfs.DataAtPath(m.node.Ipfs(), req.Target)
 					if err != nil {
 						return nil, err

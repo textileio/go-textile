@@ -136,7 +136,7 @@ func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, erro
 }
 
 // SendHTTPStreamRequest sends a request over HTTP
-func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan *pb.Envelope, chan error, *func()) {
+func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope, access string) (chan *pb.Envelope, chan error, *func()) {
 	rpmesCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 
@@ -156,7 +156,7 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			errCh <- err
 			return
 		}
-		req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
+		req.Header.Set("Authorization", "Basic "+access)
 
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}

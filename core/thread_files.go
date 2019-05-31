@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
-	cid "github.com/ipfs/go-cid"
+	icid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/mr-tron/base58/base58"
 	mh "github.com/multiformats/go-multihash"
@@ -116,7 +116,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 		}
 	}
 	if !ignore {
-		target, err := cid.Parse(msg.Target)
+		target, err := icid.Parse(msg.Target)
 		if err != nil {
 			return nil, err
 		}
