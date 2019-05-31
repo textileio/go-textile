@@ -1088,6 +1088,31 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 	}
 
 	if msg.Env != nil {
+		// pin inner node
+		nenv := new(pb.Envelope)
+		err = proto.Unmarshal(msg.Env, env)
+		if err != nil {
+			return nil, err
+		}
+		tenv := new(pb.ThreadEnvelope)
+		err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
+		if err != nil {
+			return nil, err
+		}
+		oid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), true)
+		if err != nil {
+			return nil, err
+		}
+		node, err := ipfs.NodeAtCid(h.service.Node(), *oid)
+		if err != nil {
+			return nil, err
+		}
+		_, err = extractNode(h.service.Node(), node)
+		if err != nil {
+			return nil, err
+		}
+
+		// pin envelope
 		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true, false)
 		if err != nil {
 			return nil, err
@@ -1095,13 +1120,12 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		msg.Id = id.Hash().B58String()
 	}
 
-	message := &pb.CafeClientMessage{
+	err = h.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
 		Id:     msg.Id,
 		Peer:   pid.Pretty(),
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
-	}
-	err = h.datastore.CafeClientMessages().AddOrUpdate(message)
+	})
 	if err != nil {
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
@@ -1745,7 +1769,7 @@ func (h *CafeService) unstoreThread(id string, cafeId string) error {
 
 // deliverMessage delivers a message content id to a peer's cafe inbox
 func (h *CafeService) deliverMessage(mid string, peerId string, cafe *pb.Cafe) error {
-	data, err := ipfs.DataAtPath(h.service.Node(), mid)
+	body, err := ipfs.DataAtPath(h.service.Node(), mid)
 	if err != nil {
 		return err
 	}
@@ -1753,7 +1777,7 @@ func (h *CafeService) deliverMessage(mid string, peerId string, cafe *pb.Cafe) e
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:     mid,
 		Client: peerId,
-		Env:    data,
+		Env:    body,
 	}, nil, false)
 	if err != nil {
 		return err

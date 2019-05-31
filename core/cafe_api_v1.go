@@ -163,7 +163,6 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		return
 	}
 
-	// message id is the request body
 	buf := bodyPool.Get().(*bytes.Buffer)
 	defer func() {
 		buf.Reset()
