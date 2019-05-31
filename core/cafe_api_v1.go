@@ -2,17 +2,16 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 
-	"github.com/golang/protobuf/proto"
-
 	"github.com/gin-gonic/gin"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/pin"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )
@@ -20,7 +19,6 @@ import (
 func (c *cafeApi) store(g *gin.Context) {
 	var err error
 	var aid *cid.Cid
-	stype := g.Request.Header.Get("X-Textile-Store-Type")
 
 	form, err := g.MultipartForm()
 	if err != nil {
@@ -42,14 +40,10 @@ func (c *cafeApi) store(g *gin.Context) {
 			return
 		}
 
-		switch stype {
-		case "data":
+		aid, err = ipfs.AddObject(c.node.Ipfs(), f, true)
+		if err != nil {
+			_, _ = f.Seek(0, 0)
 			aid, err = ipfs.AddData(c.node.Ipfs(), f, true, false)
-		case "object":
-			aid, err = ipfs.AddObject(c.node.Ipfs(), f, true)
-		default:
-			c.abort(g, http.StatusBadRequest, fmt.Errorf("missing store type header"))
-			return
 		}
 		if err != nil {
 			c.abort(g, http.StatusBadRequest, err)
@@ -94,10 +88,10 @@ func (c *cafeApi) unstore(g *gin.Context) {
 }
 
 func (c *cafeApi) storeThread(g *gin.Context) {
-	pid := g.Request.Header.Get("X-Textile-Peer")
+	from := g.GetString("from")
 	id := g.Param("id")
 
-	client := c.node.datastore.CafeClients().Get(pid)
+	client := c.node.datastore.CafeClients().Get(from)
 	if client == nil {
 		c.abort(g, http.StatusForbidden, nil)
 		return
@@ -132,10 +126,10 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 }
 
 func (c *cafeApi) unstoreThread(g *gin.Context) {
-	pid := g.Request.Header.Get("X-Textile-Peer")
+	from := g.GetString("from")
 	id := g.Param("id")
 
-	client := c.node.datastore.CafeClients().Get(pid)
+	client := c.node.datastore.CafeClients().Get(from)
 	if client == nil {
 		c.abort(g, http.StatusForbidden, nil)
 		return
@@ -153,12 +147,12 @@ func (c *cafeApi) unstoreThread(g *gin.Context) {
 }
 
 func (c *cafeApi) deliverMessage(g *gin.Context) {
-	pid := g.Request.Header.Get("X-Textile-Peer")
-	clientId := g.Param("pid")
+	from := g.Param("from")
+	clientId := g.Param("to")
 
 	client := c.node.datastore.CafeClients().Get(clientId)
 	if client == nil {
-		log.Warningf("received message from %s for unknown client %s", pid, clientId)
+		log.Warningf("received message for unknown client %s", clientId)
 		g.Status(http.StatusOK)
 		return
 	}
@@ -207,7 +201,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 
 	err = c.node.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
 		Id:     bnode.hash.B58String(),
-		Peer:   pid,
+		Peer:   from,
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
 	})
@@ -226,4 +220,60 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 	log.Debugf("delivered message %s", bnode.hash.B58String())
 
 	g.Status(http.StatusOK)
+}
+
+func (c *cafeApi) search(g *gin.Context) {
+	from := g.GetString("from")
+
+	pid, err := peer.IDB58Decode(from)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	buf := bodyPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bodyPool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err = buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// parse body as a service envelope
+	pmes := new(pb.Envelope)
+	err = proto.Unmarshal(buf.Bytes(), pmes)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// handle the message as a JSON stream
+	rpmesCh, errCh, cancel := c.node.cafe.HandleStream(pmes, pid)
+	g.Stream(func(w io.Writer) bool {
+		select {
+		case <-g.Request.Context().Done():
+			log.Debug("closing request stream")
+			close(cancel)
+
+		case err := <-errCh:
+			g.String(http.StatusBadRequest, err.Error())
+			return false
+
+		case rpmes, ok := <-rpmesCh:
+			if !ok {
+				g.Status(http.StatusOK)
+				return false
+			}
+			log.Debugf("responding with %s", rpmes.Message.Type.String())
+
+			g.JSON(http.StatusOK, rpmes)
+			_, _ = g.Writer.Write([]byte("\n"))
+		}
+		return true
+	})
 }

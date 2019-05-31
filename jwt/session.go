@@ -112,45 +112,45 @@ func ParseClaims(claims jwt.Claims) (*TextileClaims, error) {
 	return tclaims, nil
 }
 
-func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience string, subject *string) error {
+func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience string, subject *string) (*TextileClaims, error) {
 	token, pErr := jwt.Parse(tokenString, keyfunc)
 	if token == nil {
-		return ErrNoToken
+		return nil, ErrNoToken
 	}
 
 	claims, err := ParseClaims(token.Claims)
 	if err != nil {
-		return ErrInvalid
+		return nil, ErrInvalid
 	}
 
 	if pErr != nil {
 		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
-			return ErrExpired
+			return nil, ErrExpired
 		}
-		return ErrInvalid
+		return nil, ErrInvalid
 	}
 
 	switch claims.Scope {
 	case Access:
 		if refreshing {
-			return ErrInvalid
+			return nil, ErrInvalid
 		}
 	case Refresh:
 		if !refreshing {
-			return ErrInvalid
+			return nil, ErrInvalid
 		}
 	default:
-		return ErrInvalid
+		return nil, ErrInvalid
 	}
 
 	// verify owner
 	if subject != nil && *subject != claims.Subject {
-		return ErrInvalid
+		return nil, ErrInvalid
 	}
 
 	// verify protocol
 	if !claims.VerifyAudience(audience, true) {
-		return ErrInvalid
+		return nil, ErrInvalid
 	}
-	return nil
+	return claims, nil
 }
