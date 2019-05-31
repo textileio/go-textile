@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -36,11 +35,11 @@ func NewBlockOutbox(service func() *ThreadsService, node func() *core.IpfsNode, 
 }
 
 // Add adds an outbound message
-func (q *BlockOutbox) Add(pid peer.ID, env *pb.Envelope) error {
-	log.Debugf("adding block message for %s", pid.Pretty())
+func (q *BlockOutbox) Add(peerId string, env *pb.Envelope) error {
+	log.Debugf("adding block message for %s", peerId)
 	return q.datastore.BlockMessages().Add(&pb.BlockMessage{
 		Id:   ksuid.New().String(),
-		Peer: pid.Pretty(),
+		Peer: peerId,
 		Env:  env,
 		Date: ptypes.TimestampNow(),
 	})
