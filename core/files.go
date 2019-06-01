@@ -335,9 +335,9 @@ func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
 	return t.datastore.Files().Get(c.Cid.Hash().B58String()), nil
 }
 
-func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
+func (t *Textile) checksum(plaintext []byte, wontEncrypt bool) string {
 	var add int
-	if willEncrypt {
+	if wontEncrypt {
 		add = 1
 	}
 	plaintext = append(plaintext, byte(add))
