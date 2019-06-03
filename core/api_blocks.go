@@ -281,7 +281,7 @@ func (a *api) toDots(blocks *pb.BlockList) (string, error) {
 			if strings.TrimSpace(p) == "" {
 				continue
 			}
-			pp, err := a.node.Block(p)
+			pp, err := a.node.BlockByParent(p)
 			if err != nil {
 				log.Warningf("block %s: %s", p, err)
 				dots += "\n    " + dot + " -> MISSING_" + pre(p) + ";"

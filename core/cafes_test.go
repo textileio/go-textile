@@ -2,11 +2,14 @@ package core
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
+	icid "github.com/ipfs/go-cid"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
 )
@@ -121,11 +124,68 @@ func TestCore_RegisterCafe(t *testing.T) {
 func TestCore_HandleCafeRequests(t *testing.T) {
 	waitOnRequests(time.Second * 60)
 
+	n := cafeVars.node
+	c := cafeVars.cafe
+
 	// ensure all requests have been deleted
-	total := cafeVars.node.datastore.CafeRequests().Count(-1)
-	neww := cafeVars.node.datastore.CafeRequests().Count(0)
-	if neww != 0 {
-		t.Fatalf("expected all requests to be handled, got %d total, %d new", total, neww)
+	cnt := n.datastore.CafeRequests().Count(-1)
+	ncnt := n.datastore.CafeRequests().Count(0)
+	if ncnt != 0 {
+		t.Fatalf("expected all requests to be handled, got %d total, %d new", cnt, ncnt)
+	}
+
+	// check if blocks are pinned
+	var blocks []string
+	var targets []string
+	list := n.Blocks("", -1, "")
+	for _, b := range list.Items {
+		blocks = append(blocks, b.Id)
+		if b.Type == pb.Block_FILES {
+			targets = append(targets, b.Target)
+		}
+	}
+	missingBlockPins, err := ipfs.NotPinned(c.Ipfs(), blocks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(missingBlockPins) != 0 {
+		var strs []string
+		for _, id := range missingBlockPins {
+			strs = append(strs, id.Hash().B58String())
+		}
+		t.Fatalf("blocks not pinned: %s", strings.Join(strs, ", "))
+	}
+
+	// check if targets are pinned
+	missingTargetPins, err := ipfs.NotPinned(c.Ipfs(), targets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(missingTargetPins) != 0 {
+		var strs []string
+		for _, id := range missingTargetPins {
+			strs = append(strs, id.Hash().B58String())
+		}
+		t.Fatalf("targets not pinned: %s", strings.Join(strs, ", "))
+	}
+
+	// try unpinning a target
+	if len(targets) > 0 {
+		dec, err := icid.Decode(targets[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = ipfs.UnpinCid(c.Ipfs(), dec, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		not, err := ipfs.NotPinned(c.Ipfs(), []string{targets[0]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(not) == 0 || not[0].Hash().B58String() != targets[0] {
+			t.Fatal("target was not recursively unpinned")
+		}
 	}
 }
 

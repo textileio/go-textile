@@ -394,7 +394,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// add
 	messageAddCmd      = messageCmd.Command("add", "Adds a message to a thread")
-	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID").Default("default").String()
+	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	messageAddBody     = messageAddCmd.Arg("body", "The message to add the thread").String()
 
 	// list

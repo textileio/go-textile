@@ -166,6 +166,13 @@ func (c *CafeRequestDB) SyncGroupComplete(syncGroupId string) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	row := c.db.QueryRow("SELECT COUNT(*) FROM cafe_requests WHERE syncGroupId=?;", syncGroupId)
+	var count int
+	_ = row.Scan(&count)
+	if count == 0 {
+		return true
+	}
+
 	var syncGroups []string
 	total, err := c.db.Query(`
         SELECT a.syncGroupId

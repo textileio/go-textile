@@ -128,41 +128,41 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		return nil, err
 	}
 
-	thrd, err := t.loadThread(model)
+	thread, err := t.loadThread(model)
 	if err != nil {
 		return nil, err
 	}
 
 	// we join here if we're the creator
 	if join {
-		_, err = thrd.join("")
+		_, err = thread.join("")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	t.sendUpdate(&pb.AccountUpdate{
-		Id:   thrd.Id,
+		Id:   thread.Id,
 		Type: pb.AccountUpdate_THREAD_ADDED,
 	})
 
 	// invite account peers if inviter is not an account peer
 	if inviteAccount {
 		for _, p := range t.accountPeers() {
-			_, err = thrd.AddInvite(p)
+			_, err = thread.AddInvite(p)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
+	log.Debugf("added a new thread %s with name %s", thread.Id, conf.Name)
 
-	return thrd, nil
+	return thread, nil
 }
 
 // AddOrUpdateThread add or updates a thread directly, usually from a backup
-func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
+func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -170,16 +170,16 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	// Note: just using a dummy thread here because having these access+sharing
 	// methods on Thread is very nice elsewhere.
 	dummy := &Thread{
-		initiator: thrd.Initiator,
-		ttype:     thrd.Type,
-		sharing:   thrd.Sharing,
-		whitelist: thrd.Whitelist,
+		initiator: thread.Initiator,
+		ttype:     thread.Type,
+		sharing:   thread.Sharing,
+		whitelist: thread.Whitelist,
 	}
 	if !dummy.shareable(t.config.Account.Address, t.config.Account.Address) {
 		return ErrNotShareable
 	}
 
-	sk, err := ipfs.UnmarshalPrivateKey(thrd.Sk)
+	sk, err := ipfs.UnmarshalPrivateKey(thread.Sk)
 	if err != nil {
 		return err
 	}
@@ -189,56 +189,56 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		return err
 	}
 
-	nthrd := t.Thread(id.Pretty())
-	if nthrd == nil {
+	nthread := t.Thread(id.Pretty())
+	if nthread == nil {
 		config := pb.AddThreadConfig{
-			Key:  thrd.Key,
-			Name: thrd.Name,
+			Key:  thread.Key,
+			Name: thread.Name,
 			Schema: &pb.AddThreadConfig_Schema{
-				Id: thrd.Schema,
+				Id: thread.Schema,
 			},
-			Type:      thrd.Type,
-			Sharing:   thrd.Sharing,
-			Whitelist: thrd.Whitelist,
+			Type:      thread.Type,
+			Sharing:   thread.Sharing,
+			Whitelist: thread.Whitelist,
 			Force:     true,
 		}
 
 		var err error
-		nthrd, err = t.AddThread(config, sk, thrd.Initiator, false, false)
+		nthread, err = t.AddThread(config, sk, thread.Initiator, false, false)
 		if err != nil {
 			return err
 		}
 	}
 
-	index := t.datastore.Blocks().Get(thrd.Head)
+	index := t.datastore.Blocks().Get(thread.Head)
 	if index != nil {
 		// old block exists, abort
-		log.Debugf("%s exists, aborting", thrd.Head)
+		log.Debugf("%s exists, aborting", thread.Head)
 		return nil
 	}
 
-	parents, err := nthrd.followParents([]string{thrd.Head})
+	parents, err := nthread.followParents([]string{thread.Head})
 	if err != nil {
 		return err
 	}
 
-	err = nthrd.handleHead(thrd.Head, parents)
+	err = nthread.handleHead(thread.Head, parents)
 	if err != nil {
 		return err
 	}
 
 	// have we joined?
 	query := fmt.Sprintf("threadId='%s' and type=%d and authorId='%s'",
-		nthrd.Id, pb.Block_JOIN, t.node.Identity.Pretty())
+		nthread.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself
-		_, err = nthrd.join(t.node.Identity)
+		_, err = nthread.join(t.node.Identity)
 		if err != nil {
 			return err
 		}
 	} else {
 		// handle newly discovered peers during back prop
-		err = nthrd.sendWelcome()
+		err = nthread.sendWelcome()
 		if err != nil {
 			return err
 		}
@@ -253,11 +253,11 @@ func (t *Textile) RenameThread(id string, name string) error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	thrd := t.Thread(id)
-	if thrd == nil {
+	thread := t.Thread(id)
+	if thread == nil {
 		return ErrThreadNotFound
 	}
-	if thrd.initiator != t.account.Address() {
+	if thread.initiator != t.account.Address() {
 		return fmt.Errorf("thread name is not writable")
 	}
 
@@ -266,21 +266,21 @@ func (t *Textile) RenameThread(id string, name string) error {
 		return nil
 	}
 
-	thrd.Name = trimmed
-	err := t.datastore.Threads().UpdateName(thrd.Id, trimmed)
+	thread.Name = trimmed
+	err := t.datastore.Threads().UpdateName(thread.Id, trimmed)
 	if err != nil {
 		return err
 	}
 
-	_, err = thrd.annouce(&pb.ThreadAnnounce{Name: trimmed})
+	_, err = thread.annouce(&pb.ThreadAnnounce{Name: trimmed})
 	return err
 }
 
 // Thread get a thread by id from loaded threads
 func (t *Textile) Thread(id string) *Thread {
-	for _, thrd := range t.loadedThreads {
-		if thrd.Id == id {
-			return thrd
+	for _, thread := range t.loadedThreads {
+		if thread.Id == id {
+			return thread
 		}
 	}
 	return nil
@@ -300,13 +300,13 @@ func (t *Textile) Threads() []*Thread {
 
 // ThreadPeers returns a list of thread peers
 func (t *Textile) ThreadPeers(id string) (*pb.PeerList, error) {
-	thrd := t.Thread(id)
-	if thrd == nil {
+	thread := t.Thread(id)
+	if thread == nil {
 		return nil, ErrThreadNotFound
 	}
 
 	peers := &pb.PeerList{Items: make([]*pb.Peer, 0)}
-	for _, tp := range thrd.Peers() {
+	for _, tp := range thread.Peers() {
 		p := t.datastore.Peers().Get(tp.Id)
 		if p != nil {
 			peers.Items = append(peers.Items, p)
@@ -321,32 +321,32 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	var thrd *Thread
+	var thread *Thread
 	var index int
 	for i, th := range t.loadedThreads {
 		if th.Id == id {
-			thrd = th
+			thread = th
 			index = i
 			break
 		}
 	}
-	if thrd == nil {
+	if thread == nil {
 		return nil, ErrThreadNotFound
 	}
 
 	// notify peers
-	addr, err := thrd.leave()
+	addr, err := thread.leave()
 	if err != nil {
 		return nil, err
 	}
 
 	// delete backups
-	err = t.cafeOutbox.Add(thrd.Id, pb.CafeRequest_UNSTORE_THREAD)
+	err = t.cafeOutbox.Add(thread.Id, pb.CafeRequest_UNSTORE_THREAD)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.datastore.Threads().Delete(thrd.Id)
+	err = t.datastore.Threads().Delete(thread.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -356,20 +356,20 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.loadedThreads = t.loadedThreads[:len(t.loadedThreads)-1]
 
 	t.sendUpdate(&pb.AccountUpdate{
-		Id:   thrd.Id,
+		Id:   thread.Id,
 		Type: pb.AccountUpdate_THREAD_REMOVED,
 	})
 
-	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
+	log.Infof("removed thread %s with name %s", thread.Id, thread.Name)
 
 	return addr, nil
 }
 
 // ThreadByKey get a thread by key from loaded threads
 func (t *Textile) ThreadByKey(key string) *Thread {
-	for _, thrd := range t.loadedThreads {
-		if thrd.Key == key {
-			return thrd
+	for _, thread := range t.loadedThreads {
+		if thread.Key == key {
+			return thread
 		}
 	}
 	return nil
@@ -377,20 +377,20 @@ func (t *Textile) ThreadByKey(key string) *Thread {
 
 // ThreadView returns a thread with expanded view properties
 func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
-	thrd := t.Thread(id)
-	if thrd == nil {
+	thread := t.Thread(id)
+	if thread == nil {
 		return nil, ErrThreadNotFound
 	}
 
-	mod := t.datastore.Threads().Get(thrd.Id)
+	mod := t.datastore.Threads().Get(thread.Id)
 	if mod == nil {
 		return nil, errThreadReload
 	}
 
 	// add extra view info
-	mod.SchemaNode = thrd.Schema
+	mod.SchemaNode = thread.Schema
 	if mod.Head != "" {
-		hid, err := thrd.blockCIDFromNode(mod.Head)
+		hid, err := blockCIDFromNode(t.node, mod.Head)
 		if err != nil {
 			return nil, err
 		}
@@ -399,8 +399,8 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 			mod.HeadBlock.User = t.PeerUser(mod.HeadBlock.Author)
 		}
 	}
-	mod.BlockCount = int32(t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", thrd.Id)))
-	mod.PeerCount = int32(len(thrd.Peers()) + 1)
+	mod.BlockCount = int32(t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", thread.Id)))
+	mod.PeerCount = int32(len(thread.Peers()) + 1)
 
 	return mod, nil
 }
@@ -408,8 +408,8 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 // SnapshotThreads creates a store thread request for all threads
 func (t *Textile) SnapshotThreads() error {
 	var err error
-	for _, thrd := range t.loadedThreads {
-		err = thrd.store()
+	for _, thread := range t.loadedThreads {
+		err = thread.store()
 		if err != nil {
 			return err
 		}
@@ -463,14 +463,14 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 					break
 				}
 
-				thrd := new(pb.Thread)
-				err = proto.Unmarshal(plaintext, thrd)
+				thread := new(pb.Thread)
+				err = proto.Unmarshal(plaintext, thread)
 				if err != nil {
 					terrCh <- err
 					break
 				}
 
-				res.Id += ":" + thrd.Head
+				res.Id += ":" + thread.Head
 				if _, ok := backups[res.Id]; ok {
 					continue
 				}
@@ -537,14 +537,14 @@ func (t *Textile) addAccountThread() error {
 	if err != nil {
 		return err
 	}
-	thrd, err := t.AddThread(config, sk, t.account.Address(), true, false)
+	thread, err := t.AddThread(config, sk, t.account.Address(), true, false)
 	if err != nil {
 		return err
 	}
 
 	// add existing contacts
 	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
-		_, err = thrd.annouce(&pb.ThreadAnnounce{Peer: p})
+		_, err = thread.annouce(&pb.ThreadAnnounce{Peer: p})
 		if err != nil {
 			return err
 		}

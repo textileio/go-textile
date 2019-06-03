@@ -32,6 +32,19 @@ func (t *Textile) Block(id string) (*pb.Block, error) {
 	return block, nil
 }
 
+// Block returns block with id
+func (t *Textile) BlockByParent(parent string) (*pb.Block, error) {
+	hash, err := blockCIDFromNode(t.node, parent)
+	if err != nil {
+		return nil, err
+	}
+	block := t.datastore.Blocks().Get(hash)
+	if block == nil {
+		return nil, ErrBlockNotFound
+	}
+	return block, nil
+}
+
 // BlocksByTarget returns block with parent
 func (t *Textile) BlocksByTarget(target string) *pb.BlockList {
 	return t.datastore.Blocks().List("", -1, "target='"+target+"'")

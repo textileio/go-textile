@@ -226,6 +226,9 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 	var parents []string
 	node, err := ipfs.NodeAtPath(t.node(), parent.B58String())
 	if err != nil {
+		return nil, err
+	}
+	if len(node.Links()) == 0 {
 		// older block
 		hash = parent
 		ciphertext, err = ipfs.DataAtPath(t.node(), hash.B58String())
@@ -593,7 +596,7 @@ func (t *Thread) sendWelcome() error {
 		if err != nil {
 			return err
 		}
-		block, err := t.blockCIDFromNode(head)
+		block, err := blockCIDFromNode(t.node(), head)
 		if err != nil {
 			return err
 		}
@@ -868,16 +871,18 @@ func extractNode(ipfsNode *core.IpfsNode, node ipld.Node) (*blockNode, error) {
 }
 
 // blockCIDFromNode returns the inner block id from its ipld wrapper
-func (t *Thread) blockCIDFromNode(nhash string) (string, error) {
-	node, err := ipfs.NodeAtPath(t.node(), nhash)
+func blockCIDFromNode(ipfsNode *core.IpfsNode, nhash string) (string, error) {
+	node, err := ipfs.NodeAtPath(ipfsNode, nhash)
 	if err != nil {
+		return "", err
+	}
+	if len(node.Links()) == 0 {
 		// old block
 		return nhash, nil
-	} else {
-		link := schema.LinkByName(node.Links(), []string{blockLinkName})
-		if link == nil {
-			return "", ErrInvalidNode
-		}
-		return link.Cid.Hash().B58String(), nil
 	}
+	link := schema.LinkByName(node.Links(), []string{blockLinkName})
+	if link == nil {
+		return "", ErrInvalidNode
+	}
+	return link.Cid.Hash().B58String(), nil
 }

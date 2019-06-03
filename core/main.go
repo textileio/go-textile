@@ -561,12 +561,12 @@ func (t *Textile) FlushBlocks() {
 	var posted bool
 	for _, block := range pending.Items {
 		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
-			thrd := t.Thread(block.Thread)
-			if thrd == nil {
+			thread := t.Thread(block.Thread)
+			if thread == nil {
 				continue
 			}
 
-			err := thrd.post(block.Id, thrd.Peers(), true)
+			err := thread.post(block.Id, thread.Peers(), true)
 			if err != nil {
 				log.Errorf("error posting block %s: %s", block.Id, err)
 				return
