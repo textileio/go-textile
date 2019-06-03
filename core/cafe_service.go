@@ -1103,7 +1103,7 @@ func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.E
 		if err != nil {
 			return nil, err
 		}
-		_, err = extractNode(h.service.Node(), node)
+		_, err = extractNode(h.service.Node(), node, true)
 		if err != nil {
 			return nil, err
 		}

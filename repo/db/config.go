@@ -40,15 +40,14 @@ func (c *ConfigDB) Configure(accnt *keypair.Full, created time.Time) error {
 	}
 	defer stmt.Close()
 	if _, err = stmt.Exec("seed", accnt.Seed()); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 	if _, err = stmt.Exec("created", created.Format(time.RFC3339)); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
@@ -138,9 +137,8 @@ func (c *ConfigDB) SetLastDaily() error {
 	}
 	defer stmt.Close()
 	if _, err = stmt.Exec("daily", time.Now().Format(time.RFC3339)); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }

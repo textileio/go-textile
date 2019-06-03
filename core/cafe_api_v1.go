@@ -194,7 +194,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	_, err = extractNode(c.node.Ipfs(), node)
+	_, err = extractNode(c.node.Ipfs(), node, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

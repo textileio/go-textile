@@ -103,6 +103,7 @@ message FeedItemList {
 }
 
 message Merge {
+	option deprecated = true;
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
     User user                      = 3;
@@ -179,6 +180,7 @@ message FilesList {
 }
 
 message Comment {
+	option deprecated = true;
     string id                      = 1;
     google.protobuf.Timestamp date = 2;
     User user                      = 3;
@@ -187,6 +189,7 @@ message Comment {
 }
 
 message CommentList {
+	option deprecated = true;
     repeated Comment items = 1;
 }
 
@@ -245,5 +248,5 @@ message LogLevel {
 // PRIMITIVES
 
 message Strings {
-	repeated string values = 1;
+    repeated string values = 1;
 }

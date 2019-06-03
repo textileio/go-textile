@@ -68,7 +68,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	nhash, err := t.commitNode(res.hash.B58String(), nil, false)
+	nhash, err := t.commitNode(&pb.Block{Id: res.hash.B58String()}, nil, false)
 	if err != nil {
 		return nil, nil, err
 	}

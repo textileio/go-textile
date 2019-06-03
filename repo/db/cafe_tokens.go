@@ -37,11 +37,10 @@ func (c *CafeTokenDB) Add(token *pb.CafeToken) error {
 		util.ProtoNanos(token.Date),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeTokenDB) Get(id string) *pb.CafeToken {

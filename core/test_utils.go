@@ -94,7 +94,7 @@ func addData(node *Textile, names []string, thread *Thread, caption string) (*pb
 		return nil, err
 	}
 
-	hash, err := thread.AddFiles(nd, caption, keys.Files)
+	hash, err := thread.AddFiles(nd, "", caption, keys.Files)
 	if err != nil {
 		return nil, err
 	}

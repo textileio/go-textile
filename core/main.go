@@ -97,6 +97,7 @@ type Textile struct {
 	notifications     chan *pb.Notification
 	threads           *ThreadsService
 	blockOutbox       *BlockOutbox
+	blockDownloads    *BlockDownloads
 	cafe              *CafeService
 	cafeOutbox        *CafeOutbox
 	cafeOutboxHandler CafeOutboxHandler
@@ -301,6 +302,9 @@ func (t *Textile) Start() error {
 	}
 
 	// create queues
+	t.blockDownloads = NewBlockDownloads(
+		t.Ipfs,
+		t.datastore)
 	t.cafeInbox = NewCafeInbox(
 		t.cafeService,
 		t.threadsService,
@@ -551,7 +555,8 @@ func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
 
 // FlushBlocks flushes the block message outbox
 func (t *Textile) FlushBlocks() {
-	pending := t.datastore.Blocks().List("", -1, "parents='pending'")
+	query := fmt.Sprintf("status=%d", pb.Block_QUEUED)
+	pending := t.datastore.Blocks().List("", -1, query)
 	sort.SliceStable(pending.Items, func(i, j int) bool {
 		return util.ProtoTime(pending.Items[i].Date).Before(
 			util.ProtoTime(pending.Items[j].Date))
@@ -564,7 +569,7 @@ func (t *Textile) FlushBlocks() {
 				continue
 			}
 
-			err := thread.post(block.Id, thread.Peers(), true)
+			err := thread.post(block, thread.Peers(), true)
 			if err != nil {
 				log.Errorf("error posting block %s: %s", block.Id, err)
 				return
@@ -681,6 +686,7 @@ func (t *Textile) flushQueues() {
 	if err != nil {
 		log.Errorf("error checking messages: %s", err)
 	}
+	t.blockDownloads.Flush()
 }
 
 // threadByBlock returns the thread owning the given block
@@ -709,16 +715,17 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	}
 
 	thrd, err := NewThread(mod, &ThreadConfig{
-		RepoPath:    t.repoPath,
-		Config:      t.config,
-		Account:     t.account,
-		Node:        t.Ipfs,
-		Datastore:   t.datastore,
-		Service:     t.threadsService,
-		BlockOutbox: t.blockOutbox,
-		CafeOutbox:  t.cafeOutbox,
-		AddPeer:     t.addPeer,
-		PushUpdate:  t.sendThreadUpdate,
+		RepoPath:       t.repoPath,
+		Config:         t.config,
+		Account:        t.account,
+		Node:           t.Ipfs,
+		Datastore:      t.datastore,
+		Service:        t.threadsService,
+		BlockOutbox:    t.blockOutbox,
+		BlockDownloads: t.blockDownloads,
+		CafeOutbox:     t.cafeOutbox,
+		AddPeer:        t.addPeer,
+		PushUpdate:     t.sendThreadUpdate,
 	})
 	if err != nil {
 		return nil, err

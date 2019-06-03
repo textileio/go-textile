@@ -36,11 +36,10 @@ func (c *ThreadPeerDB) Add(peer *pb.ThreadPeer) error {
 		false,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *ThreadPeerDB) List() []pb.ThreadPeer {
@@ -89,7 +88,7 @@ func (c *ThreadPeerDB) Count(distinct bool) int {
 	}
 	row := c.db.QueryRow(stm)
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

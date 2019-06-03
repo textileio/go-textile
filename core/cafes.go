@@ -128,7 +128,7 @@ func (t *Textile) cafeRequestThreadsContent(cafe string) error {
 				if err != nil {
 					return err
 				}
-				err = thrd.cafeReqFileTarget(node, b.Id, cafe)
+				err = thrd.cafeReqFileData(node, b.Id, cafe)
 				if err != nil {
 					return err
 				}

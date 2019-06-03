@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/textileio/go-textile/ipfs"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
@@ -15,6 +13,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
@@ -85,17 +84,11 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		return nil, err
 	}
 
-	var hash mh.Multihash
-	var ciphertext []byte
-	var parents []string
+	bnode := &blockNode{}
 	if tenv.Ciphertext != nil {
 		// old block
-		hash, err = mh.FromB58String(tenv.Hash)
-		if err != nil {
-			return nil, err
-		}
-		ciphertext = tenv.Ciphertext
-		// parents are not yet known
+		bnode.hash = tenv.Hash
+		bnode.ciphertext = tenv.Ciphertext
 	} else {
 		id, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), false)
 		if err != nil {
@@ -105,115 +98,123 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		if err != nil {
 			return nil, err
 		}
-		bnode, err := extractNode(h.service.Node(), node)
+		bnode, err = extractNode(h.service.Node(), node, true)
 		if err != nil {
 			return nil, err
 		}
-		hash = bnode.hash
-		ciphertext = bnode.ciphertext
-		parents = bnode.parents
 	}
 
 	// check for an account signature
 	var accountPeer bool
 	if tenv.Sig != nil {
-		err = h.service.Account.Verify(ciphertext, tenv.Sig)
+		err = h.service.Account.Verify(bnode.ciphertext, tenv.Sig)
 		if err == nil {
 			accountPeer = true
 		}
 	}
 
-	thrd := h.getThread(tenv.Thread)
-	if thrd == nil {
+	thread := h.getThread(tenv.Thread)
+	if thread == nil {
 		// this might be a direct invite
-		err = h.handleAdd(hash, ciphertext, parents, tenv.Thread, accountPeer)
+		err = h.handleAdd(tenv.Thread, bnode, accountPeer)
 		if err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
-	block, err := thrd.handleBlock(hash, ciphertext)
+	index := h.datastore.Blocks().Get(bnode.hash)
+	if index != nil {
+		log.Debugf("%s exists, aborting")
+		return nil, nil
+	}
+	index, err = thread.handle(bnode, false)
 	if err != nil {
-		if err == ErrBlockExists {
-			// exists, abort
-			log.Debugf("%s exists, aborting", hash.B58String())
-			return nil, nil
-		}
 		return nil, err
 	}
-	if len(block.Header.Parents) > 0 {
-		parents = block.Header.Parents
+
+	// some updates generate a notification
+	note := &pb.Notification{
+		Id:          ksuid.New().String(),
+		Date:        index.Date,
+		Actor:       index.Author,
+		Subject:     thread.Id,
+		SubjectDesc: thread.Name,
+		Block:       bnode.hash,
+		Target:      index.Target,
+		Body:        index.Body,
 	}
 
-	if accountPeer {
-		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
-	} else {
-		if block.Header.Author != "" {
-			log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
-		} else {
-			log.Debugf("handling %s", block.Type.String())
-		}
-	}
-
-	var leave bool
-	switch block.Type {
-	case pb.Block_MERGE:
-		err = h.handleMerge(thrd, hash, block, parents)
-	case pb.Block_IGNORE:
-		err = h.handleIgnore(thrd, hash, block, parents)
-	case pb.Block_FLAG:
-		err = h.handleFlag(thrd, hash, block, parents)
+	send := true
+	switch index.Type {
 	case pb.Block_JOIN:
-		err = h.handleJoin(thrd, hash, block, parents, accountPeer)
-	case pb.Block_ANNOUNCE:
-		err = h.handleAnnounce(thrd, hash, block, parents)
-	case pb.Block_LEAVE:
-		err = h.handleLeave(thrd, hash, block, parents, accountPeer)
 		if accountPeer {
-			leave = true // we will leave as well
+			note.Type = pb.Notification_ACCOUNT_PEER_JOINED
+		} else {
+			note.Type = pb.Notification_PEER_JOINED
 		}
+		note.Body = "joined"
+	case pb.Block_LEAVE:
+		if accountPeer {
+			note.Type = pb.Notification_ACCOUNT_PEER_LEFT
+		} else {
+			note.Type = pb.Notification_PEER_LEFT
+		}
+		note.Body = "left"
 	case pb.Block_TEXT:
-		err = h.handleMessage(thrd, hash, block, parents)
+		note.Type = pb.Notification_MESSAGE_ADDED
 	case pb.Block_FILES:
-		err = h.handleFiles(thrd, hash, block, parents)
+		note.Type = pb.Notification_FILES_ADDED
+		if note.Body == "" { // might be caption
+			note.Body = "added data"
+		}
 	case pb.Block_COMMENT:
-		err = h.handleComment(thrd, hash, block, parents)
+		note.Type = pb.Notification_COMMENT_ADDED
 	case pb.Block_LIKE:
-		err = h.handleLike(thrd, hash, block, parents)
+		note.Type = pb.Notification_LIKE_ADDED
+		note.Body = "added a like"
 	default:
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
+		send = false
 	}
 
-	parents, err = thrd.followParents(parents)
-	if err != nil {
-		return nil, err
-	}
-
-	err = thrd.handleHead(hash.B58String(), parents)
-	if err != nil {
-		return nil, err
-	}
-
-	// handle newly discovered peers during back prop
-	err = thrd.sendWelcome()
-	if err != nil {
-		return nil, err
-	}
-
-	// we may be auto-leaving
-	if leave {
-		_, err = h.removeThread(thrd.Id)
+	if send {
+		err = h.sendNotification(note)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// flush cafe queue _at the very end_
-	go thrd.cafeOutbox.Flush()
+	// handle tail in the background
+	go func() {
+		parents, err := thread.followParents(bnode.parents)
+		if err != nil {
+			return
+		}
+		err = thread.handleHead(bnode.hash, parents)
+		if err != nil {
+			log.Warningf("failed to handle head %s: %s", bnode.hash, err)
+			return
+		}
+
+		// handle newly discovered peers during back prop
+		err = thread.sendWelcome()
+		if err != nil {
+			log.Warningf("failed to send welcome: %s", err)
+			return
+		}
+
+		// we may be auto-leaving
+		if index.Type == pb.Block_LEAVE && accountPeer {
+			_, err = h.removeThread(thread.Id)
+			if err != nil {
+				log.Warningf("failed to remove thread %s: %s", thread.Id, err)
+				return
+			}
+		}
+
+		// flush cafe queue _at the very end_
+		thread.cafeOutbox.Flush()
+	}()
 
 	return nil, nil
 }
@@ -240,8 +241,8 @@ func (h *ThreadsService) NewEnvelope(threadId string, node []byte, sig []byte) (
 }
 
 // handleAdd receives an invite message
-func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents []string, threadId string, accountPeer bool) error {
-	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, ciphertext)
+func (h *ThreadsService) handleAdd(threadId string, bnode *blockNode, accountPeer bool) error {
+	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, bnode.ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
 		return nil
@@ -264,7 +265,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents
 		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
 
 		// can auto-join
-		_, err = h.addThread(plaintext, parents)
+		_, err = h.addThread(plaintext, bnode.parents)
 		if err != nil {
 			return err
 		}
@@ -278,12 +279,12 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents
 	}
 
 	err = h.datastore.Invites().Add(&pb.Invite{
-		Id:      hash.B58String(),
+		Id:      bnode.hash,
 		Block:   plaintext,
-		Parents: parents,
 		Name:    msg.Thread.Name,
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
+		Parents: bnode.parents,
 	})
 	if err != nil {
 		if !db.ConflictError(err) {
@@ -293,186 +294,14 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents
 		return nil
 	}
 
-	note := h.newNotification(block.Header, pb.Notification_INVITE_RECEIVED)
-	note.SubjectDesc = msg.Thread.Name
-	note.Subject = threadId
-	note.Block = hash.B58String() // invite block
-	note.Body = "invited you to join"
-
-	return h.sendNotification(note)
-}
-
-// handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	return thrd.handleMergeBlock(hash, block, parents)
-}
-
-// handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	_, err := thrd.handleIgnoreBlock(hash, block, parents)
-	return err
-}
-
-// handleFlag receives a flag message
-func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	_, err := thrd.handleFlagBlock(hash, block, parents)
-	return err
-}
-
-// handleJoin receives a join message
-func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
-	_, err := thrd.handleJoinBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	var ntype pb.Notification_Type
-	if accountPeer {
-		ntype = pb.Notification_ACCOUNT_PEER_JOINED
-	} else {
-		ntype = pb.Notification_PEER_JOINED
-	}
-	note := h.newNotification(block.Header, ntype)
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-	note.Block = hash.B58String()
-	note.Body = "joined"
-
-	return h.sendNotification(note)
-}
-
-// handleAnnounce receives an announce message
-func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	_, err := thrd.handleAnnounceBlock(hash, block, parents)
-	return err
-}
-
-// handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
-	err := thrd.handleLeaveBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	var ntype pb.Notification_Type
-	if accountPeer {
-		ntype = pb.Notification_ACCOUNT_PEER_LEFT
-	} else {
-		ntype = pb.Notification_PEER_LEFT
-	}
-	note := h.newNotification(block.Header, ntype)
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-	note.Block = hash.B58String()
-	note.Body = "left"
-
-	return h.sendNotification(note)
-}
-
-// handleMessage receives a message message
-func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	msg, err := thrd.handleMessageBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	note := h.newNotification(block.Header, pb.Notification_MESSAGE_ADDED)
-	note.Body = msg.Body
-	note.Block = hash.B58String()
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-
-	return h.sendNotification(note)
-}
-
-// handleData receives a files message
-func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	msg, err := thrd.handleFilesBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	note := h.newNotification(block.Header, pb.Notification_FILES_ADDED)
-	note.Target = msg.Target
-	note.Body = "added " + threadSubject(thrd.Schema.Name)
-	note.Block = hash.B58String()
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-
-	return h.sendNotification(note)
-}
-
-// handleComment receives a comment message
-func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	msg, err := thrd.handleCommentBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	target := h.datastore.Blocks().Get(msg.Target)
-	if target == nil {
-		return nil
-	}
-	var desc string
-	if target.Author == h.service.Node().Identity.Pretty() {
-		desc = "your " + threadSubject(thrd.Schema.Name)
-	} else {
-		desc = "a " + threadSubject(thrd.Schema.Name)
-	}
-
-	note := h.newNotification(block.Header, pb.Notification_COMMENT_ADDED)
-	note.Body = fmt.Sprintf("commented on %s: \"%s\"", desc, msg.Body)
-	note.Block = hash.B58String()
-	note.Target = target.Target
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-
-	return h.sendNotification(note)
-}
-
-// handleLike receives a like message
-func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
-	msg, err := thrd.handleLikeBlock(hash, block, parents)
-	if err != nil {
-		return err
-	}
-
-	target := h.datastore.Blocks().Get(msg.Target)
-	if target == nil {
-		return nil
-	}
-	var desc string
-	if target.Author == h.service.Node().Identity.Pretty() {
-		desc = "your " + threadSubject(thrd.Schema.Name)
-	} else {
-		desc = "a " + threadSubject(thrd.Schema.Name)
-	}
-
-	note := h.newNotification(block.Header, pb.Notification_LIKE_ADDED)
-	note.Body = "liked " + desc
-	note.Block = hash.B58String()
-	note.Target = target.Target
-	note.SubjectDesc = thrd.Name
-	note.Subject = thrd.Id
-
-	return h.sendNotification(note)
-}
-
-// newNotification returns new thread notification
-func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype pb.Notification_Type) *pb.Notification {
-	return &pb.Notification{
-		Id:    ksuid.New().String(),
-		Date:  header.Date,
-		Actor: header.Author,
-		Type:  ntype,
-	}
-}
-
-// threadSubject returns the thread subject
-func threadSubject(name string) string {
-	var sub string
-	if name != "" {
-		sub = name + " "
-	}
-	return sub + "files"
+	return h.sendNotification(&pb.Notification{
+		Id:          ksuid.New().String(),
+		Date:        block.Header.Date,
+		Actor:       block.Header.Author,
+		Subject:     threadId,
+		SubjectDesc: msg.Thread.Name,
+		Block:       bnode.hash,
+		Type:        pb.Notification_INVITE_RECEIVED,
+		Body:        "invited you to join",
+	})
 }

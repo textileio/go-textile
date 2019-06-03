@@ -52,7 +52,7 @@ message Thread {
     Type type                 = 7;
     Sharing sharing           = 8;
     repeated string whitelist = 9;
-    State state               = 10;
+    State state               = 10 [deprecated = true];
     string head               = 11;
 
     // Type controls read (R), annotate (A), and write (W) access
@@ -104,10 +104,13 @@ message Block {
     google.protobuf.Timestamp date = 5;
     repeated string parents        = 6;
     string target                  = 7;
+	string data                    = 9;
     string body                    = 8;
+	BlockStatus status             = 10;
+	int32 attempts                 = 11;
 
     enum BlockType {
-        MERGE    = 0; // block is stored in plaintext, no payload
+        MERGE    = 0 [deprecated = true]; // block is stored in plaintext, no payload
         IGNORE   = 1;
         FLAG     = 2;
         JOIN     = 3;
@@ -115,11 +118,17 @@ message Block {
         LEAVE    = 5; // no payload
         TEXT     = 6;
         FILES    = 7;
-        COMMENT  = 8;
+        COMMENT  = 8 [deprecated = true];
         LIKE     = 9;
 
         ADD = 50;
     }
+
+	enum BlockStatus {
+		READY   = 0; // downloaded, also synced if outbound
+		QUEUED  = 1; // waiting on sync
+		PENDING = 2; // waiting on download
+	}
 
     // view info
     User user = 101;
@@ -144,7 +153,7 @@ message Invite {
     string name                    = 3;
     Peer inviter                   = 4;
     google.protobuf.Timestamp date = 5;
-	repeated string parents        = 6;
+    repeated string parents        = 6;
 }
 
 message InviteList {
@@ -204,7 +213,7 @@ message Notification {
     enum Type {
         INVITE_RECEIVED     = 0;
         ACCOUNT_PEER_JOINED = 1;
-		ACCOUNT_PEER_LEFT   = 8;
+        ACCOUNT_PEER_LEFT   = 8;
         PEER_JOINED         = 2;
         PEER_LEFT           = 3;
         MESSAGE_ADDED       = 4;
@@ -254,13 +263,13 @@ message CafeRequest {
     string peer                    = 2;
     string target                  = 3;
     Cafe cafe                      = 4;
-	string group                   = 8;
-	string sync_group              = 10;
+    string group                   = 8;
+    string sync_group              = 10;
     Type type                      = 5;
     google.protobuf.Timestamp date = 6;
-	int64 size                     = 7;
+    int64 size                     = 7;
     Status status                  = 9;
-	int32 attempts                 = 11;
+    int32 attempts                 = 11;
 
     enum Type {
         STORE          = 0;
@@ -282,7 +291,7 @@ message CafeRequestList {
 }
 
 message CafeSyncGroupStatus {
-	string id           = 1; // sync group id
+    string id           = 1; // sync group id
     int32 num_total     = 2;
     int32 num_pending   = 3;
     int32 num_complete  = 4;

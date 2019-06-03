@@ -31,13 +31,20 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_IGNORE, target, "")
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_IGNORE,
+		Date:   res.header.Date,
+		Target: target,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
 
-	rblock := t.datastore.Blocks().Get(block)
-	err = t.ignoreBlockTarget(rblock)
+	err = t.ignoreBlockTarget(t.datastore.Blocks().Get(block))
 	if err != nil {
 		return nil, err
 	}
@@ -54,43 +61,36 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 }
 
 // handleIgnoreBlock handles an incoming ignore block
-func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadIgnore, error) {
+func (t *Thread) handleIgnoreBlock(block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadIgnore)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return res, ErrNotAnnotatable
 	}
 
 	// cleanup
-	blockId := strings.Replace(msg.Target, "ignore-", "", 1)
-	err = t.datastore.Notifications().DeleteByBlock(blockId)
+	target := strings.Replace(msg.Target, "ignore-", "", 1)
+	err = t.datastore.Notifications().DeleteByBlock(target)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_IGNORE, msg.Target, "")
+	err = t.ignoreBlockTarget(t.datastore.Blocks().Get(target))
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	rblock := t.datastore.Blocks().Get(blockId)
-	err = t.ignoreBlockTarget(rblock)
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
+	res.oldTarget = msg.Target
+	return res, err
 }
 
 // ignoreBlockTarget conditionally removes block target and files

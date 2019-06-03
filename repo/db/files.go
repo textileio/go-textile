@@ -75,12 +75,11 @@ func (c *FileDB) Add(file *pb.FileIndex) error {
 		targets,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *FileDB) Get(hash string) *pb.FileIndex {
@@ -170,7 +169,7 @@ func (c *FileDB) Count() int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from files;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

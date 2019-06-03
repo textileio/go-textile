@@ -9,7 +9,7 @@ import (
 )
 
 // AddMessage adds an outgoing message block
-func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
+func (t *Thread) AddMessage(target string, body string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -27,7 +27,16 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_TEXT, "", body)
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_TEXT,
+		Date:   res.header.Date,
+		Target: target,
+		Body:   msg.Body,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -38,27 +47,22 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 }
 
 // handleMessageBlock handles an incoming message block
-func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadMessage, error) {
+func (t *Thread) handleMessageBlock(block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadMessage)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.writable(block.Header.Address) {
-		return nil, ErrNotWritable
+		return res, ErrNotWritable
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_TEXT, "", msg.Body)
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
+	res.body = msg.Body
+	return res, nil
 }

@@ -23,7 +23,7 @@ import (
 )
 
 // AddFile adds an outgoing files block
-func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string) (mh.Multihash, error) {
+func (t *Thread) AddFiles(node ipld.Node, target string, caption string, keys map[string]string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -40,9 +40,8 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 
 	caption = strings.TrimSpace(caption)
 	msg := &pb.ThreadFiles{
-		Target: node.Cid().Hash().B58String(),
-		Body:   caption,
-		Keys:   keys,
+		Body: caption,
+		Keys: keys,
 	}
 
 	// pre-hash the block, we only want to add it if validation passes,
@@ -53,13 +52,13 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 	}
 
 	// validate and apply schema directives
-	err = t.processFileTarget(t.Schema, node, keys, false)
+	err = t.processFileData(t.Schema, node, keys, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// add cafe store requests for the entire graph
-	err = t.cafeReqFileTarget(node, res.hash.B58String(), "")
+	err = t.cafeReqFileData(node, res.hash.B58String(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +69,23 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body)
+	data := node.Cid().Hash().B58String()
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_FILES,
+		Date:   res.header.Date,
+		Target: target,
+		Data:   data,
+		Body:   msg.Body,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.indexFileTarget(node, msg.Target)
+	err = t.indexFileData(node, data)
 	if err != nil {
 		return nil, err
 	}
@@ -86,28 +96,30 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 }
 
 // handleFilesBlock handles an incoming files block
-func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadFiles, error) {
+func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadFiles)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.writable(block.Header.Address) {
-		return nil, ErrNotWritable
+		return res, ErrNotWritable
 	}
 
 	if t.Schema == nil {
-		return nil, ErrThreadSchemaRequired
+		return res, ErrThreadSchemaRequired
 	}
 
 	var node ipld.Node
 
 	var ignore bool
-	query := "target='ignore-" + hash.B58String() + "'"
+	query := "target='ignore-" + hash + "'"
 	ignored := t.datastore.Blocks().List("", -1, query).Items
 	if len(ignored) > 0 {
 		// ignore if the first (latest) ignore came after (could happen during back prop)
@@ -118,39 +130,39 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 	if !ignore {
 		target, err := icid.Parse(msg.Target)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 		node, err = ipfs.NodeAtCid(t.node(), target)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 		err = ipfs.PinNode(t.node(), node, false)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 
 		// validate and apply schema directives
-		err = t.processFileTarget(t.Schema, node, msg.Keys, true)
+		err = t.processFileData(t.Schema, node, msg.Keys, true)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
 			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+MetaLinkName)
 			if err != nil {
-				return nil, err
+				return res, err
 			}
 
 			var plaintext []byte
 			if key != "" {
 				keyb, err := base58.Decode(key)
 				if err != nil {
-					return nil, err
+					return res, err
 				}
 				plaintext, err = crypto.DecryptAES(fd, keyb)
 				if err != nil {
-					return nil, err
+					return res, err
 				}
 			} else {
 				plaintext = fd
@@ -159,7 +171,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 			var file pb.FileIndex
 			err = jsonpb.Unmarshal(bytes.NewReader(plaintext), &file)
 			if err != nil {
-				return nil, err
+				return res, err
 			}
 
 			log.Debugf("received file: %s", file.Hash)
@@ -167,30 +179,23 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 			err = t.datastore.Files().Add(&file)
 			if err != nil {
 				if !db.ConflictError(err) {
-					return nil, err
+					return res, err
 				}
 				log.Debugf("file exists: %s", file.Hash)
 			}
 		}
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_FILES, msg.Target, msg.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	if !ignore {
-		err = t.indexFileTarget(node, msg.Target)
+		err = t.indexFileData(node, msg.Target)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 	}
 
-	return msg, nil
+	res.oldData = msg.Target // not a typo, old target is now data
+	res.body = msg.Body
+	return res, nil
 }
 
 // removeFiles unpins and removes target files unless they are used by another target,
@@ -230,8 +235,8 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 	return nil
 }
 
-// processFileTarget ensures each link points to a dag described by the thread schema
-func (t *Thread) processFileTarget(node *pb.Node, inode ipld.Node, keys map[string]string, inbound bool) error {
+// processFileData ensures each link points to a dag described by the thread schema
+func (t *Thread) processFileData(node *pb.Node, inode ipld.Node, keys map[string]string, inbound bool) error {
 	for i, link := range inode.Links() {
 		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
@@ -363,14 +368,14 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 	return nil
 }
 
-// indexFileTarget walks a file target node, indexing file links
-func (t *Thread) indexFileTarget(inode ipld.Node, target string) error {
+// indexFileData walks a file data node, indexing file links
+func (t *Thread) indexFileData(inode ipld.Node, data string) error {
 	for _, link := range inode.Links() {
 		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return err
 		}
-		err = t.indexFileNode(nd, target)
+		err = t.indexFileNode(nd, data)
 		if err != nil {
 			return err
 		}
@@ -380,11 +385,11 @@ func (t *Thread) indexFileTarget(inode ipld.Node, target string) error {
 }
 
 // indexFileNode walks a file node, indexing file links
-func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
+func (t *Thread) indexFileNode(inode ipld.Node, data string) error {
 	links := inode.Links()
 
 	if looksLikeFileNode(inode) {
-		return t.indexFileLink(inode, target)
+		return t.indexFileLink(inode, data)
 	}
 
 	for _, link := range links {
@@ -393,7 +398,7 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 			return err
 		}
 
-		err = t.indexFileLink(n, target)
+		err = t.indexFileLink(n, data)
 		if err != nil {
 			return err
 		}
@@ -403,13 +408,13 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 }
 
 // indexFileLink indexes a file link
-func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
+func (t *Thread) indexFileLink(inode ipld.Node, data string) error {
 	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}
 
-	return t.datastore.Files().AddTarget(dlink.Cid.Hash().B58String(), target)
+	return t.datastore.Files().AddTarget(dlink.Cid.Hash().B58String(), data)
 }
 
 // deIndexFileNode walks a file node, de-indexing file links
@@ -436,7 +441,7 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 }
 
 // deIndexFileLink de-indexes a file link
-func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
+func (t *Thread) deIndexFileLink(inode ipld.Node, data string) error {
 	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
@@ -444,7 +449,7 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
 
 	hash := dlink.Cid.Hash().B58String()
 
-	err := t.datastore.Files().RemoveTarget(hash, target)
+	err := t.datastore.Files().RemoveTarget(hash, data)
 	if err != nil {
 		return err
 	}
@@ -468,14 +473,14 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
 	return nil
 }
 
-// cafeReqFileTarget adds a cafe requests for the target node and all children
-func (t *Thread) cafeReqFileTarget(inode ipld.Node, syncGroup string, cafe string) error {
-	target := inode.Cid().Hash().B58String()
+// cafeReqFileData adds a cafe requests for the target node and all children
+func (t *Thread) cafeReqFileData(inode ipld.Node, syncGroup string, cafe string) error {
+	data := inode.Cid().Hash().B58String()
 	ng := cafeReqOpt.Group(ksuid.New().String())
 	sg := cafeReqOpt.SyncGroup(syncGroup)
 	settings := CafeRequestOptions(ng, sg, cafeReqOpt.Cafe(cafe))
 
-	err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE, settings.Options()...)
+	err := t.cafeOutbox.Add(data, pb.CafeRequest_STORE, settings.Options()...)
 	if err != nil {
 		return err
 	}

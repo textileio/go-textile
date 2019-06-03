@@ -224,16 +224,16 @@ func flushCafeRequests(limit int) (int, error) {
 	if err != nil {
 		return count, err
 	}
-	groups := new(pb.Strings)
-	err = proto.Unmarshal(res, groups)
+	ids := new(pb.Strings)
+	err = proto.Unmarshal(res, ids)
 	if err != nil {
 		return count, err
 	}
-	count = len(groups.Values)
+	count = len(ids.Values)
 
 	// write the req for each group
 	reqs := make(map[string]*pb.CafeHTTPRequest)
-	for _, g := range groups.Values {
+	for _, g := range ids.Values {
 		res, err = cafesTestVars.mobile.writeCafeRequest(g)
 		if err != nil {
 			return count, err

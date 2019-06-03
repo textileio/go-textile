@@ -127,7 +127,7 @@ func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, err
 	if err != nil {
 		return nil, err
 	}
-	bnode, err := extractNode(t.node, node)
+	bnode, err := extractNode(t.node, node, true)
 	if err != nil {
 		return nil, err
 	}
@@ -238,11 +238,7 @@ func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multih
 	}
 
 	// join the thread
-	author, err := peer.IDB58Decode(block.Header.Author)
-	if err != nil {
-		return nil, err
-	}
-	hash, err := thrd.join(author)
+	hash, err := thrd.join(block.Header.Author)
 	if err != nil {
 		return nil, err
 	}

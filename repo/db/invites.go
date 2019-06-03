@@ -51,8 +51,7 @@ func (c *InviteDB) Add(invite *pb.Invite) error {
 		_ = tx.Rollback()
 		return err
 	}
-	_ = tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *InviteDB) Get(id string) *pb.Invite {

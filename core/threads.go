@@ -234,7 +234,7 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		nthread.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself
-		_, err = nthread.join(t.node.Identity)
+		_, err = nthread.join(t.node.Identity.Pretty())
 		if err != nil {
 			return err
 		}

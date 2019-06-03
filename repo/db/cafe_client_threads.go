@@ -36,11 +36,10 @@ func (c *CafeClientThreadDB) AddOrUpdate(thrd *pb.CafeClientThread) error {
 		thrd.Ciphertext,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeClientThreadDB) ListByClient(clientId string) []pb.CafeClientThread {

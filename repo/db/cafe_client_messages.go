@@ -42,8 +42,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *pb.CafeClientMessage) error 
 		_ = tx.Rollback()
 		return err
 	}
-	_ = tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeClientMessagesDB) ListByClient(clientId string, limit int) []pb.CafeClientMessage {
