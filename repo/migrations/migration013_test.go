@@ -67,6 +67,11 @@ func Test013(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	_, err = db.Exec("insert into downloads(id, threadId, parents, target, date, attempts) values(?,?,?,?,?,?)", "id", "thread", "parents", "target", 0, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	// ensure that version file was updated
 	version, err := ioutil.ReadFile("./repover")

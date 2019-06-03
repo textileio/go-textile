@@ -36,7 +36,8 @@ func (Minor013) Up(repoPath string, pinCode string, testnet bool) error {
     create index cafe_request_syncGroupId on cafe_requests (syncGroupId);
     create index cafe_request_date on cafe_requests (date);
     create index cafe_request_status on cafe_requests (status);
-    
+    create table block_downloads (id text primary key not null, threadId text not null, parents text not null, target text not null, date integer not null, attempts integer not null);
+    create index block_download_date on block_downloads (date);
     `
 	if _, err := db.Exec(query); err != nil {
 		return err

@@ -70,7 +70,16 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body)
+	err = t.indexBlock(&pb.Block{
+		Id:      res.hash.B58String(),
+		Thread:  t.Id,
+		Author:  res.header.Author,
+		Type:    pb.Block_FILES,
+		Date:    res.header.Date,
+		Parents: res.parents,
+		Target:  msg.Target,
+		Body:    msg.Body,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -86,22 +95,22 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 }
 
 // handleFilesBlock handles an incoming files block
-func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadFiles, error) {
+func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (string, string, error) {
 	msg := new(pb.ThreadFiles)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return "", "", ErrNotReadable
 	}
 	if !t.writable(block.Header.Address) {
-		return nil, ErrNotWritable
+		return "", "", ErrNotWritable
 	}
 
 	if t.Schema == nil {
-		return nil, ErrThreadSchemaRequired
+		return "", "", ErrThreadSchemaRequired
 	}
 
 	var node ipld.Node
@@ -118,39 +127,39 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 	if !ignore {
 		target, err := icid.Parse(msg.Target)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 		node, err = ipfs.NodeAtCid(t.node(), target)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 		err = ipfs.PinNode(t.node(), node, false)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 
 		// validate and apply schema directives
 		err = t.processFileTarget(t.Schema, node, msg.Keys, true)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
 			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+MetaLinkName)
 			if err != nil {
-				return nil, err
+				return "", "", err
 			}
 
 			var plaintext []byte
 			if key != "" {
 				keyb, err := base58.Decode(key)
 				if err != nil {
-					return nil, err
+					return "", "", err
 				}
 				plaintext, err = crypto.DecryptAES(fd, keyb)
 				if err != nil {
-					return nil, err
+					return "", "", err
 				}
 			} else {
 				plaintext = fd
@@ -159,7 +168,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 			var file pb.FileIndex
 			err = jsonpb.Unmarshal(bytes.NewReader(plaintext), &file)
 			if err != nil {
-				return nil, err
+				return "", "", err
 			}
 
 			log.Debugf("received file: %s", file.Hash)
@@ -167,30 +176,21 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 			err = t.datastore.Files().Add(&file)
 			if err != nil {
 				if !db.ConflictError(err) {
-					return nil, err
+					return "", "", err
 				}
 				log.Debugf("file exists: %s", file.Hash)
 			}
 		}
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_FILES, msg.Target, msg.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	if !ignore {
 		err = t.indexFileTarget(node, msg.Target)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 	}
 
-	return msg, nil
+	return msg.Target, msg.Body, nil
 }
 
 // removeFiles unpins and removes target files unless they are used by another target,

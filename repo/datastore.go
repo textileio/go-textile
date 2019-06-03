@@ -16,6 +16,7 @@ type Datastore interface {
 	ThreadPeers() ThreadPeerStore
 	Blocks() BlockStore
 	BlockMessages() BlockMessageStore
+	BlockDownloads() BlockDownloadStore
 	Invites() InviteStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
@@ -117,6 +118,14 @@ type BlockMessageStore interface {
 	Queryable
 	Add(msg *pb.BlockMessage) error
 	List(offset string, limit int) []pb.BlockMessage
+	Delete(id string) error
+}
+
+type BlockDownloadStore interface {
+	Queryable
+	Add(download *pb.BlockDownload) error
+	List(offset string, limit int) []pb.BlockDownload
+	AddAttempt(id string) error
 	Delete(id string) error
 }
 

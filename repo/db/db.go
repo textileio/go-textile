@@ -30,6 +30,7 @@ type SQLiteDatastore struct {
 	threadPeers        repo.ThreadPeerStore
 	blocks             repo.BlockStore
 	blockMessages      repo.BlockMessageStore
+	blockDownloads     repo.BlockDownloadStore
 	invites            repo.InviteStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
@@ -67,6 +68,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
 		blockMessages:      NewBlockMessageStore(conn, mux),
+		blockDownloads:     NewBlockDownloadStore(conn, mux),
 		invites:            NewInviteStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
@@ -116,6 +118,10 @@ func (d *SQLiteDatastore) Blocks() repo.BlockStore {
 
 func (d *SQLiteDatastore) BlockMessages() repo.BlockMessageStore {
 	return d.blockMessages
+}
+
+func (d *SQLiteDatastore) BlockDownloads() repo.BlockDownloadStore {
+	return d.blockDownloads
 }
 
 func (d *SQLiteDatastore) Invites() repo.InviteStore {
@@ -235,6 +241,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);
+
+    create table block_downloads (id text primary key not null, threadId text not null, parents text not null, target text not null, date integer not null, attempts integer not null);
+    create index block_download_date on block_downloads (date);
 
     create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null, parents text not null);
     create index invite_date on invites (date);

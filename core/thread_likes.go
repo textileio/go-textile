@@ -24,7 +24,15 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_LIKE, target, "")
+	err = t.indexBlock(&pb.Block{
+		Id:      res.hash.B58String(),
+		Thread:  t.Id,
+		Author:  res.header.Author,
+		Type:    pb.Block_LIKE,
+		Date:    res.header.Date,
+		Parents: res.parents,
+		Target:  target,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -35,27 +43,19 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 }
 
 // handleLikeBlock handles an incoming like block
-func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadLike, error) {
+func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (string, error) {
 	msg := new(pb.ThreadLike)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return "", ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return "", ErrNotAnnotatable
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_LIKE, msg.Target, "")
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
+	return msg.Target, nil
 }

@@ -26,11 +26,17 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-// blockLinkName is the name of the block link in a thread node
+// blockLinkName is the name of the link containing the encrypted block
 const blockLinkName = "block"
 
-// parentsLinkName is the name of the parents link in a thread node
+// parentsLinkName is the name of the link used to reference parent nodes
 const parentsLinkName = "parents"
+
+// targetLinkName is the name of the link used to reference another node
+const targetLinkName = "target"
+
+// dataLinkName is the name of the link used to reference a data node
+const dataLinkName = "data"
 
 // ErrInvalidNode indicates the thread node is not valid
 var ErrInvalidNode = fmt.Errorf("thread node is not valid")
@@ -67,41 +73,43 @@ var errThreadReload = fmt.Errorf("could not re-load thread")
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
-	RepoPath    string
-	Config      *config.Config
-	Account     *keypair.Full
-	Node        func() *core.IpfsNode
-	Datastore   repo.Datastore
-	Service     func() *ThreadsService
-	BlockOutbox *BlockOutbox
-	CafeOutbox  *CafeOutbox
-	AddPeer     func(*pb.Peer) error
-	PushUpdate  func(*pb.Block, string)
+	RepoPath       string
+	Config         *config.Config
+	Account        *keypair.Full
+	Node           func() *core.IpfsNode
+	Datastore      repo.Datastore
+	Service        func() *ThreadsService
+	BlockOutbox    *BlockOutbox
+	BlockDownloads *BlockDownloads
+	CafeOutbox     *CafeOutbox
+	AddPeer        func(*pb.Peer) error
+	PushUpdate     func(*pb.Block, string)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id          string
-	Key         string // app key, usually UUID
-	Name        string
-	PrivKey     libp2pc.PrivKey
-	Schema      *pb.Node
-	schemaId    string
-	initiator   string
-	ttype       pb.Thread_Type
-	sharing     pb.Thread_Sharing
-	whitelist   []string
-	repoPath    string
-	config      *config.Config
-	account     *keypair.Full
-	node        func() *core.IpfsNode
-	datastore   repo.Datastore
-	service     func() *ThreadsService
-	blockOutbox *BlockOutbox
-	cafeOutbox  *CafeOutbox
-	addPeer     func(*pb.Peer) error
-	pushUpdate  func(*pb.Block, string)
-	mux         sync.Mutex
+	Id             string
+	Key            string // app key, usually UUID
+	Name           string
+	PrivKey        libp2pc.PrivKey
+	Schema         *pb.Node
+	schemaId       string
+	initiator      string
+	ttype          pb.Thread_Type
+	sharing        pb.Thread_Sharing
+	whitelist      []string
+	repoPath       string
+	config         *config.Config
+	account        *keypair.Full
+	node           func() *core.IpfsNode
+	datastore      repo.Datastore
+	service        func() *ThreadsService
+	blockOutbox    *BlockOutbox
+	cafeOutbox     *CafeOutbox
+	blockDownloads *BlockDownloads
+	addPeer        func(*pb.Peer) error
+	pushUpdate     func(*pb.Block, string)
+	mux            sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -112,25 +120,26 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 	}
 
 	thrd := &Thread{
-		Id:          model.Id,
-		Key:         model.Key,
-		Name:        model.Name,
-		schemaId:    model.Schema,
-		initiator:   model.Initiator,
-		ttype:       model.Type,
-		sharing:     model.Sharing,
-		whitelist:   model.Whitelist,
-		PrivKey:     sk,
-		repoPath:    conf.RepoPath,
-		config:      conf.Config,
-		account:     conf.Account,
-		node:        conf.Node,
-		datastore:   conf.Datastore,
-		service:     conf.Service,
-		blockOutbox: conf.BlockOutbox,
-		cafeOutbox:  conf.CafeOutbox,
-		addPeer:     conf.AddPeer,
-		pushUpdate:  conf.PushUpdate,
+		Id:             model.Id,
+		Key:            model.Key,
+		Name:           model.Name,
+		schemaId:       model.Schema,
+		initiator:      model.Initiator,
+		ttype:          model.Type,
+		sharing:        model.Sharing,
+		whitelist:      model.Whitelist,
+		PrivKey:        sk,
+		repoPath:       conf.RepoPath,
+		config:         conf.Config,
+		account:        conf.Account,
+		node:           conf.Node,
+		datastore:      conf.Datastore,
+		service:        conf.Service,
+		blockOutbox:    conf.BlockOutbox,
+		blockDownloads: conf.BlockDownloads,
+		cafeOutbox:     conf.CafeOutbox,
+		addPeer:        conf.AddPeer,
+		pushUpdate:     conf.PushUpdate,
 	}
 
 	err = thrd.loadSchema()
@@ -198,11 +207,7 @@ func (t *Thread) followParents(parents []string) ([]string, error) {
 			continue // some old blocks may contain empty string parents
 		}
 
-		hash, err := mh.FromB58String(parent)
-		if err != nil {
-			return nil, err
-		}
-		ends, err := t.followParent(hash)
+		ends, err := t.followParent(parent)
 		if err != nil {
 			log.Warningf("failed to follow parent %s: %s", parent, err)
 			continue
@@ -220,73 +225,113 @@ func (t *Thread) followParents(parents []string) ([]string, error) {
 }
 
 // followParent tries to follow a tree of blocks, processing along the way
-func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
-	var hash mh.Multihash
-	var ciphertext []byte
+func (t *Thread) followParent(parent string) ([]string, error) {
+	var hash, target, data string
 	var parents []string
-	node, err := ipfs.NodeAtPath(t.node(), parent.B58String())
+	var ciphertext []byte
+
+	node, err := ipfs.NodeAtPath(t.node(), parent)
 	if err != nil {
 		// older block
 		hash = parent
-		ciphertext, err = ipfs.DataAtPath(t.node(), hash.B58String())
+		ciphertext, err = ipfs.DataAtPath(t.node(), hash)
 		if err != nil {
 			return nil, err
 		}
 		// parents are not yet known
 	} else {
-		bnode, err := extractNode(t.node(), node)
+		bnode, err := extractNode(t.node(), node, false)
 		if err != nil {
 			return nil, err
 		}
 		hash = bnode.hash
-		ciphertext = bnode.ciphertext
 		parents = bnode.parents
+		target = bnode.target
+		data = bnode.data
 	}
 
-	block, err := t.handleBlock(hash, ciphertext)
-	if err != nil {
-		if err == ErrBlockExists {
-			// exists, abort
-			log.Debugf("%s exists, aborting", hash.B58String())
+	index := t.datastore.Blocks().Get(hash)
+	if index != nil {
+		log.Debugf("%s exists, aborting", hash)
+		return []string{parent}, nil
+	}
 
-			return []string{parent.B58String()}, nil
-		}
+	if ciphertext == nil {
+		err = t.blockDownloads.Add(&pb.BlockDownload{
+			Id:      hash,
+			Thread:  t.Id,
+			Parents: parents,
+			Target:  target,
+		})
+		return t.followParents(parents)
+	}
+
+	return t.handle(ciphertext, parents, target)
+}
+
+func (t *Thread) handle(ciphertext []byte, parents []string, target string) ([]string, error) {
+	block, err := t.unmarshalBlock(ciphertext)
+	if err != nil {
 		return nil, err
 	}
+	hash, err := t.addBlock(ciphertext, false)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := "handling " + block.Type.String()
+	if block.Header.Author != "" {
+		msg += " from " + block.Header.Author
+	}
+	log.Debug(msg)
+
+	var oldTarget, body string
+	switch block.Type {
+	case pb.Block_MERGE:
+		err = t.handleMergeBlock(hash, block)
+	case pb.Block_IGNORE:
+		err = t.handleIgnoreBlock(hash, block)
+	case pb.Block_FLAG:
+		err = t.handleFlagBlock(hash, block)
+	case pb.Block_JOIN:
+		err = t.handleJoinBlock(hash, block)
+	case pb.Block_ANNOUNCE:
+		err = t.handleAnnounceBlock(hash, block)
+	case pb.Block_LEAVE:
+		err = t.handleLeaveBlock(hash, block)
+	case pb.Block_TEXT:
+		body, err = t.handleMessageBlock(hash, block)
+	case pb.Block_FILES:
+		oldTarget, body, err = t.handleFilesBlock(hash, block)
+	case pb.Block_COMMENT:
+		oldTarget, body, err = t.handleCommentBlock(hash, block)
+	case pb.Block_LIKE:
+		oldTarget, err = t.handleLikeBlock(hash, block)
+	default:
+		err = fmt.Errorf("invalid type: %s", block.Type)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// handle old block fields
 	if len(block.Header.Parents) > 0 {
 		parents = block.Header.Parents
 	}
-
-	if block.Header.Author != "" {
-		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
-	} else {
-		log.Debugf("handling %s", block.Type.String())
+	if oldTarget != "" {
+		target = oldTarget
 	}
 
-	switch block.Type {
-	case pb.Block_MERGE:
-		err = t.handleMergeBlock(hash, block, parents)
-	case pb.Block_IGNORE:
-		_, err = t.handleIgnoreBlock(hash, block, parents)
-	case pb.Block_FLAG:
-		_, err = t.handleFlagBlock(hash, block, parents)
-	case pb.Block_JOIN:
-		_, err = t.handleJoinBlock(hash, block, parents)
-	case pb.Block_ANNOUNCE:
-		_, err = t.handleAnnounceBlock(hash, block, parents)
-	case pb.Block_LEAVE:
-		err = t.handleLeaveBlock(hash, block, parents)
-	case pb.Block_TEXT:
-		_, err = t.handleMessageBlock(hash, block, parents)
-	case pb.Block_FILES:
-		_, err = t.handleFilesBlock(hash, block, parents)
-	case pb.Block_COMMENT:
-		_, err = t.handleCommentBlock(hash, block, parents)
-	case pb.Block_LIKE:
-		_, err = t.handleLikeBlock(hash, block, parents)
-	default:
-		return nil, fmt.Errorf(fmt.Sprintf("invalid message type: %s", block.Type))
-	}
+	err = t.indexBlock(&pb.Block{
+		Id:      hash.B58String(),
+		Thread:  t.Id,
+		Author:  block.Header.Author,
+		Type:    block.Type,
+		Date:    block.Header.Date,
+		Parents: parents,
+		Target:  target,
+		Body:    body,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -424,12 +469,7 @@ func (t *Thread) unmarshalBlock(ciphertext []byte) (*pb.ThreadBlock, error) {
 }
 
 // handleBlock receives an incoming encrypted block
-func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
-	index := t.datastore.Blocks().Get(hash.B58String())
-	if index != nil {
-		return nil, ErrBlockExists
-	}
-
+func (t *Thread) handleBlock(hash string, ciphertext []byte) (*pb.ThreadBlock, error) {
 	block, err := t.unmarshalBlock(ciphertext)
 	if err != nil {
 		return nil, err
@@ -519,18 +559,9 @@ func (t *Thread) commitNode(block string, additionalParents []string, updateHead
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, target string, body string) error {
-	block := &pb.Block{
-		Id:      commit.hash.B58String(),
-		Type:    blockType,
-		Date:    commit.header.Date,
-		Parents: commit.parents,
-		Thread:  t.Id,
-		Author:  commit.header.Author,
-		Target:  target,
-		Body:    body,
-	}
-	if err := t.datastore.Blocks().Add(block); err != nil {
+func (t *Thread) indexBlock(block *pb.Block) error {
+	err := t.datastore.Blocks().Add(block)
+	if err != nil {
 		return err
 	}
 
@@ -816,15 +847,15 @@ func validateNode(node ipld.Node) error {
 
 // blockNode represents the components of a block wrapped by an ipld node
 type blockNode struct {
-	hash       mh.Multihash
+	hash       string
 	ciphertext []byte
 	parents    []string
+	target     string
+	data       string
 }
 
 // extractNode pulls out block components from an ipld node
-func extractNode(ipfsNode *core.IpfsNode, node ipld.Node) (*blockNode, error) {
-	bnode := &blockNode{}
-
+func extractNode(ipfsNode *core.IpfsNode, node ipld.Node, downloadBlock bool) (*blockNode, error) {
 	err := validateNode(node)
 	if err != nil {
 		return nil, err
@@ -834,24 +865,11 @@ func extractNode(ipfsNode *core.IpfsNode, node ipld.Node) (*blockNode, error) {
 		return nil, err
 	}
 
-	// extract block
-	blink := schema.LinkByName(node.Links(), []string{blockLinkName})
-	cnode, err := ipfs.NodeAtLink(ipfsNode, blink)
-	if err != nil {
-		return nil, err
-	}
-	err = ipfs.PinNode(ipfsNode, cnode, false)
-	if err != nil {
-		return nil, err
-	}
-	bnode.hash = blink.Cid.Hash()
-	bnode.ciphertext, err = ipfs.DataAtPath(ipfsNode, bnode.hash.B58String())
-	if err != nil {
-		return nil, err
-	}
+	bnode := &blockNode{}
+	links := node.Links()
 
-	// extract parents
-	plink := schema.LinkByName(node.Links(), []string{parentsLinkName})
+	// get parents
+	plink := schema.LinkByName(links, []string{parentsLinkName})
 	pnode, err := ipfs.NodeAtLink(ipfsNode, plink)
 	if err != nil {
 		return nil, err
@@ -862,6 +880,28 @@ func extractNode(ipfsNode *core.IpfsNode, node ipld.Node) (*blockNode, error) {
 	}
 	for _, l := range pnode.Links() {
 		bnode.parents = append(bnode.parents, l.Cid.Hash().B58String())
+	}
+
+	// get target
+	tlink := schema.LinkByName(links, []string{targetLinkName})
+	if tlink != nil {
+		bnode.target = tlink.Cid.Hash().B58String()
+	}
+
+	// get data
+	dlink := schema.LinkByName(links, []string{dataLinkName})
+	if dlink != nil {
+		bnode.data = dlink.Cid.Hash().B58String()
+	}
+
+	// get block
+	blink := schema.LinkByName(links, []string{blockLinkName})
+	bnode.hash = blink.Cid.Hash().B58String()
+	if downloadBlock {
+		bnode.ciphertext, err = ipfs.DataAtPath(ipfsNode, bnode.hash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bnode, nil

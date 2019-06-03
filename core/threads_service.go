@@ -105,7 +105,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		if err != nil {
 			return nil, err
 		}
-		bnode, err := extractNode(h.service.Node(), node)
+		bnode, err := extractNode(h.service.Node(), node, true)
 		if err != nil {
 			return nil, err
 		}
@@ -123,8 +123,8 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		}
 	}
 
-	thrd := h.getThread(tenv.Thread)
-	if thrd == nil {
+	thread := h.getThread(tenv.Thread)
+	if thread == nil {
 		// this might be a direct invite
 		err = h.handleAdd(hash, ciphertext, parents, tenv.Thread, accountPeer)
 		if err != nil {
@@ -133,54 +133,54 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		return nil, nil
 	}
 
-	block, err := thrd.handleBlock(hash, ciphertext)
+	index := h.datastore.Blocks().Get(hash.B58String())
+	if index != nil {
+		log.Debugf("%s exists, aborting", hash.B58String())
+		return nil, nil
+	}
+	block, err := thread.handleBlock(hash.B58String(), ciphertext)
 	if err != nil {
-		if err == ErrBlockExists {
-			// exists, abort
-			log.Debugf("%s exists, aborting", hash.B58String())
-			return nil, nil
-		}
 		return nil, err
 	}
 	if len(block.Header.Parents) > 0 {
 		parents = block.Header.Parents
 	}
 
-	if accountPeer {
-		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
-	} else {
-		if block.Header.Author != "" {
-			log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
-		} else {
-			log.Debugf("handling %s", block.Type.String())
+	msg := "handling " + block.Type.String()
+	if block.Header.Author != "" {
+		msg += " from "
+		if accountPeer {
+			msg += "account peer "
 		}
+		msg += block.Header.Author
 	}
+	log.Debug(msg)
 
 	var leave bool
 	switch block.Type {
 	case pb.Block_MERGE:
-		err = h.handleMerge(thrd, hash, block, parents)
+		err = h.handleMerge(thread, hash, block, parents)
 	case pb.Block_IGNORE:
-		err = h.handleIgnore(thrd, hash, block, parents)
+		err = h.handleIgnore(thread, hash, block, parents)
 	case pb.Block_FLAG:
-		err = h.handleFlag(thrd, hash, block, parents)
+		err = h.handleFlag(thread, hash, block, parents)
 	case pb.Block_JOIN:
-		err = h.handleJoin(thrd, hash, block, parents, accountPeer)
+		err = h.handleJoin(thread, hash, block, parents, accountPeer)
 	case pb.Block_ANNOUNCE:
-		err = h.handleAnnounce(thrd, hash, block, parents)
+		err = h.handleAnnounce(thread, hash, block, parents)
 	case pb.Block_LEAVE:
-		err = h.handleLeave(thrd, hash, block, parents, accountPeer)
+		err = h.handleLeave(thread, hash, block, parents, accountPeer)
 		if accountPeer {
 			leave = true // we will leave as well
 		}
 	case pb.Block_TEXT:
-		err = h.handleMessage(thrd, hash, block, parents)
+		err = h.handleMessage(thread, hash, block, parents)
 	case pb.Block_FILES:
-		err = h.handleFiles(thrd, hash, block, parents)
+		err = h.handleFiles(thread, hash, block, parents)
 	case pb.Block_COMMENT:
-		err = h.handleComment(thrd, hash, block, parents)
+		err = h.handleComment(thread, hash, block, parents)
 	case pb.Block_LIKE:
-		err = h.handleLike(thrd, hash, block, parents)
+		err = h.handleLike(thread, hash, block, parents)
 	default:
 		return nil, nil
 	}
@@ -188,32 +188,32 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		return nil, err
 	}
 
-	parents, err = thrd.followParents(parents)
+	parents, err = thread.followParents(parents)
 	if err != nil {
 		return nil, err
 	}
 
-	err = thrd.handleHead(hash.B58String(), parents)
+	err = thread.handleHead(hash.B58String(), parents)
 	if err != nil {
 		return nil, err
 	}
 
 	// handle newly discovered peers during back prop
-	err = thrd.sendWelcome()
+	err = thread.sendWelcome()
 	if err != nil {
 		return nil, err
 	}
 
 	// we may be auto-leaving
 	if leave {
-		_, err = h.removeThread(thrd.Id)
+		_, err = h.removeThread(thread.Id)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// flush cafe queue _at the very end_
-	go thrd.cafeOutbox.Flush()
+	go thread.cafeOutbox.Flush()
 
 	return nil, nil
 }

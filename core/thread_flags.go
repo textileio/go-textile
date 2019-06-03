@@ -29,7 +29,15 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_FLAG, target, "")
+	err = t.indexBlock(&pb.Block{
+		Id:      res.hash.B58String(),
+		Thread:  t.Id,
+		Author:  res.header.Author,
+		Type:    pb.Block_FLAG,
+		Date:    res.header.Date,
+		Parents: res.parents,
+		Target:  target,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -40,30 +48,19 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 }
 
 // handleFlagBlock handles an incoming flag block
-func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadFlag, error) {
+func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
 	msg := new(pb.ThreadFlag)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return ErrNotAnnotatable
 	}
 
-	// TODO: how do we want to handle flags? making visible to UIs would be a good start
-
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_FLAG, msg.Target, "")
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
+	return nil
 }

@@ -39,10 +39,10 @@ func (c *CafeMessageDB) Add(req *pb.CafeMessage) error {
 		req.Attempts,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 

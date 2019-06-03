@@ -21,7 +21,14 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_LEAVE, "", "")
+	err = t.indexBlock(&pb.Block{
+		Id:      res.hash.B58String(),
+		Thread:  t.Id,
+		Author:  res.header.Author,
+		Type:    pb.Block_LEAVE,
+		Date:    res.header.Date,
+		Parents: res.parents,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +60,7 @@ func (t *Thread) leave() (mh.Multihash, error) {
 }
 
 // handleLeaveBlock handles an incoming leave block
-func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
 	if !t.readable(t.config.Account.Address) {
 		return ErrNotReadable
 	}
@@ -70,9 +77,5 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock, pare
 		return err
 	}
 
-	return t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_LEAVE, "", "")
+	return nil
 }

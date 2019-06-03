@@ -15,10 +15,10 @@ import (
 // cafeInFlushGroupSize is the size of concurrently processed messages
 const cafeInFlushGroupSize = 16
 
-// maxDownloadAttempts is the number of times a message can fail to download before being deleted
-const maxDownloadAttempts = 5
+// cafeInMaxDownloadAttempts is the number of times a message can fail to download before being deleted
+const cafeInMaxDownloadAttempts = 5
 
-// CafeInbox queues and processes outbound thread messages
+// CafeInbox queues and processes downloaded cafe messages
 type CafeInbox struct {
 	service        func() *CafeService
 	threadsService func() *ThreadsService
@@ -79,12 +79,7 @@ func (q *CafeInbox) CheckMessages() error {
 func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
 	log.Debugf("received cafe message from %s: %s", ipfs.ShortenID(msg.Peer), msg.Id)
 
-	// reset attempts
-	return q.datastore.CafeMessages().Add(&pb.CafeMessage{
-		Id:   msg.Id,
-		Peer: msg.Peer,
-		Date: msg.Date,
-	})
+	return q.datastore.CafeMessages().Add(msg)
 }
 
 // Flush processes pending messages
@@ -174,7 +169,7 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 // handleErr deletes or adds an attempt to a message processing error
 func (q *CafeInbox) handleErr(herr error, msg pb.CafeMessage) error {
 	var err error
-	if msg.Attempts+1 >= maxDownloadAttempts {
+	if msg.Attempts+1 >= cafeInMaxDownloadAttempts {
 		err = q.datastore.CafeMessages().Delete(msg.Id)
 	} else {
 		err = q.datastore.CafeMessages().AddAttempt(msg.Id)

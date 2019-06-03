@@ -136,6 +136,15 @@ message BlockMessage {
     google.protobuf.Timestamp date = 4;
 }
 
+message BlockDownload {
+	string id                      = 1;
+	string thread                  = 2;
+	repeated string parents        = 3;
+	string target                  = 4;
+	google.protobuf.Timestamp date = 5;
+	int32 attempts                 = 6;
+}
+
 // INVITES //
 
 message Invite {

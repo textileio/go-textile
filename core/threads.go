@@ -232,7 +232,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		nthrd.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself
-		_, err = nthrd.join(t.node.Identity)
+		_, err = nthrd.join(t.node.Identity.Pretty())
 		if err != nil {
 			return err
 		}
