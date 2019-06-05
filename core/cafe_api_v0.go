@@ -165,7 +165,7 @@ func (c *cafeApi) service(g *gin.Context) {
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 			g.JSON(http.StatusOK, rpmes)
-			g.Writer.Write([]byte("\n"))
+			_, _ = g.Writer.Write([]byte("\n"))
 		}
 		return true
 	})

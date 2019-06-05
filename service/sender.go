@@ -9,23 +9,16 @@ import (
 	ggio "github.com/gogo/protobuf/io"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
 	"github.com/textileio/go-textile/pb"
 )
 
-type messageSender struct {
-	s  inet.Stream
-	r  ggio.ReadCloser
-	w  bufferedWriteCloser
-	lk sync.Mutex
-	p  peer.ID
-
-	srv  *Service
-	pt   protocol.ID
-	reqs map[int32]chan *pb.Envelope
-
-	invalid   bool
-	singleMes int
+func (srv *Service) updateFromMessage(ctx context.Context, p peer.ID) error {
+	// Make sure that this node is actually a DHT server, not just a client.
+	protos, err := srv.Node().Peerstore.SupportsProtocols(p, string(srv.handler.Protocol()))
+	if err == nil && len(protos) > 0 {
+		srv.Node().DHT.Update(ctx, p)
+	}
+	return nil
 }
 
 func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messageSender, error) {
@@ -35,12 +28,7 @@ func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messa
 		srv.smlk.Unlock()
 		return ms, nil
 	}
-	ms = &messageSender{
-		p:    p,
-		srv:  srv,
-		pt:   srv.handler.Protocol(),
-		reqs: make(map[int32]chan *pb.Envelope, 2),
-	}
+	ms = &messageSender{p: p, srv: srv}
 	srv.strmap[p] = ms
 	srv.smlk.Unlock()
 
@@ -65,13 +53,25 @@ func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messa
 	return ms, nil
 }
 
+type messageSender struct {
+	s  inet.Stream
+	r  ggio.ReadCloser
+	lk sync.Mutex
+	p  peer.ID
+
+	srv *Service
+
+	invalid   bool
+	singleMes int
+}
+
 // invalidate is called before this messageSender is removed from the strmap.
 // It prevents the messageSender from being reused/reinitialized and then
 // forgotten (leaving the stream open).
 func (ms *messageSender) invalidate() {
 	ms.invalid = true
 	if ms.s != nil {
-		ms.s.Reset()
+		_ = ms.s.Reset()
 		ms.s = nil
 	}
 }
@@ -94,13 +94,12 @@ func (ms *messageSender) prep(ctx context.Context) error {
 		return nil
 	}
 
-	nstr, err := ms.srv.Node().PeerHost.NewStream(ctx, ms.p, ms.pt)
+	nstr, err := ms.srv.Node().PeerHost.NewStream(ctx, ms.p, ms.srv.handler.Protocol())
 	if err != nil {
 		return err
 	}
 
 	ms.r = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
-	ms.w = newBufferedDelimitedWriter(nstr)
 	ms.s = nstr
 
 	return nil
@@ -121,17 +120,16 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Envelope) err
 		}
 
 		if err := ms.writeMsg(pmes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {
 				log.Info("error writing message, bailing: ", err)
 				return err
-			} else {
-				log.Info("error writing message, trying again: ", err)
-				retry = true
-				continue
 			}
+			log.Info("error writing message, trying again: ", err)
+			retry = true
+			continue
 		}
 
 		if ms.singleMes > streamReuseTries {
@@ -155,22 +153,21 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 		}
 
 		if err := ms.writeMsg(pmes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {
 				log.Info("error writing message, bailing: ", err)
 				return nil, err
-			} else {
-				log.Info("error writing message, trying again: ", err)
-				retry = true
-				continue
 			}
+			log.Info("error writing message, trying again: ", err)
+			retry = true
+			continue
 		}
 
 		mes := new(pb.Envelope)
 		if err := ms.ctxReadMsg(ctx, mes); err != nil {
-			ms.s.Reset()
+			_ = ms.s.Reset()
 			ms.s = nil
 
 			if retry {
@@ -195,10 +192,7 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 }
 
 func (ms *messageSender) writeMsg(pmes *pb.Envelope) error {
-	if err := ms.w.WriteMsg(pmes); err != nil {
-		return err
-	}
-	return ms.w.Flush()
+	return writeMsg(ms.s, pmes)
 }
 
 func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Envelope) error {

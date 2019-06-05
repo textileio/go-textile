@@ -17,18 +17,10 @@ import (
 const PublishTimeout = time.Second * 5
 
 // Publish publishes data to a topic
-func Publish(node *core.IpfsNode, topic string, data []byte, connectTimeout time.Duration) error {
+func Publish(node *core.IpfsNode, topic string, data []byte) error {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
-	}
-
-	if connectTimeout > 0 {
-		cctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
-		defer cancel()
-		if err := connectToTopicReceiver(node, cctx, topic); err != nil {
-			return err
-		}
 	}
 
 	ctx, pcancel := context.WithTimeout(node.Context(), PublishTimeout)

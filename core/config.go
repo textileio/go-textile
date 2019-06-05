@@ -122,7 +122,7 @@ func ensureMobileConfig(repoPath string) error {
 	conf.Swarm.ConnMgr.HighWater = 500
 	conf.Swarm.ConnMgr.GracePeriod = (time.Second * 20).String()
 	conf.Swarm.DisableBandwidthMetrics = true
-	conf.Swarm.EnableAutoRelay = false
+	conf.Swarm.EnableAutoRelay = true
 
 	return rep.SetConfig(conf)
 }
@@ -142,7 +142,7 @@ func ensureServerConfig(repoPath string) error {
 	conf.Addresses.NoAnnounce = config.DefaultServerFilters
 	conf.Swarm.AddrFilters = config.DefaultServerFilters
 	conf.Swarm.DisableNatPortMap = true
-	conf.Swarm.EnableRelayHop = false
+	conf.Swarm.EnableRelayHop = true
 	conf.Swarm.EnableAutoNATService = true
 
 	// tmp. ensure IPFS addresses are available in case we need to
