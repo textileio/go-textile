@@ -147,7 +147,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 			DisableBandwidthMetrics: mobile,
 			DisableNatPortMap:       server,
 			EnableRelayHop:          false,
-			EnableAutoRelay:         mobile,
+			EnableAutoRelay:         false,
 			EnableAutoNATService:    server,
 		},
 		Experimental: native.Experiments{
@@ -164,7 +164,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 }
 
 func addressesConfig(server bool) native.Addresses {
-	var noAnnounce []string
+	noAnnounce := make([]string, 0)
 	if server {
 		noAnnounce = DefaultServerFilters
 	}
