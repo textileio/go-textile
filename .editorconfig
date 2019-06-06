@@ -1,6 +1,8 @@
-# 2018 September 26
-# https://github.com/bevry/base
+# 2019 May 25
+# https://github.com/textileio/base
 
+# Standards
+# Same as: https://github.com/bevry/base
 root = true
 
 [*]
@@ -24,3 +26,9 @@ indent_size = 2
 
 [{*.json,*.lsrules}]
 insert_final_newline = true
+
+# Preferences
+# Textile uses 2 space indentation for JavaScript/TypeScript
+[{*.js,*.jsx,*.ts,*.tsx,*.mjs}]
+indent_style = space
+indent_size = 2
