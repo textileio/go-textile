@@ -99,7 +99,7 @@ var (
 
 	// list
 	blockListCmd      = blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls")
-	blockListThreadID = blockListCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	blockListThreadID = blockListCmd.Flag("thread", "Thread ID").Short('t').String()
 	blockListOffset   = blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	blockListLimit    = blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 	blockListDots     = blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
@@ -141,7 +141,7 @@ An access token is required to register, and should be obtained separately from 
 
 	// chat
 	chatCmd      = appCmd.Command("chat", `Starts an interactive chat session in a thread`)
-	chatThreadID = chatCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	chatThreadID = chatCmd.Flag("thread", "Thread ID").Short('t').String()
 
 	// ================================
 
@@ -281,7 +281,7 @@ Stacks may include:
 	// add
 	fileAddCmd      = fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
 	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash. If omitted, you must provide a stdin blob input.").String()
-	fileAddThreadID = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	fileAddThreadID = fileAddCmd.Flag("thread", "Thread ID").Short('t').String()
 	fileAddCaption  = fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
 	fileAddGroup    = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
 	fileAddVerbose  = fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
@@ -326,7 +326,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// create
 	inviteCreateCmd      = inviteCmd.Command("create", "Creates a direct account-to-account or external invite to a thread")
-	inviteCreateThreadID = inviteCreateCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	inviteCreateThreadID = inviteCreateCmd.Flag("thread", "Thread ID").Short('t').String()
 	inviteCreateAddress  = inviteCreateCmd.Flag("address", "Account Address, omit to create an external invite").Short('a').String()
 	inviteCreateWait     = inviteCreateCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
 
@@ -410,7 +410,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// add
 	messageAddCmd      = messageCmd.Command("add", "Adds a message to a thread")
-	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID").Default("default").String()
+	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID").String()
 	messageAddBody     = messageAddCmd.Arg("body", "The message to add the thread").String()
 
 	// list
@@ -532,20 +532,17 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	threadGetCmd      = threadCmd.Command("get", "Gets and displays info about a thread")
 	threadGetThreadID = threadGetCmd.Arg("thread", "Thread ID").Required().String()
 
-	// default
-	threadDefaultCmd = threadCmd.Command("default", "Gets and displays info about the default thread (if selected")
-
 	// peer
 	threadPeerCmd      = threadCmd.Command("peer", "Lists all peers in a thread").Alias("peers")
-	threadPeerThreadID = threadPeerCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	threadPeerThreadID = threadPeerCmd.Flag("thread", "Thread ID").Short('t').String()
 
 	// rename
 	threadRenameCmd      = threadCmd.Command("rename", "Renames a thread. Only the initiator of a thread can rename it.").Alias("mv")
-	threadRenameThreadID = threadRenameCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
+	threadRenameThreadID = threadRenameCmd.Flag("thread", "Thread ID").Required().String()
 	threadRenameName     = threadRenameCmd.Arg("name", "The name to rename the thread to").Required().String()
 
 	// unsubscribe
-	threadUnsubscribeCmd      = threadCmd.Command("unsubscribe", "Unsubscribes from the thread, and if no one else remains subscribed, deletes it").Alias("subsub").Alias("remove").Alias("rm")
+	threadUnsubscribeCmd      = threadCmd.Command("unsubscribe", "Unsubscribe from the thread, and if no one else remains subscribed, deletes it").Alias("unsub").Alias("remove").Alias("rm")
 	threadUnsubscribeThreadID = threadUnsubscribeCmd.Arg("thread", "Thread ID").Required().String()
 
 	// snapshot
@@ -876,9 +873,6 @@ func Run() error {
 
 	case threadGetCmd.FullCommand():
 		return ThreadGet(*threadGetThreadID)
-
-	case threadDefaultCmd.FullCommand():
-		return ThreadDefault()
 
 	case threadPeerCmd.FullCommand():
 		return ThreadPeer(*threadPeerThreadID)

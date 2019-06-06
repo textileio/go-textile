@@ -178,9 +178,6 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Router /threads/{id} [get]
 func (a *api) getThreads(g *gin.Context) {
 	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
 
 	view, err := a.node.ThreadView(id)
 	if err != nil {
@@ -193,7 +190,7 @@ func (a *api) getThreads(g *gin.Context) {
 
 // peersThreads godoc
 // @Summary List all thread peers
-// @Description Lists all peers in a thread, optionally listing peers in the default thread
+// @Description Lists all peers in a thread
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id"
@@ -202,9 +199,6 @@ func (a *api) getThreads(g *gin.Context) {
 // @Router /threads/{id}/peers [get]
 func (a *api) peersThreads(g *gin.Context) {
 	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
 
 	peers, err := a.node.ThreadPeers(id)
 	if err != nil {

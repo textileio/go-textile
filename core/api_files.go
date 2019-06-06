@@ -34,9 +34,6 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	}
 
 	threadId := g.Param("id")
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	thrd := a.node.Thread(threadId)
 	if thrd == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
@@ -98,8 +95,7 @@ func (a *api) addThreadFiles(g *gin.Context) {
 
 // lsThreadFiles godoc
 // @Summary Paginates thread files
-// @Description Paginates thread files. If thread id not provided, paginate all files. Specify
-// @Description "default" to use the default thread (if set).
+// @Description Paginates thread files. If thread id not provided, paginate all files.
 // @Tags files
 // @Produce application/json
 // @Param X-Textile-Opts header string false "thread: Thread ID. Omit for all, offset: Offset ID to start listing from. Omit for latest, limit: List page size. (default: 5)" default(thread=,offset=,limit=5)
@@ -116,9 +112,6 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 	}
 
 	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	if threadId != "" {
 		thrd := a.node.Thread(threadId)
 		if thrd == nil {

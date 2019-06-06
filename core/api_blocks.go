@@ -72,7 +72,7 @@ func getFilesFile(node *Textile, id string, indexStr string, path string) (*pb.F
 // @Description traversing the hash tree.
 // @Tags blocks
 // @Produce application/json
-// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
+// @Param X-Textile-Opts header string false "thread: Thread ID, offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
 // @Success 200 {object} pb.BlockList "blocks"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
@@ -86,9 +86,6 @@ func (a *api) lsBlocks(g *gin.Context) {
 	}
 
 	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	if threadId == "" {
 		g.String(http.StatusBadRequest, "missing thread id")
 		return

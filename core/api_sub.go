@@ -31,9 +31,6 @@ func (a *api) getThreadsSubscribe(g *gin.Context) {
 	// Expects or'd list of event types (e.g., FILES|COMMENTS|LIKES).
 	types := strings.Split(strings.TrimSpace(strings.ToUpper(opts["type"])), "|")
 	threadId := g.Param("id")
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 
 	listener := a.node.ThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {

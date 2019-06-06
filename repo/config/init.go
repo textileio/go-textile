@@ -67,9 +67,8 @@ type Threads struct {
 }
 
 // ThreadDefaults settings
-type ThreadDefaults struct {
-	ID string // default thread ID for reads/writes
-}
+// @todo should this be removed?
+type ThreadDefaults struct {}
 
 // Cafe settings
 type Cafe struct {
@@ -173,9 +172,7 @@ func Init() (*Config, error) {
 			LogToDisk: true,
 		},
 		Threads: Threads{
-			Defaults: ThreadDefaults{
-				ID: "",
-			},
+			Defaults: ThreadDefaults{},
 		},
 		Cafe: Cafe{
 			Host: CafeHost{

@@ -30,9 +30,6 @@ func (a *api) addThreadMessages(g *gin.Context) {
 	}
 
 	threadId := g.Param("id")
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	thrd := a.node.Thread(threadId)
 	if thrd == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
@@ -73,9 +70,6 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 	}
 
 	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	if threadId != "" {
 		thrd := a.node.Thread(threadId)
 		if thrd == nil {

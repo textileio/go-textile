@@ -88,15 +88,6 @@ func ThreadGet(threadID string) error {
 	return nil
 }
 
-func ThreadDefault() error {
-	res, err := executeJsonCmd(http.MethodGet, "threads/default", params{}, nil)
-	if err != nil {
-		return err
-	}
-	output(res)
-	return nil
-}
-
 func ThreadPeer(threadID string) error {
 	res, err := executeJsonCmd(http.MethodGet, "threads/"+threadID+"/peers", params{}, nil)
 	if err != nil {
