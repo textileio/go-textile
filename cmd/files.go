@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -59,7 +58,13 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 	if err != nil {
 		return err
 	}
+
+	// if stdin was not provided, then fetch the path manually
 	if (fi.Mode() & os.ModeCharDevice) != 0 {
+		if path == "" {
+			return fmt.Errorf("neither stdin nor the argument 'path' were provided, try --help")
+		}
+
 		// check if path references a cid
 		ipth, err := ipfspath.ParsePath(path)
 		if err == nil {
@@ -93,8 +98,8 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 
 	start := time.Now()
 
-	// if a  directory,  add each file inside it
 	if fi != nil && fi.IsDir() {
+		// add each file inside the directory
 		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
 			if fi.IsDir() || fi.Name() == ".DS_Store" {
 				return nil
@@ -137,7 +142,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 							break loop
 						}
 
-						output(fmt.Sprintf("File %d target: %s", count+1, files.Target))
+						output(fmt.Sprintf("File %d target=%s block=%s", count+1, files.Target, files.Block))
 					} else {
 						dirs = append(dirs, dir)
 					}
@@ -152,40 +157,41 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)))
 		}
 
+		if group && len(dirs) > 0 {
+			files, err := add(dirs, threadID, caption, verbose)
+			if err != nil {
+				return err
+			}
+			output(fmt.Sprintf("Group target=%s block=%s", files.Target, files.Block))
+		}
+
+		if count == 0 {
+			return errNothingToAdd
+		}
+
 	} else {
+		// add the file
 		dir, err := mill(pth, thrd.SchemaNode, verbose)
 		if err != nil {
 			return err
 		}
 
-		files, err := add([]*pb.Directory{dir}, threadID, caption, verbose)
+		_, err = add([]*pb.Directory{dir}, threadID, caption, true)
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("File target: %s", files.Target))
 
 		count++
 	}
 
-	if group && len(dirs) > 0 {
-		files, err := add(dirs, threadID, caption, verbose)
-		if err != nil {
-			return err
+	if ( verbose ) {
+		dur := time.Now().Sub(start)
+		msg := fmt.Sprintf("Added %d file", count)
+		if count != 1 {
+			msg += "s"
 		}
-		output(fmt.Sprintf("Group target: %s", files.Target))
+		output(fmt.Sprintf("%s in %s", msg, dur.String()))
 	}
-
-	dur := time.Now().Sub(start)
-
-	if count == 0 {
-		return errNothingToAdd
-	}
-
-	msg := fmt.Sprintf("Added %d file", count)
-	if count != 1 {
-		msg += "s"
-	}
-	output(fmt.Sprintf("%s in %s", msg, dur.String()))
 
 	return nil
 }
@@ -209,6 +215,7 @@ func add(dirs []*pb.Directory, threadID string, caption string, verbose bool) (*
 	if verbose {
 		output(res)
 	}
+
 	return files, nil
 }
 
@@ -416,9 +423,9 @@ func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
 }
 
 // ------------------------------------
-// > file list
+// > file list thread
 
-func FileList(threadID string, offset string, limit int) error {
+func FileListThread(threadID string, offset string, limit int) error {
 	var list pb.FilesList
 	res, err := executeJsonPbCmd(http.MethodGet, "files", params{opts: map[string]string{
 		"thread": threadID,
@@ -436,13 +443,39 @@ func FileList(threadID string, offset string, limit int) error {
 		return nil
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("next page...")
-	if _, err := reader.ReadString('\n'); err != nil {
+	if err := nextPage(); err != nil {
 		return err
 	}
 
-	return FileList(threadID, list.Items[len(list.Items)-1].Block, limit)
+	return FileListThread(threadID, list.Items[len(list.Items)-1].Block, limit)
+}
+
+// ------------------------------------
+// > file list block
+
+func FileListBlock(blockID string, index int, path string, content bool) error {
+	urlPath := "blocks/" + blockID + "/files"
+	if path != "" {
+		urlPath += "/" + strconv.Itoa(index) + "/" + strings.Trim(path, "/")
+		if content {
+			urlPath += "/content"
+		} else {
+			urlPath += "/meta"
+		}
+	}
+	if content {
+		err := executeBlobCmd(http.MethodGet, urlPath, params{})
+		if err != nil {
+			return err
+		}
+	} else {
+		res, err := executeJsonCmd(http.MethodGet, urlPath, params{}, nil)
+		if err != nil {
+			return err
+		}
+		output(res)
+	}
+	return nil
 }
 
 // ------------------------------------

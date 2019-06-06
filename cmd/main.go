@@ -112,13 +112,6 @@ var (
 	blockIgnoreCmd     = blockCmd.Command("ignore", "Remove a block by marking it to be ignored").Alias("remove").Alias("rm")
 	blockIgnoreBlockID = blockIgnoreCmd.Arg("block", "Block ID").Required().String()
 
-	// files
-	blockFileCmd     = blockCmd.Command("file", "Get the files, or a specific file, of a Files Block").Alias("files")
-	blockFileBlockID = blockFileCmd.Arg("files-block", "Files Block ID").Required().String()
-	blockFileIndex   = blockFileCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
-	blockFilePath    = blockFileCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
-	blockFileContent = blockFileCmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
-
 	// ================================
 
 	// cafe
@@ -198,7 +191,7 @@ An access token is required to register, and should be obtained separately from 
 	contactGetAddress = contactGetCmd.Arg("address", "Account Address").Required().String()
 
 	// delete
-	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rn")
+	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rm")
 	contactDeleteAddress = contactDeleteCmd.Arg("address", "Account Address").Required().String()
 
 	// search
@@ -254,10 +247,31 @@ Stacks may include:
 	// @todo rename this to Textile Data Blocks: https://github.com/textileio/meta/issues/31
 
 	// list
-	fileListCmd      = fileCmd.Command("list", `Paginates thread files`).Alias("ls")
-	fileListThreadID = fileListCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
-	fileListOffset   = fileListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
-	fileListLimit    = fileListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+	fileListCmd = fileCmd.Command("list", `Get all the files, or just the files for a specific thread or block`).Alias("ls")
+
+	// list thread
+	fileListThreadCmd    = fileListCmd.Command("thread", "Paginates the files of a thread, or of all threads").Default()
+	fileListThreadID     = fileListThreadCmd.Arg("thread", "Thread ID").String()
+	fileListThreadOffset = fileListThreadCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
+	fileListThreadLimit  = fileListThreadCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+	// alias, should be the same as the above
+	threadFileCmd      = threadCmd.Command("thread", "Paginates the files of a thread, or of all threads").Hidden()
+	threadFileThreadID = threadFileCmd.Arg("thread", "Thread ID").String()
+	threadFileOffset   = threadFileCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
+	threadFileLimit    = threadFileCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+
+	// list block
+	fileListBlockCmd     = fileListCmd.Command("block", "Get the files, or a specific file, of a Files Block")
+	fileListBlockID      = fileListBlockCmd.Arg("files-block", "Files Block ID").Required().String()
+	fileListBlockIndex   = fileListBlockCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
+	fileListBlockPath    = fileListBlockCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
+	fileListBlockContent = fileListBlockCmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
+	// alias, should be the same as the above
+	blockFileCmd     = blockCmd.Command("files", "Get the files, or a specific file, of a File Block").Hidden()
+	blockFileBlockID = blockFileCmd.Arg("files-block", "Files Block ID").Required().String()
+	blockFileIndex   = blockFileCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
+	blockFilePath    = blockFileCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
+	blockFileContent = blockFileCmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
 
 	// keys
 	fileKeysCmd      = fileCmd.Command("keys", "Shows file keys under the given target").Alias("key")
@@ -266,7 +280,7 @@ Stacks may include:
 
 	// add
 	fileAddCmd      = fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
-	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").Required().String()
+	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash. If omitted, you must provide a stdin blob input.").String()
 	fileAddThreadID = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileAddCaption  = fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
 	fileAddGroup    = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
@@ -367,11 +381,11 @@ There are two types of invites, direct account-to-account and external:
 
 	// add
 	likeAddCmd     = likeCmd.Command("add", "Attach a like to a block")
-	likeAddBlockID = likeAddCmd.Arg("block", "Block ID, usually a file's block").Required().String()
+	likeAddBlockID = likeAddCmd.Arg("block", "Block ID to like, usually a file's block").Required().String()
 
 	// list
 	likeListCmd     = likeCmd.Command("list", "Get likes that are attached to a block").Alias("ls")
-	likeListBlockID = likeListCmd.Arg("block", "Block ID, usually a file's block").Required().String()
+	likeListBlockID = likeListCmd.Arg("block", "Block ID to like, usually a file's block").Required().String()
 
 	// get
 	likeGetCmd    = likeCmd.Command("get", "Get a like by its own Block ID")
@@ -626,9 +640,6 @@ func Run() error {
 	case blockIgnoreCmd.FullCommand():
 		return BlockIgnore(*blockIgnoreBlockID)
 
-	case blockFileCmd.FullCommand():
-		return BlockFile(*blockFileBlockID, *blockFileIndex, *blockFilePath, *blockFileContent)
-
 	// cafe
 	case cafeAddCmd.FullCommand():
 		return CafeAdd(*cafeAddURL, *cafeAddToken)
@@ -699,8 +710,17 @@ func Run() error {
 		return Feed(*feedThreadID, *feedOffset, *feedLimit, *feedMode)
 
 	// file
-	case fileListCmd.FullCommand():
-		return FileList(*fileListThreadID, *fileListOffset, *fileListLimit)
+	case fileListThreadCmd.FullCommand():
+		return FileListThread(*fileListThreadID, *fileListThreadOffset, *fileListThreadLimit)
+	// alias
+	case threadFileCmd.FullCommand():
+		return FileListThread(*threadFileThreadID, *threadFileOffset, *threadFileLimit)
+
+	case fileListBlockCmd.FullCommand():
+		return FileListBlock(*fileListBlockID, *fileListBlockIndex, *fileListBlockPath, *fileListBlockContent)
+	// alias
+	case blockFileCmd.FullCommand():
+		return FileListBlock(*blockFileBlockID, *blockFileIndex, *blockFilePath, *blockFileContent)
 
 	case fileKeysCmd.FullCommand():
 		return FileKeys(*fileKeysTargetID)
@@ -1123,6 +1143,15 @@ func handleSearchStream(pth string, param params) []pb.QueryResult {
 			return results
 		}
 	}
+}
+
+func nextPage() error {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("press enter for the next page...")
+	if _, err := reader.ReadString('\n'); err != nil {
+		return err
+	}
+	return nil
 }
 
 // https://gist.github.com/r0l1/3dcbb0c8f6cfe9c66ab8008f55f8f28b
