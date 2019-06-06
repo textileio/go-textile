@@ -65,3 +65,5 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
+
+replace github.com/ipfs/go-ipfs => github.com/sanderpick/go-ipfs v0.4.22-0.20190606034924-0478a0eca246
