@@ -61,7 +61,6 @@ require (
 	github.com/xeipuuv/gojsonschema v1.1.0
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
