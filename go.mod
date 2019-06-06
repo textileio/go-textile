@@ -22,9 +22,9 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/ipfs/go-cid v0.0.2
-	github.com/ipfs/go-ipfs v0.4.21-rc3
+	github.com/ipfs/go-ipfs v0.4.21
 	github.com/ipfs/go-ipfs-addr v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.7
+	github.com/ipfs/go-ipfs-cmds v0.0.8
 	github.com/ipfs/go-ipfs-config v0.0.3
 	github.com/ipfs/go-ipfs-files v0.0.3
 	github.com/ipfs/go-ipld-format v0.0.2
@@ -65,3 +65,5 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
+
+replace github.com/ipfs/go-ipfs => github.com/sanderpick/go-ipfs v0.4.22-0.20190606034924-0478a0eca246

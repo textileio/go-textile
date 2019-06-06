@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -141,31 +142,31 @@ func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
 func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 	pid, err := peer.IDB58Decode(msg.Peer)
 	if err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error decoding msg peer: %s", err), msg)
 	}
 
 	// download the actual message
 	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error getting msg data: %s", err), msg)
 	}
 
 	envb, err := crypto.Decrypt(q.node().PrivateKey, ciphertext)
 	if err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error decrypting msg: %s", err), msg)
 	}
 	env := new(pb.Envelope)
 	if err := proto.Unmarshal(envb, env); err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error unmarshaling env: %s", err), msg)
 	}
 
 	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error verifying env: %s", err), msg)
 	}
 
 	// pass to thread service for normal handling
 	if _, err := q.threadsService().Handle(pid, env); err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error handling msg: %s", err), msg)
 	}
 	return nil
 }

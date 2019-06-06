@@ -290,7 +290,7 @@ Stacks may include:
 	initRepoPath          = initCmd.Flag("repo-dir", "Specify a custom repository path").Short('r').String()
 	initIpfsServerMode    = initCmd.Flag("server", "Apply IPFS server profile").Bool()
 	initIpfsSwarmPorts    = initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
-	initLogFiles          = initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("true").Bool()
+	initLogFiles          = initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Bool()
 	initApiBindAddr       = initCmd.Flag("api-bind-addr", "Set the local API address").Default("127.0.0.1:40600").String()
 	initCafeApiBindAddr   = initCmd.Flag("cafe-bind-addr", "Set the cafe REST API address").Default("0.0.0.0:40601").String()
 	initGatewayBindAddr   = initCmd.Flag("gateway-bind-addr", "Set the IPFS gateway address").Default("127.0.0.1:5050").String()
