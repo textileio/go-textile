@@ -1,66 +1,160 @@
-**/node_modules/*
-dist/textile
-dist/go-textile-*
+# 2019 May 25
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# =====================================
+# Bevry
+# https://github.com/bevry/base
 
-# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+# System Files
+**/.DS_Store
+
+# Temp Files
+**/.tmp
+**/*.log
+**/*.cpuprofile
+**/*.heapsnapshot
+
+# Editor Files
+.c9/
+.vscode/
+.idea/
+launch.json
+
+# Private Files
+.env
+.env.*
+.cake_task_cache
+
+# Build Caches
+build/
+bower_components/
+node_modules/
+.next/
+.pnp/
+.pnp.js
+
+# Build Outputs
+**/out.*
+**/*.out
+**/*.out.*
+**/out/
+**/output/
+**/dist/
+edition*/
+coffeejs/
+coffee/
+es5/
+es2015/
+esnext/
+docs/
+
+# =====================================
+# Textile
+# https://github.com/textileio/base
+
+# Caches
 .glide/
-
-# Compiled Object files, Static and Dynamic libs (Shared Objects)
-*.o
-*.a
-*.so
-*.pyc
-*.dylib
-*.dll
-
-# Folders
-_obj
-_test
+.gx/
 __pycache__
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+**/*.o
+**/*.a
+**/*.so
+**/*.pyc
+**/*.dylib
+**/*.dll
+**/*.exe
+**/*.syso
+**/*.test
+**/*.prof
+.ipfs
+.textile*
 
+# Architecture specific extensions/prefixes
+**/*.[568vq]
+
+# Local Development Files
+.ackrc
+.tags*
+*.sw?
+
+# Mobile
+**/*.aar
+**/*.jar
+**/*.framework
+
+# Keys
+**/*.pem
+
+# Swarm
+docker-compose.swarm.yml
+
+# Other
+_obj
+_test
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
 _cgo_gotypes.go
 _cgo_export.*
-
 _testmain.go
+local.properties
+*.keystore
+*.iml
 
-*.exe
-*.syso
-*.test
-*.prof
-.idea/
-.gx/
-.ipfs
-.textile*
+# Buck
+buck-out/
+.buckd/
+*.keystore
 
-# Development environment files
-.ackrc
-.tags*
-*.sw?
+# Gradle
+.gradle
 
-# macOS
-.DS_Store
+# Android
+*.jks
+android/**/*.settings
+android/**/*.project
+android/**/*.classpath
 
-# Mobile
-*.aar
-*.jar
-*.framework
-mobile/dist
+# Xcode
+ios/Podfile.lock
+ios/Pods/
+DerivedData
+xcuserdata
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcworkspace
+*.hmap
+*.ipa
 
-# keys
-*.pem
+# Xcode Advanced
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
 
-# Swarm
-docker-compose.swarm.yml
+# fastlane
+# It is recommended to not store the screenshots in the git repo.
+# Instead, use fastlane to re-generate the screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
 
-# VSCode
-launch.json
+# Bundle Artifact
+*.jsbundle
+sourcemap.js
+
+# Jest
+.jest/
+coverage/
+
+# =====================================
+# Repository
