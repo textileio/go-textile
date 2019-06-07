@@ -16,7 +16,7 @@ import (
 var repoPath = "testdata/.textile"
 
 func TestGateway_Creation(t *testing.T) {
-	os.RemoveAll(repoPath)
+	_ = os.RemoveAll(repoPath)
 
 	err := core.InitRepo(core.InitConfig{
 		Account:     keypair.Random(),
@@ -60,5 +60,5 @@ func TestGateway_Stop(t *testing.T) {
 	if err != nil {
 		t.Errorf("stop gateway failed: %s", err)
 	}
-	os.RemoveAll(repoPath)
+	_ = os.RemoveAll(repoPath)
 }
