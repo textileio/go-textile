@@ -1534,6 +1534,9 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 
 	for _, id := range toUnpin {
 		req := h.datastore.CafeRequests().Get(id)
+		if req == nil {
+			continue
+		}
 		cid, err := icid.Decode(req.Target)
 		if err != nil {
 			log.Error(err.Error())
