@@ -39,10 +39,10 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *pb.CafeClientMessage) error 
 		util.ProtoNanos(message.Date),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (c *CafeClientMessagesDB) CountByClient(clientId string) int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from cafe_client_messages where clientId='" + clientId + "';")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

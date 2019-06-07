@@ -22,20 +22,13 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 		Body: body,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_TEXT, nil)
+	res, err := t.commitBlock(msg, pb.Block_TEXT, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_TEXT, "", body); err != nil {
-		return nil, err
-	}
-
-	if err := t.updateHead(res.hash); err != nil {
-		return nil, err
-	}
-
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.indexBlock(res, pb.Block_TEXT, "", body)
+	if err != nil {
 		return nil, err
 	}
 
@@ -45,9 +38,10 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 }
 
 // handleMessageBlock handles an incoming message block
-func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadMessage, error) {
+func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadMessage, error) {
 	msg := new(pb.ThreadMessage)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -58,10 +52,12 @@ func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock) (*
 		return nil, ErrNotWritable
 	}
 
-	if err := t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
-	}, pb.Block_TEXT, "", msg.Body); err != nil {
+	err = t.indexBlock(&commitResult{
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
+	}, pb.Block_TEXT, "", msg.Body)
+	if err != nil {
 		return nil, err
 	}
 	return msg, nil

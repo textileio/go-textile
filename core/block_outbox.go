@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -26,12 +25,7 @@ type BlockOutbox struct {
 }
 
 // NewBlockOutbox creates a new outbox queue
-func NewBlockOutbox(
-	service func() *ThreadsService,
-	node func() *core.IpfsNode,
-	datastore repo.Datastore,
-	cafeOutbox *CafeOutbox,
-) *BlockOutbox {
+func NewBlockOutbox(service func() *ThreadsService, node func() *core.IpfsNode, datastore repo.Datastore, cafeOutbox *CafeOutbox) *BlockOutbox {
 	return &BlockOutbox{
 		service:    service,
 		node:       node,
@@ -41,11 +35,11 @@ func NewBlockOutbox(
 }
 
 // Add adds an outbound message
-func (q *BlockOutbox) Add(pid peer.ID, env *pb.Envelope) error {
-	log.Debugf("adding block message for %s", pid.Pretty())
+func (q *BlockOutbox) Add(peerId string, env *pb.Envelope) error {
+	log.Debugf("adding block message for %s", peerId)
 	return q.datastore.BlockMessages().Add(&pb.BlockMessage{
 		Id:   ksuid.New().String(),
-		Peer: pid.Pretty(),
+		Peer: peerId,
 		Env:  env,
 		Date: ptypes.TimestampNow(),
 	})
@@ -80,27 +74,19 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 	var toDelete []string
 	wg := sync.WaitGroup{}
 	for id, group := range groups {
-		pid, err := peer.IDB58Decode(id)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
 		wg.Add(1)
-		go func(pid peer.ID, msgs []pb.BlockMessage) {
+		go func(id string, msgs []pb.BlockMessage) {
 			for _, msg := range msgs {
-				if err := q.handle(pid, msg); err != nil {
+				if err := q.handle(id, msg); err != nil {
 					log.Warningf("error handling block message %s: %s", msg.Id, err)
 					continue
 				}
 				toDelete = append(toDelete, msg.Id)
 			}
 			wg.Done()
-		}(pid, group)
+		}(id, group)
 	}
 	wg.Wait()
-
-	// flush the outbox before starting a new batch
-	go q.cafeOutbox.Flush()
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
@@ -120,11 +106,11 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 }
 
 // handle handles a single message
-func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
+func (q *BlockOutbox) handle(peerId string, msg pb.BlockMessage) error {
 	// first, attempt to send the message directly to the recipient
 	sendable := q.service().online
 	if sendable {
-		connected, err := ipfs.SwarmConnected(q.node(), pid)
+		connected, err := ipfs.SwarmConnected(q.node(), peerId)
 		if err != nil {
 			return err
 		}
@@ -134,20 +120,21 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 	}
 	var err error
 	if sendable {
-		err = q.service().SendMessage(nil, pid, msg.Env)
+		err = q.service().SendMessage(nil, peerId, msg.Env)
 	}
 	if !sendable || err != nil {
 		if err != nil {
-			log.Debugf("send block message direct to %s failed: %s", pid.Pretty(), err)
+			log.Debugf("send block message direct to %s failed: %s", peerId, err)
 		}
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-		contact := q.datastore.Peers().Get(pid.Pretty())
+		contact := q.datastore.Peers().Get(peerId)
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
+			log.Debugf("sending block message for %s to inbox(es)", peerId)
 
 			// add an inbox request for message delivery
-			if err := q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes); err != nil {
+			err = q.cafeOutbox.AddForInbox(peerId, msg.Env, contact.Inboxes)
+			if err != nil {
 				return err
 			}
 		}

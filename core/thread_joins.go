@@ -9,38 +9,6 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// joinInitial creates an outgoing join block for an emtpy thread
-func (t *Thread) joinInitial() (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
-	}
-
-	msg, err := t.buildJoin(t.node().Identity.Pretty())
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_JOIN, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := t.indexBlock(res, pb.Block_JOIN, "", ""); err != nil {
-		return nil, err
-	}
-
-	if err := t.updateHead(res.hash); err != nil {
-		return nil, err
-	}
-
-	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
-
-	return res.hash, nil
-}
-
 // join creates an outgoing join block
 func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
@@ -50,25 +18,22 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	msg, err := t.buildJoin(inviterId.Pretty())
+	var inviter string
+	if inviterId != "" {
+		inviter = inviterId.Pretty()
+	}
+	msg, err := t.buildJoin(inviter)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_JOIN, nil)
+	res, err := t.commitBlock(msg, pb.Block_JOIN, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_JOIN, "", ""); err != nil {
-		return nil, err
-	}
-
-	if err := t.updateHead(res.hash); err != nil {
-		return nil, err
-	}
-
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.indexBlock(res, pb.Block_JOIN, "", "")
+	if err != nil {
 		return nil, err
 	}
 
@@ -78,9 +43,10 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 }
 
 // handleJoinBlock handles an incoming join block
-func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadJoin, error) {
+func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadJoin, error) {
 	msg := new(pb.ThreadJoin)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -96,16 +62,19 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, ErrInvalidThreadBlock
 	}
 
-	if err := t.indexBlock(&commitResult{
-		hash:   hash,
-		header: block.Header,
-	}, pb.Block_JOIN, "", ""); err != nil {
+	err = t.indexBlock(&commitResult{
+		hash:    hash,
+		header:  block.Header,
+		parents: parents,
+	}, pb.Block_JOIN, "", "")
+	if err != nil {
 		return nil, err
 	}
 
 	// collect author as an unwelcomed peer
 	if msg.Peer != nil {
-		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
+		err = t.addOrUpdatePeer(msg.Peer)
+		if err != nil {
 			return nil, err
 		}
 	}

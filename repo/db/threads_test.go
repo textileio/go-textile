@@ -18,12 +18,12 @@ func init() {
 
 func setupThreadDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
+	_ = initDatabaseTables(conn, "")
 	threadStore = NewThreadStore(conn, new(sync.Mutex))
 }
 
 func TestThreadDB_Add(t *testing.T) {
-	if err := threadStore.Add(&pb.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qmabc123",
 		Key:       ksuid.New().String(),
 		Sk:        make([]byte, 8),
@@ -34,7 +34,8 @@ func TestThreadDB_Add(t *testing.T) {
 		Whitelist: []string{"P1,P2"},
 		Sharing:   pb.Thread_SHARED,
 		State:     pb.Thread_LOADED,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -45,7 +46,8 @@ func TestThreadDB_Add(t *testing.T) {
 	}
 	defer stmt.Close()
 	var id string
-	if err := stmt.QueryRow("Qmabc123").Scan(&id); err != nil {
+	err = stmt.QueryRow("Qmabc123").Scan(&id)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -56,7 +58,7 @@ func TestThreadDB_Add(t *testing.T) {
 
 func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
-	if err := threadStore.Add(&pb.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qmabc",
 		Key:       ksuid.New().String(),
 		Sk:        make([]byte, 8),
@@ -67,7 +69,8 @@ func TestThreadDB_Get(t *testing.T) {
 		Whitelist: []string{},
 		Sharing:   pb.Thread_SHARED,
 		State:     pb.Thread_LOADED,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -79,7 +82,7 @@ func TestThreadDB_Get(t *testing.T) {
 
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
-	if err := threadStore.Add(&pb.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qm123",
 		Key:       ksuid.New().String(),
 		Sk:        make([]byte, 8),
@@ -90,11 +93,12 @@ func TestThreadDB_List(t *testing.T) {
 		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := threadStore.Add(&pb.Thread{
+	err = threadStore.Add(&pb.Thread{
 		Id:        "Qm456",
 		Key:       ksuid.New().String(),
 		Sk:        make([]byte, 8),
@@ -104,7 +108,8 @@ func TestThreadDB_List(t *testing.T) {
 		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -157,7 +162,8 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := threadStore.UpdateHead("Qmabc", "12345"); err != nil {
+	err = threadStore.UpdateHead("Qmabc", []string{"12345"})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -172,7 +178,8 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 }
 
 func TestThreadDB_UpdateName(t *testing.T) {
-	if err := threadStore.UpdateName("Qmabc", "boom2"); err != nil {
+	err := threadStore.UpdateName("Qmabc", "boom2")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -187,7 +194,8 @@ func TestThreadDB_UpdateName(t *testing.T) {
 }
 
 func TestThreadDB_UpdateSchema(t *testing.T) {
-	if err := threadStore.UpdateSchema("Qmabc", "schema"); err != nil {
+	err := threadStore.UpdateSchema("Qmabc", "schema")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -203,7 +211,7 @@ func TestThreadDB_UpdateSchema(t *testing.T) {
 
 func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
-	if err := threadStore.Add(&pb.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qm789",
 		Key:       ksuid.New().String(),
 		Sk:        make([]byte, 8),
@@ -214,7 +222,8 @@ func TestThreadDB_Delete(t *testing.T) {
 		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -223,7 +232,8 @@ func TestThreadDB_Delete(t *testing.T) {
 		t.Error("returned incorrect number of threads")
 		return
 	}
-	if err := threadStore.Delete(all.Items[0].Id); err != nil {
+	err = threadStore.Delete(all.Items[0].Id)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -234,7 +244,8 @@ func TestThreadDB_Delete(t *testing.T) {
 	}
 	defer stmt.Close()
 	var id string
-	if err := stmt.QueryRow(all.Items[0].Id).Scan(&id); err == nil {
+	err = stmt.QueryRow(all.Items[0].Id).Scan(&id)
+	if err == nil {
 		t.Error("Delete failed")
 	}
 }

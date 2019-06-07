@@ -203,9 +203,9 @@ message LikeList {
 
 // UPDATES //
 
-message WalletUpdate {
+message AccountUpdate {
     string id  = 1;
-    string key = 2;
+    string key = 2 [deprecated = true];
     Type type  = 3;
 
     enum Type {
@@ -240,4 +240,10 @@ message LogLevel {
         INFO     = 4;
         DEBUG    = 5;
     }
+}
+
+// PRIMITIVES
+
+message Strings {
+	repeated string values = 1;
 }

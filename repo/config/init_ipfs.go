@@ -148,6 +148,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 			},
 			DisableBandwidthMetrics: mobile,
 			DisableNatPortMap:       server,
+			DisableRelay:            false,
 			EnableRelayHop:          server,
 			EnableAutoRelay:         mobile,
 			EnableAutoNATService:    server,

@@ -49,6 +49,8 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, comment)
 }
 

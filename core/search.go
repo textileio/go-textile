@@ -3,7 +3,6 @@ package core
 import (
 	"sync"
 
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/pb"
@@ -143,21 +142,16 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 			// search via cafes
 			wg := sync.WaitGroup{}
 			for i, session := range sessions {
-				cafe, err := peer.IDB58Decode(session.Id)
-				if err != nil {
-					errCh <- err
-					return
-				}
 				canceler := cancel.Listen()
 
 				wg.Add(1)
-				go func(i int, cafe peer.ID, canceler *broadcast.Listener) {
+				go func(i int, cafeId string, canceler *broadcast.Listener) {
 					defer wg.Done()
 
 					// token must be attached per cafe session, use a new query
 					q := &pb.Query{}
 					*q = *query
-					if err := t.cafe.Search(q, cafe, func(res *pb.QueryResult) {
+					if err := t.cafe.Search(q, cafeId, func(res *pb.QueryResult) {
 						for _, n := range results.Add(res) {
 							cafeChs[i] <- n
 						}
@@ -168,7 +162,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 						errCh <- err
 						return
 					}
-				}(i, cafe, canceler)
+				}(i, session.Id, canceler)
 			}
 
 			wg.Wait()

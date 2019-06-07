@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	icid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/pin"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
@@ -36,6 +35,9 @@ import (
 
 // defaultSessionDuration after which session token expires
 const defaultSessionDuration = time.Hour * 24 * 7 * 4
+
+// maxRequestAttempts is the number of times a request can fail before being deleted
+const maxRequestAttempts = 5
 
 // inboxMessagePageSize is the page size used when checking messages
 const inboxMessagePageSize = 10
@@ -105,51 +107,51 @@ func (h *CafeService) Start() {
 
 // Ping pings another peer
 func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
-	return h.service.Ping(pid)
+	return h.service.Ping(pid.Pretty())
 }
 
 // Handle is called by the underlying service handler method
-func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	switch env.Message.Type {
 	case pb.Message_CAFE_CHALLENGE:
-		return h.handleChallenge(pid, env)
+		return h.handleChallenge(env, pid)
 	case pb.Message_CAFE_REGISTRATION:
-		return h.handleRegistration(pid, env)
+		return h.handleRegistration(env, pid)
 	case pb.Message_CAFE_DEREGISTRATION:
-		return h.handleDeregistration(pid, env)
+		return h.handleDeregistration(env, pid)
 	case pb.Message_CAFE_REFRESH_SESSION:
-		return h.handleRefreshSession(pid, env)
+		return h.handleRefreshSession(env, pid)
 	case pb.Message_CAFE_STORE:
-		return h.handleStore(pid, env)
+		return h.handleStore(env, pid)
 	case pb.Message_CAFE_UNSTORE:
-		return h.handleUnstore(pid, env)
+		return h.handleUnstore(env, pid)
 	case pb.Message_CAFE_OBJECT:
-		return h.handleObject(pid, env)
+		return h.handleObject(env, pid)
 	case pb.Message_CAFE_STORE_THREAD:
-		return h.handleStoreThread(pid, env)
+		return h.handleStoreThread(env, pid)
 	case pb.Message_CAFE_UNSTORE_THREAD:
-		return h.handleUnstoreThread(pid, env)
+		return h.handleUnstoreThread(env, pid)
 	case pb.Message_CAFE_DELIVER_MESSAGE:
-		return h.handleDeliverMessage(pid, env)
+		return h.handleDeliverMessage(env, pid)
 	case pb.Message_CAFE_CHECK_MESSAGES:
-		return h.handleCheckMessages(pid, env)
+		return h.handleCheckMessages(env, pid)
 	case pb.Message_CAFE_DELETE_MESSAGES:
-		return h.handleDeleteMessages(pid, env)
+		return h.handleDeleteMessages(env, pid)
 	case pb.Message_CAFE_YOU_HAVE_MAIL:
-		return h.handleNotifyClient(pid, env)
+		return h.handleNotifyClient(env, pid)
 	case pb.Message_CAFE_PUBLISH_PEER:
-		return h.handlePublishPeer(pid, env)
+		return h.handlePublishPeer(env, pid)
 	case pb.Message_CAFE_PUBSUB_QUERY:
-		return h.handlePubSubQuery(pid, env)
+		return h.handlePubSubQuery(env, pid)
 	case pb.Message_CAFE_PUBSUB_QUERY_RES:
-		return h.handlePubSubQueryResults(pid, env)
+		return h.handlePubSubQueryResults(env, pid)
 	default:
 		return nil, nil
 	}
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
+func (h *CafeService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{}) {
 	renvCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 	cancelCh := make(chan interface{})
@@ -160,7 +162,7 @@ func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Enve
 		var err error
 		switch env.Message.Type {
 		case pb.Message_CAFE_QUERY:
-			err = h.handleQuery(pid, env, renvCh, cancelCh)
+			err = h.handleQuery(env, pid, renvCh, cancelCh)
 		}
 		if err != nil {
 			errCh <- err
@@ -171,15 +173,12 @@ func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Enve
 }
 
 // Register creates a session with a cafe
-func (h *CafeService) Register(host string, token string) (*pb.CafeSession, error) {
-	host = strings.TrimRight(host, "/")
-	addr := fmt.Sprintf("%s/cafe/%s/service", host, cafeApiVersion)
-
+func (h *CafeService) Register(cafeId string, token string) (*pb.CafeSession, error) {
 	accnt, err := h.datastore.Config().GetAccount()
 	if err != nil {
 		return nil, err
 	}
-	challenge, err := h.challenge(addr, accnt)
+	challenge, err := h.challenge(cafeId, accnt)
 	if err != nil {
 		return nil, err
 	}
@@ -202,17 +201,19 @@ func (h *CafeService) Register(host string, token string) (*pb.CafeSession, erro
 	if err != nil {
 		return nil, err
 	}
-	renv, err := h.service.SendHTTPRequest(addr, env)
+	renv, err := h.service.SendRequest(cafeId, env)
 	if err != nil {
 		return nil, err
 	}
 
 	session := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, session); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, session)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := h.datastore.CafeSessions().AddOrUpdate(session); err != nil {
+	err = h.datastore.CafeSessions().AddOrUpdate(session)
+	if err != nil {
 		return nil, err
 	}
 
@@ -220,20 +221,23 @@ func (h *CafeService) Register(host string, token string) (*pb.CafeSession, erro
 }
 
 // Deregister removes this peer from a cafe
-func (h *CafeService) Deregister(cafe peer.ID) error {
-	if _, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) Deregister(cafeId string) error {
+	_, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION, &pb.CafeDeregistration{
 			Token: session.Access,
 		}, nil, false)
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
 	// cleanup
-	if err := h.datastore.CafeRequests().DeleteByCafe(cafe.Pretty()); err != nil {
+	err = h.datastore.CafeRequests().DeleteByCafe(cafeId)
+	if err != nil {
 		return err
 	}
-	if err := h.datastore.CafeSessions().Delete(cafe.Pretty()); err != nil {
+	err = h.datastore.CafeSessions().Delete(cafeId)
+	if err != nil {
 		return err
 	}
 
@@ -246,8 +250,8 @@ func (h *CafeService) Flush() {
 }
 
 // CheckMessages asks each session's inbox for new messages
-func (h *CafeService) CheckMessages(cafe peer.ID) error {
-	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) CheckMessages(cafeId string) error {
+	renv, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, &pb.CafeCheckMessages{
 			Token: session.Access,
 		}, nil, false)
@@ -257,13 +261,15 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	}
 
 	res := new(pb.CafeMessages)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, res)
+	if err != nil {
 		return err
 	}
 
 	// save messages to inbox
 	for _, msg := range res.Messages {
-		if err := h.inbox.Add(msg); err != nil {
+		err = h.inbox.Add(msg)
+		if err != nil {
 			if !db.ConflictError(err) {
 				return err
 			}
@@ -274,14 +280,14 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 
 	// delete them from the remote so that more can be fetched
 	if len(res.Messages) > 0 {
-		return h.DeleteMessages(cafe)
+		return h.DeleteMessages(cafeId)
 	}
 	return nil
 }
 
 // DeleteMessages deletes a page of messages from a cafe
-func (h *CafeService) DeleteMessages(cafe peer.ID) error {
-	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) DeleteMessages(cafeId string) error {
+	renv, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES, &pb.CafeDeleteMessages{
 			Token: session.Access,
 		}, nil, false)
@@ -291,7 +297,8 @@ func (h *CafeService) DeleteMessages(cafe peer.ID) error {
 	}
 
 	res := new(pb.CafeDeleteMessagesAck)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, res)
+	if err != nil {
 		return err
 	}
 	if !res.More {
@@ -299,40 +306,37 @@ func (h *CafeService) DeleteMessages(cafe peer.ID) error {
 	}
 
 	// apparently there's more new messages waiting...
-	return h.CheckMessages(cafe)
+	return h.CheckMessages(cafeId)
 }
 
 // PublishPeer publishes the local peer's info
-func (h *CafeService) PublishPeer(peer *pb.Peer, cafe peer.ID) error {
-	if _, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) PublishPeer(peer *pb.Peer, cafeId string) error {
+	_, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_PEER, &pb.CafePublishPeer{
 			Token: session.Access,
 			Peer:  peer,
 		}, nil, false)
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
 // Search performs a query via a cafe
-func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
-	envFactory := func(session *pb.CafeSession) (*pb.Envelope, error) {
-		query.Token = session.Access
-		return h.service.NewEnvelope(pb.Message_CAFE_QUERY, query, nil, false)
-	}
-
-	session := h.datastore.CafeSessions().Get(cafe.Pretty())
+func (h *CafeService) Search(query *pb.Query, cafeId string, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
+	session := h.datastore.CafeSessions().Get(cafeId)
 	if session == nil {
-		return fmt.Errorf("could not find session for cafe %s", cafe.Pretty())
+		return fmt.Errorf("could not find session for cafe %s", cafeId)
 	}
 
-	env, err := envFactory(session)
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY, query, nil, false)
 	if err != nil {
 		return err
 	}
 
-	renvCh, errCh, cancel := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env)
+	addr := fmt.Sprintf("%s/api/%s/search", session.Cafe.Url, session.Cafe.Api)
+	renvCh, errCh, cancel := h.service.SendHTTPStreamRequest(addr, env, session.Access)
 	cancelFn := func() {
 		if cancel != nil {
 			fn := *cancel
@@ -355,7 +359,8 @@ func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.Query
 			}
 
 			res := new(pb.QueryResults)
-			if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+			err := ptypes.UnmarshalAny(renv.Message.Payload, res)
+			if err != nil {
 				return err
 			}
 			for _, item := range res.Items {
@@ -366,12 +371,12 @@ func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.Query
 }
 
 // notifyClient attempts to ping a client that has messages waiting to download
-func (h *CafeService) notifyClient(pid peer.ID) error {
+func (h *CafeService) notifyClient(peerId string) error {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_YOU_HAVE_MAIL, nil, nil, false)
 	if err != nil {
 		return err
 	}
-	client := string(cafeServiceProtocol) + "/" + pid.Pretty()
+	client := string(cafeServiceProtocol) + "/" + peerId
 
 	log.Debugf("sending pubsub %s to %s", env.Message.Type.String(), client)
 
@@ -383,22 +388,18 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
-func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*pb.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
-	session := h.datastore.CafeSessions().Get(cafe.Pretty())
+func (h *CafeService) sendCafeRequest(cafeId string, envFactory func(*pb.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
+	session := h.datastore.CafeSessions().Get(cafeId)
 	if session == nil {
-		return nil, fmt.Errorf("could not find session for cafe %s", cafe.Pretty())
+		return nil, fmt.Errorf("could not find session for cafe %s", cafeId)
 	}
 
 	env, err := envFactory(session)
 	if err != nil {
 		return nil, err
 	}
-	cpid, err := peer.IDB58Decode(session.Cafe.Peer)
-	if err != nil {
-		return nil, err
-	}
 
-	renv, err := h.service.SendRequest(cpid, env)
+	renv, err := h.service.SendRequest(session.Cafe.Peer, env)
 	if err != nil {
 		if err.Error() == errUnauthorized {
 			refreshed, err := h.refresh(session)
@@ -410,12 +411,8 @@ func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*pb.CafeSess
 			if err != nil {
 				return nil, err
 			}
-			rpid, err := peer.IDB58Decode(refreshed.Cafe.Peer)
-			if err != nil {
-				return nil, err
-			}
 
-			renv, err = h.service.SendRequest(rpid, env)
+			renv, err = h.service.SendRequest(refreshed.Cafe.Peer, env)
 			if err != nil {
 				return nil, err
 			}
@@ -424,63 +421,23 @@ func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*pb.CafeSess
 		}
 	}
 	return renv, nil
-}
-
-// sendCafeHTTPRequest sends an authenticated request, retrying once after a session refresh
-func (h *CafeService) sendCafeHTTPRequest(cafe peer.ID, envFactory func(*pb.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
-	session := h.datastore.CafeSessions().Get(cafe.Pretty())
-	if session == nil {
-		return nil, fmt.Errorf("could not find session for cafe %s", cafe.Pretty())
-	}
-
-	env, err := envFactory(session)
-	if err != nil {
-		return nil, err
-	}
-
-	renv, err := h.service.SendHTTPRequest(getCafeHTTPAddr(session), env)
-	if err != nil {
-		if err.Error() == errUnauthorized {
-			refreshed, err := h.refreshHTTP(session)
-			if err != nil {
-				return nil, err
-			}
-
-			env, err := envFactory(refreshed)
-			if err != nil {
-				return nil, err
-			}
-
-			renv, err = h.service.SendHTTPRequest(getCafeHTTPAddr(refreshed), env)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-	return renv, nil
-}
-
-// getCafeHTTPAddr returns the http address of a cafe from a session
-func getCafeHTTPAddr(session *pb.CafeSession) string {
-	return fmt.Sprintf("%s/cafe/%s/service", session.Cafe.Url, session.Cafe.Api)
 }
 
 // challenge asks a fellow peer for a cafe challenge
-func (h *CafeService) challenge(cafeAddr string, kp *keypair.Full) (*pb.CafeNonce, error) {
+func (h *CafeService) challenge(cafeId string, kp *keypair.Full) (*pb.CafeNonce, error) {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE, &pb.CafeChallenge{
 		Address: kp.Address(),
 	}, nil, false)
 	if err != nil {
 		return nil, err
 	}
-	renv, err := h.service.SendHTTPRequest(cafeAddr, env)
+	renv, err := h.service.SendRequest(cafeId, env)
 	if err != nil {
 		return nil, err
 	}
 	res := new(pb.CafeNonce)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, res)
+	if err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -497,56 +454,26 @@ func (h *CafeService) refresh(session *pb.CafeSession) (*pb.CafeSession, error) 
 		return nil, err
 	}
 
-	cpid, err := peer.IDB58Decode(session.Cafe.Peer)
-	if err != nil {
-		return nil, err
-	}
-
-	renv, err := h.service.SendRequest(cpid, env)
+	renv, err := h.service.SendRequest(session.Cafe.Peer, env)
 	if err != nil {
 		return nil, err
 	}
 
 	refreshed := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, refreshed); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, refreshed)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
+	err = h.datastore.CafeSessions().AddOrUpdate(refreshed)
+	if err != nil {
 		return nil, err
 	}
 	return refreshed, nil
 }
 
-// refreshHTTP refreshes a session with a cafe
-func (h *CafeService) refreshHTTP(session *pb.CafeSession) (*pb.CafeSession, error) {
-	refresh := &pb.CafeRefreshSession{
-		Access:  session.Access,
-		Refresh: session.Refresh,
-	}
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_REFRESH_SESSION, refresh, nil, false)
-	if err != nil {
-		return nil, err
-	}
-
-	renv, err := h.service.SendHTTPRequest(getCafeHTTPAddr(session), env)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshed := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, refreshed); err != nil {
-		return nil, err
-	}
-
-	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
-		return nil, err
-	}
-	return refreshed, nil
-}
-
-// sendObject sends data or an object by cid to a peer
-func (h *CafeService) sendObject(id icid.Cid, addr string, token string) error {
+// sendObject sends data or an object by cid to a cafe peer
+func (h *CafeService) sendObject(id icid.Cid, cafeId string, token string) error {
 	hash := id.Hash().B58String()
 	obj := &pb.CafeObject{
 		Token: token,
@@ -556,7 +483,7 @@ func (h *CafeService) sendObject(id icid.Cid, addr string, token string) error {
 	data, err := ipfs.DataAtPath(h.service.Node(), hash)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			data, err := ipfs.GetObjectAtPath(h.service.Node(), hash)
+			data, err := ipfs.ObjectAtPath(h.service.Node(), hash)
 			if err != nil {
 				return err
 			}
@@ -573,7 +500,8 @@ func (h *CafeService) sendObject(id icid.Cid, addr string, token string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := h.service.SendHTTPRequest(addr, env); err != nil {
+	_, err = h.service.SendRequest(cafeId, env)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -586,7 +514,8 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 	switch qtype {
 	case pb.Query_THREAD_SNAPSHOTS:
 		q := new(pb.ThreadSnapshotQuery)
-		if err := ptypes.UnmarshalAny(payload, q); err != nil {
+		err := ptypes.UnmarshalAny(payload, q)
+		if err != nil {
 			return nil, err
 		}
 
@@ -648,7 +577,8 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 
 	case pb.Query_CONTACTS:
 		q := new(pb.ContactQuery)
-		if err := ptypes.UnmarshalAny(payload, q); err != nil {
+		err := ptypes.UnmarshalAny(payload, q)
+		if err != nil {
 			return nil, err
 		}
 
@@ -688,7 +618,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		rtype = pb.PubSubQuery_P2P
 	}
 
-	if err := h.publishQuery(&pb.PubSubQuery{
+	err := h.publishQuery(&pb.PubSubQuery{
 		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
@@ -696,7 +626,8 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		Exclude:      query.Options.Exclude,
 		Topic:        string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty(),
 		Timeout:      query.Options.Wait,
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
@@ -755,9 +686,10 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 }
 
 // handleChallenge receives a challenge request
-func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleChallenge(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	req := new(pb.CafeChallenge)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, req); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, req)
+	if err != nil {
 		return nil, err
 	}
 
@@ -767,7 +699,7 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
 		// we don't want to handle account seeds, just addresses
-		return h.service.NewError(400, errInvalidAddress, env.Message.RequestId)
+		return h.service.NewError(400, errInvalidAddress, env.Message.Request)
 	}
 
 	// generate a new random nonce
@@ -776,51 +708,53 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 		Address: req.Address,
 		Date:    ptypes.TimestampNow(),
 	}
-	if err := h.datastore.CafeClientNonces().Add(nonce); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClientNonces().Add(nonce)
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
 	return h.service.NewEnvelope(pb.Message_CAFE_NONCE, &pb.CafeNonce{
 		Value: nonce.Value,
-	}, &env.Message.RequestId, true)
+	}, &env.Message.Request, true)
 }
 
 // handleRegistration receives a registration request
-func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleRegistration(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	reg := new(pb.CafeRegistration)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, reg); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, reg)
+	if err != nil {
 		return nil, err
 	}
 
 	// are we open?
 	if !h.open {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	// does the provided token match?
 	// dev tokens are actually base58(id+token)
 	plainBytes, err := base58.FastBase58Decoding(reg.Token)
 	if err != nil || len(plainBytes) < 44 {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	encodedToken := h.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
 	if encodedToken == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	err = bcrypt.CompareHashAndPassword(encodedToken.Value, plainBytes[12:])
 	if err != nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	// check nonce
 	snonce := h.datastore.CafeClientNonces().Get(reg.Value)
 	if snonce == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	if snonce.Address != reg.Address {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	accnt, err := keypair.Parse(reg.Address)
@@ -829,12 +763,13 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
 		// we don't want to handle account seeds, just addresses
-		return h.service.NewError(400, errInvalidAddress, env.Message.RequestId)
+		return h.service.NewError(400, errInvalidAddress, env.Message.Request)
 	}
 
 	payload := []byte(reg.Value + reg.Nonce)
-	if err := accnt.Verify(payload, reg.Sig); err != nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	err = accnt.Verify(payload, reg.Sig)
+	if err != nil {
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	now := ptypes.TimestampNow()
@@ -845,11 +780,12 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		Seen:    now,
 		Token:   encodedToken.Id,
 	}
-	if err := h.datastore.CafeClients().Add(client); err != nil {
+	err = h.datastore.CafeClients().Add(client)
+	if err != nil {
 		// check if already exists
 		client = h.datastore.CafeClients().Get(pid.Pretty())
 		if client == nil {
-			return h.service.NewError(500, "get or create client failed", env.Message.RequestId)
+			return h.service.NewError(500, "get or create client failed", env.Message.Request)
 		}
 	}
 
@@ -861,53 +797,60 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		h.info,
 	)
 	if err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
-	if err := h.datastore.CafeClientNonces().Delete(snonce.Value); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClientNonces().Delete(snonce.Value)
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
-	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.Request, true)
 }
 
 // handleDeregistration receives a deregistration request
-func (h *CafeService) handleDeregistration(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleDeregistration(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	dreg := new(pb.CafeDeregistration)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, dreg); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, dreg)
+	if err != nil {
 		return nil, err
 	}
 
 	// cleanup
-	if err := h.datastore.CafeClientThreads().DeleteByClient(pid.Pretty()); err != nil {
-		return h.service.NewError(500, "delete client threads failed", env.Message.RequestId)
+	peerId := pid.Pretty()
+	err = h.datastore.CafeClientThreads().DeleteByClient(peerId)
+	if err != nil {
+		return h.service.NewError(500, "delete client threads failed", env.Message.Request)
 	}
-	if err := h.datastore.CafeClientMessages().DeleteByClient(pid.Pretty(), -1); err != nil {
-		return h.service.NewError(500, "delete client messages failed", env.Message.RequestId)
+	err = h.datastore.CafeClientMessages().DeleteByClient(peerId, -1)
+	if err != nil {
+		return h.service.NewError(500, "delete client messages failed", env.Message.Request)
 	}
-	if err := h.datastore.CafeClients().Delete(pid.Pretty()); err != nil {
-		return h.service.NewError(500, "delete client failed", env.Message.RequestId)
+	err = h.datastore.CafeClients().Delete(peerId)
+	if err != nil {
+		return h.service.NewError(500, "delete client failed", env.Message.Request)
 	}
 
 	res := &pb.CafeDeregistrationAck{
-		Id: pid.Pretty(),
+		Id: peerId,
 	}
-	return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION_ACK, res, &env.Message.Request, true)
 }
 
 // handleRefreshSession receives a refresh session request
-func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleRefreshSession(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	ref := new(pb.CafeRefreshSession)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, ref); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, ref)
+	if err != nil {
 		return nil, err
 	}
 
 	// are we _still_ open?
 	if !h.open {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
-	rerr, err := h.authToken(pid, ref.Refresh, true, env.Message.RequestId)
+	rerr, err := h.authToken(pid, ref.Refresh, true, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -918,31 +861,31 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	// ensure access and refresh are a valid pair
 	access, _ := njwt.Parse(ref.Access, h.verifyKeyFunc)
 	if access == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	refresh, _ := njwt.Parse(ref.Refresh, h.verifyKeyFunc)
 	if refresh == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	accessClaims, err := jwt.ParseClaims(access.Claims)
 	if err != nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	refreshClaims, err := jwt.ParseClaims(refresh.Claims)
 	if err != nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	if refreshClaims.Id[1:] != accessClaims.Id {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 	if refreshClaims.Subject != accessClaims.Subject {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	// get a new session
 	spid, err := peer.IDB58Decode(accessClaims.Subject)
 	if err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 	session, err := jwt.NewSession(
 		h.service.Node().PrivateKey,
@@ -952,20 +895,21 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 		h.info,
 	)
 	if err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
-	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.Request, true)
 }
 
 // handleStore receives a store request
-func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleStore(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	store := new(pb.CafeStore)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, store); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, store)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, store.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, store.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -974,39 +918,28 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// ignore cids for data already pinned
-	var decoded []icid.Cid
-	for _, id := range store.Cids {
-		dec, err := icid.Decode(id)
-		if err != nil {
-			return nil, err
-		}
-		decoded = append(decoded, dec)
+	list, err := ipfs.NotPinned(h.service.Node(), store.Cids)
+	if err != nil {
+		return nil, err
+	}
+	var need []string
+	for _, p := range list {
+		need = append(need, p.Hash().B58String())
 	}
 
-	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
+	res := &pb.CafeObjectList{Cids: need}
+	return h.service.NewEnvelope(pb.Message_CAFE_OBJECT_LIST, res, &env.Message.Request, true)
+}
+
+// handleUnstore receives an unstore request
+func (h *CafeService) handleUnstore(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
+	unstore := new(pb.CafeUnstore)
+	err := ptypes.UnmarshalAny(env.Message.Payload, unstore)
 	if err != nil {
 		return nil, err
 	}
 
-	var need []string
-	for _, p := range pinned {
-		if p.Mode == pin.NotPinned {
-			need = append(need, p.Key.Hash().B58String())
-		}
-	}
-
-	res := &pb.CafeObjectList{Cids: need}
-	return h.service.NewEnvelope(pb.Message_CAFE_OBJECT_LIST, res, &env.Message.RequestId, true)
-}
-
-// handleUnstore receives an unstore request
-func (h *CafeService) handleUnstore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	unstore := new(pb.CafeUnstore)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, unstore); err != nil {
-		return nil, err
-	}
-
-	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1015,42 +948,32 @@ func (h *CafeService) handleUnstore(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// ignore cids for data not pinned
-	var decoded []icid.Cid
-	for _, id := range unstore.Cids {
-		dec, err := icid.Decode(id)
+	list, err := ipfs.Pinned(h.service.Node(), unstore.Cids)
+	if err != nil {
+		return nil, err
+	}
+	var unstored []string
+	for _, p := range list {
+		err := ipfs.UnpinCid(h.service.Node(), p, true)
 		if err != nil {
 			return nil, err
 		}
-		decoded = append(decoded, dec)
+		unstored = append(unstored, p.Hash().B58String())
 	}
 
-	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
+	res := &pb.CafeUnstoreAck{Cids: unstored}
+	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_ACK, res, &env.Message.Request, true)
+}
+
+// handleObject receives an object request
+func (h *CafeService) handleObject(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
+	obj := new(pb.CafeObject)
+	err := ptypes.UnmarshalAny(env.Message.Payload, obj)
 	if err != nil {
 		return nil, err
 	}
 
-	var unstored []string
-	for _, p := range pinned {
-		if p.Mode != pin.NotPinned {
-			if err := ipfs.UnpinCid(h.service.Node(), p.Key, true); err != nil {
-				return nil, err
-			}
-			unstored = append(unstored, p.Key.Hash().B58String())
-		}
-	}
-
-	res := &pb.CafeUnstoreAck{Cids: unstored}
-	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_ACK, res, &env.Message.RequestId, true)
-}
-
-// handleObject receives an object request
-func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	obj := new(pb.CafeObject)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, obj); err != nil {
-		return nil, err
-	}
-
-	rerr, err := h.authToken(pid, obj.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, obj.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1060,11 +983,11 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 
 	var aid *icid.Cid
 	if obj.Data != nil {
-		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
+		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true, false)
 	} else if obj.Node != nil {
 		aid, err = ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
 	} else {
-		return h.service.NewError(400, errBadRequest, env.Message.RequestId)
+		return h.service.NewError(400, errBadRequest, env.Message.Request)
 	}
 	if err != nil {
 		return nil, err
@@ -1078,17 +1001,18 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 	}
 
 	res := &pb.CafeStoreAck{Id: obj.Cid}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORE_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_STORE_ACK, res, &env.Message.Request, true)
 }
 
 // handleStoreThread receives a thread store request
-func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleStoreThread(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	store := new(pb.CafeStoreThread)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, store); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, store)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, store.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, store.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1098,7 +1022,7 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 
 	client := h.datastore.CafeClients().Get(pid.Pretty())
 	if client == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	thrd := &pb.CafeClientThread{
@@ -1106,22 +1030,24 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		Client:     client.Id,
 		Ciphertext: store.Ciphertext,
 	}
-	if err := h.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClientThreads().AddOrUpdate(thrd)
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
 	res := &pb.CafeStoreThreadAck{Id: store.Id}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD_ACK, res, &env.Message.Request, true)
 }
 
 // handleUnstoreThread receives a thread unstore request
-func (h *CafeService) handleUnstoreThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleUnstoreThread(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	unstore := new(pb.CafeUnstoreThread)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, unstore); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, unstore)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1131,21 +1057,23 @@ func (h *CafeService) handleUnstoreThread(pid peer.ID, env *pb.Envelope) (*pb.En
 
 	client := h.datastore.CafeClients().Get(pid.Pretty())
 	if client == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
-	if err := h.datastore.CafeClientThreads().Delete(unstore.Id, client.Id); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClientThreads().Delete(unstore.Id, client.Id)
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
 	res := &pb.CafeUnstoreThreadAck{Id: unstore.Id}
-	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD_ACK, res, &env.Message.Request, true)
 }
 
 // handleDeliverMessage receives an inbox message for a client
-func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	msg := new(pb.CafeDeliverMessage)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1156,31 +1084,52 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 	}
 
 	if msg.Env != nil {
-		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true)
+		// pin inner node
+		nenv := new(pb.Envelope)
+		err = proto.Unmarshal(msg.Env, env)
+		if err != nil {
+			return nil, err
+		}
+		tenv := new(pb.ThreadEnvelope)
+		err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
+		if err != nil {
+			return nil, err
+		}
+		oid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), true)
+		if err != nil {
+			return nil, err
+		}
+		node, err := ipfs.NodeAtCid(h.service.Node(), *oid)
+		if err != nil {
+			return nil, err
+		}
+		_, err = extractNode(h.service.Node(), node)
+		if err != nil {
+			return nil, err
+		}
+
+		// pin envelope
+		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true, false)
 		if err != nil {
 			return nil, err
 		}
 		msg.Id = id.Hash().B58String()
 	}
 
-	message := &pb.CafeClientMessage{
+	err = h.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
 		Id:     msg.Id,
 		Peer:   pid.Pretty(),
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
-	}
-	if err := h.datastore.CafeClientMessages().AddOrUpdate(message); err != nil {
+	})
+	if err != nil {
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
 	}
 
 	go func() {
-		pid, err := peer.IDB58Decode(client.Id)
+		err = h.notifyClient(client.Id)
 		if err != nil {
-			log.Errorf("error parsing client id %s: %s", client.Id, err)
-			return
-		}
-		if err := h.notifyClient(pid); err != nil {
 			log.Debugf("unable to notify offline client: %s", client.Id)
 		}
 	}()
@@ -1188,13 +1137,14 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 }
 
 // handleCheckMessages receives a check inbox messages request
-func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleCheckMessages(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	check := new(pb.CafeCheckMessages)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, check); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, check)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, check.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, check.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1204,11 +1154,12 @@ func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.En
 
 	client := h.datastore.CafeClients().Get(pid.Pretty())
 	if client == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
-	if err := h.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now()); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now())
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
 	res := &pb.CafeMessages{
@@ -1223,17 +1174,18 @@ func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.En
 		})
 	}
 
-	return h.service.NewEnvelope(pb.Message_CAFE_MESSAGES, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_MESSAGES, res, &env.Message.Request, true)
 }
 
 // handleDeleteMessages receives a message delete request
-func (h *CafeService) handleDeleteMessages(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleDeleteMessages(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	del := new(pb.CafeDeleteMessages)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, del); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, del)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, del.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, del.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1243,30 +1195,32 @@ func (h *CafeService) handleDeleteMessages(pid peer.ID, env *pb.Envelope) (*pb.E
 
 	client := h.datastore.CafeClients().Get(pid.Pretty())
 	if client == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
 	// delete the most recent page
-	if err := h.datastore.CafeClientMessages().DeleteByClient(client.Id, inboxMessagePageSize); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	err = h.datastore.CafeClientMessages().DeleteByClient(client.Id, inboxMessagePageSize)
+	if err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.Request)
 	}
 
 	// check for more
 	remaining := h.datastore.CafeClientMessages().CountByClient(client.Id)
 
 	res := &pb.CafeDeleteMessagesAck{More: remaining > 0}
-	return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES_ACK, res, &env.Message.Request, true)
 }
 
 // handleNotifyClient receives a message informing this peer that it has new messages waiting
-func (h *CafeService) handleNotifyClient(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleNotifyClient(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	session := h.datastore.CafeSessions().Get(pid.Pretty())
 	if session == nil {
 		log.Warningf("received message from unknown cafe %s", pid.Pretty())
 		return nil, nil
 	}
 
-	if err := h.CheckMessages(pid); err != nil {
+	err := h.CheckMessages(pid.Pretty())
+	if err != nil {
 		return nil, err
 	}
 
@@ -1274,13 +1228,14 @@ func (h *CafeService) handleNotifyClient(pid peer.ID, env *pb.Envelope) (*pb.Env
 }
 
 // handlePublishPeer indexes a client's peer info for others to search
-func (h *CafeService) handlePublishPeer(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handlePublishPeer(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	pub := new(pb.CafePublishPeer)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, pub); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, pub)
+	if err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, pub.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, pub.Token, false, env.Message.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -1290,35 +1245,28 @@ func (h *CafeService) handlePublishPeer(pid peer.ID, env *pb.Envelope) (*pb.Enve
 
 	client := h.datastore.CafeClients().Get(pid.Pretty())
 	if client == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+		return h.service.NewError(403, errForbidden, env.Message.Request)
 	}
 
-	if err := h.datastore.Peers().AddOrUpdate(pub.Peer); err != nil {
+	err = h.datastore.Peers().AddOrUpdate(pub.Peer)
+	if err != nil {
 		return nil, err
 	}
 
 	res := &pb.CafePublishPeerAck{
 		Id: pub.Peer.Id,
 	}
-	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_PEER_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_PEER_ACK, res, &env.Message.Request, true)
 }
 
 // handleQuery receives a query request
-func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.Envelope, cancelCh <-chan interface{}) error {
+func (h *CafeService) handleQuery(env *pb.Envelope, pid peer.ID, renvs chan *pb.Envelope, cancelCh <-chan interface{}) error {
 	query := new(pb.Query)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
-		return err
-	}
-	query = queryDefaults(query)
-
-	rerr, err := h.authToken(pid, query.Token, false, env.Message.RequestId)
+	err := ptypes.UnmarshalAny(env.Message.Payload, query)
 	if err != nil {
 		return err
 	}
-	if rerr != nil {
-		renvs <- rerr
-		return nil
-	}
+	query = queryDefaults(query)
 
 	results := newQueryResultSet(query.Options)
 	reply := func(res *pb.QueryResults) bool {
@@ -1327,7 +1275,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 			return false
 		}
 
-		renv, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY_RES, res, &env.Message.RequestId, true)
+		renv, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY_RES, res, &env.Message.Request, true)
 		if err != nil {
 			log.Errorf("error replying with query results: %s", err)
 			return false
@@ -1354,9 +1302,10 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 }
 
 // handlePubSubQuery receives a query request over pubsub and responds with a direct message
-func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handlePubSubQuery(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	query := new(pb.PubSubQuery)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, query)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1402,7 +1351,8 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node(), query.Topic, payload); err != nil {
+		err = ipfs.Publish(h.service.Node(), query.Topic, payload)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -1410,9 +1360,10 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 }
 
 // handlePubSubQueryResults handles search results received from a pubsub query
-func (h *CafeService) handlePubSubQueryResults(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handlePubSubQueryResults(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	res := new(pb.PubSubQueryResults)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, res)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1423,7 +1374,8 @@ func (h *CafeService) handlePubSubQueryResults(pid peer.ID, env *pb.Envelope) (*
 // authToken verifies a request token from a peer
 func (h *CafeService) authToken(pid peer.ID, token string, refreshing bool, requestId int32) (*pb.Envelope, error) {
 	subject := pid.Pretty()
-	if err := jwt.Validate(token, h.verifyKeyFunc, refreshing, string(h.Protocol()), &subject); err != nil {
+	_, err := jwt.Validate(token, h.verifyKeyFunc, refreshing, string(h.Protocol()), &subject)
+	if err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:
 			return h.service.NewError(401, errUnauthorized, requestId)
@@ -1461,7 +1413,7 @@ func (h *CafeService) setAddrs(conf *config.Config) {
 	h.info = &pb.Cafe{
 		Peer:     h.service.Node().Identity.Pretty(),
 		Address:  conf.Account.Address,
-		Api:      cafeApiVersion,
+		Api:      CafeApiVersion,
 		Protocol: string(cafeServiceProtocol),
 		Node:     common.Version,
 		Url:      url,
@@ -1496,23 +1448,18 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	}
 
 	// process each cafe group concurrently
-	var toComplete, toUnpin []string
+	var toComplete, toFail, toUnpin []string
 	wg := sync.WaitGroup{}
 	for cafeId, group := range groups {
-		cafe, err := peer.IDB58Decode(cafeId)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 		wg.Add(1)
-		go func(cafe peer.ID, reqs []*pb.CafeRequest) {
+		go func(cafeId string, reqs []*pb.CafeRequest) {
 			// group by type
 			types := make(map[pb.CafeRequest_Type][]*pb.CafeRequest)
 			for _, req := range reqs {
 				types[req.Type] = append(types[req.Type], req)
 			}
 			for t, group := range types {
-				handled, err := h.handleRequests(group, t, cafe)
+				handled, failed, err := h.handleRequests(group, t, cafeId)
 				if err != nil {
 					log.Warningf("error handling requests of type %s: %s", t.String(), err)
 				}
@@ -1522,9 +1469,12 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 						toUnpin = append(toUnpin, id)
 					}
 				}
+				for _, id := range failed {
+					toFail = append(toFail, id)
+				}
 			}
 			wg.Done()
-		}(cafe, group)
+		}(cafeId, group)
 	}
 	wg.Wait()
 
@@ -1549,31 +1499,47 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		}
 	}
 
+	var err error
+	for _, id := range toFail {
+		req := h.datastore.CafeRequests().Get(id)
+		if req == nil {
+			continue
+		}
+		if req.Attempts+1 >= maxRequestAttempts {
+			err = h.datastore.CafeRequests().Delete(id)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+
+			// delete pending block
+			err = h.datastore.Blocks().Delete(req.SyncGroup)
+		} else {
+			err = h.datastore.CafeRequests().AddAttempt(id)
+		}
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
+
 	var completed []string
 	for _, id := range toComplete {
-		if err := h.datastore.CafeRequests().UpdateStatus(id, pb.CafeRequest_COMPLETE); err != nil {
+		err = h.datastore.CafeRequests().UpdateStatus(id, pb.CafeRequest_COMPLETE)
+		if err != nil {
 			log.Error(err.Error())
 			return
 		}
 		completed = append(completed, id)
 	}
-	if len(completed) > 0 {
-		for _, gid := range h.datastore.CafeRequests().ListCompletedGroups() {
-			if err := h.datastore.CafeRequests().DeleteByGroup(gid); err != nil {
-				log.Error(err.Error())
-				return
-			}
-		}
-	}
-	log.Debugf("handled %d cafe requests", len(completed))
+	log.Debugf("handled %d cafe requests, %d next", len(completed), len(next.Items))
 
-	// keep going unless an error occurred
 	h.batchRequests(next)
 }
 
 // handleRequest handles a group of requests for a single cafe
-func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, cafe peer.ID) ([]string, error) {
-	var handled []string
+func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, cafeId string) ([]string, []string, error) {
+	var handled, failed []string
 	var herr error
 	switch rtype {
 
@@ -1584,7 +1550,7 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 			cids = append(cids, req.Target)
 		}
 
-		stored, err := h.store(cids, cafe)
+		stored, err := h.store(cids, cafeId)
 		for _, s := range stored {
 			for _, r := range reqs {
 				if r.Target == s {
@@ -1593,8 +1559,11 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 			}
 		}
 		if err != nil {
-			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 			herr = err
+			for _, req := range reqs {
+				failed = append(failed, req.Target)
+			}
 		}
 
 	case pb.CafeRequest_UNSTORE:
@@ -1603,7 +1572,7 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 			cids = append(cids, req.Target)
 		}
 
-		unstored, err := h.unstore(cids, cafe)
+		unstored, err := h.unstore(cids, cafeId)
 		for _, u := range unstored {
 			for _, r := range reqs {
 				if r.Target == u {
@@ -1612,8 +1581,11 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 			}
 		}
 		if err != nil {
-			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 			herr = err
+			for _, req := range reqs {
+				failed = append(failed, req.Target)
+			}
 		}
 
 	case pb.CafeRequest_STORE_THREAD:
@@ -1625,57 +1597,58 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 				continue
 			}
 
-			if err := h.storeThread(thrd, cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			err := h.storeThread(thrd, cafeId)
+			if err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 				herr = err
+				failed = append(failed, req.Id)
 				continue
 			}
 			handled = append(handled, req.Id)
 		}
 
 	case pb.CafeRequest_UNSTORE_THREAD:
+		var err error
 		for _, req := range reqs {
-			if err := h.unstoreThread(req.Target, cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			err = h.unstoreThread(req.Target, cafeId)
+			if err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 				herr = err
+				failed = append(failed, req.Id)
 				continue
 			}
 			handled = append(handled, req.Id)
 		}
 
 	case pb.CafeRequest_INBOX:
+		var err error
 		for _, req := range reqs {
-			pid, err := peer.IDB58Decode(req.Peer)
+			err = h.deliverMessage(req.Target, req.Peer, req.Cafe)
 			if err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 				herr = err
-				continue
-			}
-
-			if err := h.deliverMessage(req.Target, pid, req.Cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
-				herr = err
+				failed = append(failed, req.Id)
 				continue
 			}
 			handled = append(handled, req.Id)
 		}
 
 	}
-	return handled, herr
+
+	return handled, failed, herr
 }
 
 // store stores (pins) content on a cafe and returns a list of successful cids
-func (h *CafeService) store(cids []string, cafe peer.ID) ([]string, error) {
+func (h *CafeService) store(cids []string, cafeId string) ([]string, error) {
 	var stored []string
 
 	var accessToken string
-	var addr string
-	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		store := &pb.CafeStore{
 			Token: session.Access,
 			Cids:  cids,
 		}
 		accessToken = session.Access
-		addr = getCafeHTTPAddr(session)
 		return h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
 	})
 	if err != nil {
@@ -1684,11 +1657,12 @@ func (h *CafeService) store(cids []string, cafe peer.ID) ([]string, error) {
 
 	// unpack response as a request list of cids the cafe is able/willing to store
 	req := new(pb.CafeObjectList)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, req)
+	if err != nil {
 		return stored, err
 	}
 	if len(req.Cids) == 0 {
-		log.Debugf("peer %s requested zero objects", cafe.Pretty())
+		log.Debugf("peer %s requested zero objects", cafeId)
 		return cids, nil
 	}
 
@@ -1703,7 +1677,7 @@ loop:
 		stored = append(stored, i)
 	}
 
-	log.Debugf("sending %d objects to %s", len(req.Cids), cafe.Pretty())
+	log.Debugf("sending %d objects to %s", len(req.Cids), cafeId)
 
 	// send each object
 	for _, id := range req.Cids {
@@ -1711,7 +1685,8 @@ loop:
 		if err != nil {
 			return stored, err
 		}
-		if err := h.sendObject(decoded, addr, accessToken); err != nil {
+		err = h.sendObject(decoded, cafeId, accessToken)
+		if err != nil {
 			return stored, err
 		}
 		stored = append(stored, id)
@@ -1720,8 +1695,8 @@ loop:
 }
 
 // unstore unstores (unpins) content on a cafe and returns a list of successful cids
-func (h *CafeService) unstore(cids []string, cafe peer.ID) ([]string, error) {
-	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) unstore(cids []string, cafeId string) ([]string, error) {
+	renv, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE, &pb.CafeUnstore{
 			Token: session.Access,
 			Cids:  cids,
@@ -1732,14 +1707,15 @@ func (h *CafeService) unstore(cids []string, cafe peer.ID) ([]string, error) {
 	}
 
 	req := new(pb.CafeUnstoreAck)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
+	err = ptypes.UnmarshalAny(renv.Message.Payload, req)
+	if err != nil {
 		return nil, err
 	}
 	return req.Cids, nil
 }
 
 // storeThread pushes a thread to a cafe snapshot
-func (h *CafeService) storeThread(thrd *pb.Thread, cafe peer.ID) error {
+func (h *CafeService) storeThread(thrd *pb.Thread, cafeId string) error {
 	plaintext, err := proto.Marshal(thrd)
 	if err != nil {
 		return err
@@ -1749,21 +1725,22 @@ func (h *CafeService) storeThread(thrd *pb.Thread, cafe peer.ID) error {
 		return err
 	}
 
-	if _, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+	_, err = h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
 			Token:      session.Access,
 			Id:         thrd.Id,
 			Ciphertext: ciphertext,
 		}, nil, false)
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
 // unstoreThread removes a cafe's thread snapshot
-func (h *CafeService) unstoreThread(id string, cafe peer.ID) error {
-	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+func (h *CafeService) unstoreThread(id string, cafeId string) error {
+	renv, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
 			Token: session.Access,
 			Id:    id,
@@ -1778,23 +1755,22 @@ func (h *CafeService) unstoreThread(id string, cafe peer.ID) error {
 }
 
 // deliverMessage delivers a message content id to a peer's cafe inbox
-func (h *CafeService) deliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
-	data, err := ipfs.DataAtPath(h.service.Node(), mid)
+func (h *CafeService) deliverMessage(mid string, peerId string, cafe *pb.Cafe) error {
+	body, err := ipfs.DataAtPath(h.service.Node(), mid)
 	if err != nil {
 		return err
 	}
 
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:     mid,
-		Client: pid.Pretty(),
-		Env:    data,
+		Client: peerId,
+		Env:    body,
 	}, nil, false)
 	if err != nil {
 		return err
 	}
 
-	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.Url, cafe.Api)
-	return h.service.SendHTTPMessage(addr, env)
+	return h.service.SendMessage(nil, cafe.Peer, env)
 }
 
 // queryDefaults ensures the query is within the expected bounds

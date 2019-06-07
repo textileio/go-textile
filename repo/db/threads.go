@@ -46,10 +46,10 @@ func (c *ThreadDB) Add(thread *pb.Thread) error {
 		int(thread.Sharing),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -84,14 +84,14 @@ func (c *ThreadDB) Count() int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from threads;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 
-func (c *ThreadDB) UpdateHead(id string, head string) error {
+func (c *ThreadDB) UpdateHead(id string, heads []string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update threads set head=? where id=?", head, id)
+	_, err := c.db.Exec("update threads set head=? where id=?", strings.Join(heads, ","), id)
 	return err
 }
 
@@ -127,7 +127,8 @@ func (c *ThreadDB) handleQuery(stm string) *pb.ThreadList {
 		var id, key, name, schema, initiator, head, whitelist string
 		var skb []byte
 		var typeInt, stateInt, sharingInt int
-		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head, &whitelist, &sharingInt); err != nil {
+		err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head, &whitelist, &sharingInt)
+		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}

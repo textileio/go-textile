@@ -89,7 +89,6 @@ ENV INIT_ARGS \
   --gateway-bind-addr=0.0.0.0:5050 \
   --cafe-bind-addr=0.0.0.0:40601 \
   --profile-bind-addr=0.0.0.0:6060 \
-  --no-log-files \
   --server \
   --cafe-open \
   --debug

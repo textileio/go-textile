@@ -25,12 +25,14 @@ func (t *Textile) SetName(name string) error {
 	if name == t.Name() {
 		return nil
 	}
-	if err := t.datastore.Peers().UpdateName(t.node.Identity.Pretty(), name); err != nil {
+	err := t.datastore.Peers().UpdateName(t.node.Identity.Pretty(), name)
+	if err != nil {
 		return err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(nil); err != nil {
+		_, err = thrd.annouce(nil)
+		if err != nil {
 			return err
 		}
 	}
@@ -58,12 +60,14 @@ func (t *Textile) SetAvatar() error {
 		return nil
 	}
 
-	if err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), latest.Target); err != nil {
+	err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), latest.Target)
+	if err != nil {
 		return err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(nil); err != nil {
+		_, err = thrd.annouce(nil)
+		if err != nil {
 			return err
 		}
 	}

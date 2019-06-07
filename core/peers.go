@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
@@ -30,8 +29,16 @@ func (t *Textile) addPeer(peer *pb.Peer) error {
 	}
 
 	// peer is new / newer, update
-	if err := t.datastore.Peers().AddOrUpdate(peer); err != nil {
+	err := t.datastore.Peers().AddOrUpdate(peer)
+	if err != nil {
 		return err
+	}
+
+	if x == nil && peer.Address == t.account.Address() {
+		t.sendUpdate(&pb.AccountUpdate{
+			Id:   peer.Id,
+			Type: pb.AccountUpdate_ACCOUNT_PEER_ADDED,
+		})
 	}
 
 	// ensure new update is actually different before announcing to account
@@ -46,7 +53,8 @@ func (t *Textile) addPeer(peer *pb.Peer) error {
 		return fmt.Errorf("account thread not found")
 	}
 
-	if _, err := thrd.annouce(&pb.ThreadAnnounce{Peer: peer}); err != nil {
+	_, err = thrd.annouce(&pb.ThreadAnnounce{Peer: peer})
+	if err != nil {
 		return err
 	}
 	return nil
@@ -64,11 +72,7 @@ func (t *Textile) publishPeer() error {
 		return nil
 	}
 	for _, session := range sessions {
-		pid, err := peer.IDB58Decode(session.Id)
-		if err != nil {
-			return err
-		}
-		if err := t.cafe.PublishPeer(self, pid); err != nil {
+		if err := t.cafe.PublishPeer(self, session.Id); err != nil {
 			return err
 		}
 	}
