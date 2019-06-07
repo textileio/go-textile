@@ -53,7 +53,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	conn.SetMaxIdleConns(2)
 	conn.SetMaxOpenConns(4)
 	if pin != "" {
-		p := "pragma key='" + pin + "';"
+		p := "pragma key='" + strings.Replace(pin, "'", "''", -1) + "';"
 		if _, err := conn.Exec(p); err != nil {
 			return nil, err
 		}
@@ -205,7 +205,7 @@ func ConflictError(err error) bool {
 func initDatabaseTables(db *sql.DB, pin string) error {
 	var sqlStmt string
 	if pin != "" {
-		sqlStmt = "PRAGMA key = '" + pin + "';"
+		sqlStmt = "pragma key = '" + strings.Replace(pin, "'", "''", -1) + "';"
 	}
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
