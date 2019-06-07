@@ -1155,6 +1155,14 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		return nil, nil
 	}
 
+	if msg.Env != nil {
+		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true)
+		if err != nil {
+			return nil, err
+		}
+		msg.Id = id.Hash().B58String()
+	}
+
 	message := &pb.CafeClientMessage{
 		Id:     msg.Id,
 		Peer:   pid.Pretty(),
@@ -1488,8 +1496,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	}
 
 	// process each cafe group concurrently
-	var berr error
-	var toComplete []string
+	var toComplete, toUnpin []string
 	wg := sync.WaitGroup{}
 	for cafeId, group := range groups {
 		cafe, err := peer.IDB58Decode(cafeId)
@@ -1507,10 +1514,13 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 			for t, group := range types {
 				handled, err := h.handleRequests(group, t, cafe)
 				if err != nil {
-					berr = err
+					log.Warningf("error handling requests of type %s: %s", t.String(), err)
 				}
 				for _, id := range handled {
 					toComplete = append(toComplete, id)
+					if t == pb.CafeRequest_INBOX {
+						toUnpin = append(toUnpin, id)
+					}
 				}
 			}
 			wg.Done()
@@ -1521,6 +1531,19 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	// next batch
 	offset := reqs.Items[len(reqs.Items)-1].Id
 	next := h.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
+
+	for _, mid := range toUnpin {
+		id, err := cid.Decode(mid)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		err = ipfs.UnpinCid(h.service.Node(), id, false)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
 
 	var completed []string
 	for _, id := range toComplete {
@@ -1541,9 +1564,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	log.Debugf("handled %d cafe requests", len(completed))
 
 	// keep going unless an error occurred
-	if berr == nil {
-		h.batchRequests(next)
-	}
+	h.batchRequests(next)
 }
 
 // handleRequest handles a group of requests for a single cafe
@@ -1753,11 +1774,16 @@ func (h *CafeService) unstoreThread(id string, cafe peer.ID) error {
 }
 
 // deliverMessage delivers a message content id to a peer's cafe inbox
-// TODO: unpin message locally after it's delivered
 func (h *CafeService) deliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
+	data, err := ipfs.DataAtPath(h.service.Node(), mid)
+	if err != nil {
+		return err
+	}
+
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:     mid,
 		Client: pid.Pretty(),
+		Env:    data,
 	}, nil, false)
 	if err != nil {
 		return err

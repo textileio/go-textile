@@ -61,17 +61,14 @@ func (q *BlockOutbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize)); err != nil {
-		log.Errorf("block outbox batch error: %s", err)
-		return
-	}
+	q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize))
 }
 
 // batch flushes a batch of messages
-func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
+func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 	log.Debugf("handling %d block messages", len(msgs))
 	if len(msgs) == 0 {
-		return nil
+		return
 	}
 
 	// group by peer id
@@ -80,20 +77,20 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 		groups[msg.Peer] = append(groups[msg.Peer], msg)
 	}
 
-	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
 	for id, group := range groups {
 		pid, err := peer.IDB58Decode(id)
 		if err != nil {
-			return err
+			log.Error(err)
+			continue
 		}
 		wg.Add(1)
 		go func(pid peer.ID, msgs []pb.BlockMessage) {
 			for _, msg := range msgs {
 				if err := q.handle(pid, msg); err != nil {
-					berr = err
-					return
+					log.Warningf("error handling block message %s: %s", msg.Id, err)
+					continue
 				}
 				toDelete = append(toDelete, msg.Id)
 			}
@@ -119,11 +116,7 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 	}
 	log.Debugf("handled %d block messages", len(deleted))
 
-	// keep going unless an error occurred
-	if berr == nil {
-		return q.batch(next)
-	}
-	return berr
+	q.batch(next)
 }
 
 // handle handles a single message

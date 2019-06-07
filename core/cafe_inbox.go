@@ -7,7 +7,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/core"
 	peer "github.com/libp2p/go-libp2p-peer"
-	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
@@ -103,17 +102,14 @@ func (q *CafeInbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize)); err != nil {
-		log.Errorf("cafe inbox batch error: %s", err)
-		return
-	}
+	q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize))
 }
 
 // batch flushes a batch of messages
-func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
+func (q *CafeInbox) batch(msgs []pb.CafeMessage) {
 	log.Debugf("handling %d cafe messages", len(msgs))
 	if len(msgs) == 0 {
-		return nil
+		return
 	}
 
 	for _, msg := range msgs {
@@ -135,7 +131,7 @@ func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
 	next := q.datastore.CafeMessages().List(offset, cafeInFlushGroupSize)
 
 	// keep going
-	return q.batch(next)
+	q.batch(next)
 }
 
 // handle handles a single message
@@ -145,15 +141,9 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 		return q.handleErr(fmt.Errorf("error decoding msg peer: %s", err), msg)
 	}
 
-	// download the actual message
-	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
+	envb, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
 		return q.handleErr(fmt.Errorf("error getting msg data: %s", err), msg)
-	}
-
-	envb, err := crypto.Decrypt(q.node().PrivateKey, ciphertext)
-	if err != nil {
-		return q.handleErr(fmt.Errorf("error decrypting msg: %s", err), msg)
 	}
 	env := new(pb.Envelope)
 	if err := proto.Unmarshal(envb, env); err != nil {
