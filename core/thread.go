@@ -541,7 +541,7 @@ func (t *Thread) store() error {
 // readable returns whether or not this thread is readable from the
 // perspective of the given address
 func (t *Thread) readable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {
@@ -561,7 +561,7 @@ func (t *Thread) readable(addr string) bool {
 // annotatable returns whether or not this thread is annotatable from the
 // perspective of the given address
 func (t *Thread) annotatable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {
@@ -581,7 +581,7 @@ func (t *Thread) annotatable(addr string) bool {
 // writable returns whether or not this thread can accept files from the
 // perspective of the given address
 func (t *Thread) writable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {

@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	cid "github.com/ipfs/go-cid"
+	icid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/pin"
 	iface "github.com/ipfs/interface-go-ipfs-core"
@@ -546,7 +546,7 @@ func (h *CafeService) refreshHTTP(session *pb.CafeSession) (*pb.CafeSession, err
 }
 
 // sendObject sends data or an object by cid to a peer
-func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
+func (h *CafeService) sendObject(id icid.Cid, addr string, token string) error {
 	hash := id.Hash().B58String()
 	obj := &pb.CafeObject{
 		Token: token,
@@ -974,9 +974,9 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// ignore cids for data already pinned
-	var decoded []cid.Cid
+	var decoded []icid.Cid
 	for _, id := range store.Cids {
-		dec, err := cid.Decode(id)
+		dec, err := icid.Decode(id)
 		if err != nil {
 			return nil, err
 		}
@@ -1015,9 +1015,9 @@ func (h *CafeService) handleUnstore(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// ignore cids for data not pinned
-	var decoded []cid.Cid
+	var decoded []icid.Cid
 	for _, id := range unstore.Cids {
-		dec, err := cid.Decode(id)
+		dec, err := icid.Decode(id)
 		if err != nil {
 			return nil, err
 		}
@@ -1058,7 +1058,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		return rerr, nil
 	}
 
-	var aid *cid.Cid
+	var aid *icid.Cid
 	if obj.Data != nil {
 		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
 	} else if obj.Node != nil {
@@ -1532,13 +1532,14 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 	offset := reqs.Items[len(reqs.Items)-1].Id
 	next := h.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
 
-	for _, mid := range toUnpin {
-		id, err := cid.Decode(mid)
+	for _, id := range toUnpin {
+		req := h.datastore.CafeRequests().Get(id)
+		cid, err := icid.Decode(req.Target)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		err = ipfs.UnpinCid(h.service.Node(), id, false)
+		err = ipfs.UnpinCid(h.service.Node(), cid, false)
 		if err != nil {
 			log.Error(err.Error())
 			return
@@ -1703,7 +1704,7 @@ loop:
 
 	// send each object
 	for _, id := range req.Cids {
-		decoded, err := cid.Decode(id)
+		decoded, err := icid.Decode(id)
 		if err != nil {
 			return stored, err
 		}
