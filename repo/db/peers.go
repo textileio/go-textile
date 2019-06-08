@@ -39,20 +39,32 @@ func (c *PeerDB) Add(peer *pb.Peer) error {
 		return err
 	}
 
+	var created, updated int64
+	if peer.Created == nil {
+		created = time.Now().UnixNano()
+	} else {
+		created = util.ProtoNanos(peer.Created)
+	}
+	if peer.Updated == nil {
+		updated = time.Now().UnixNano()
+	} else {
+		updated = util.ProtoNanos(peer.Updated)
+	}
+
 	_, err = stmt.Exec(
 		peer.Id,
 		peer.Address,
 		peer.Name,
 		peer.Avatar,
 		inboxes,
-		time.Now().UnixNano(),
-		time.Now().UnixNano(),
+		created,
+		updated,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -94,10 +106,10 @@ func (c *PeerDB) AddOrUpdate(peer *pb.Peer) error {
 		time.Now().UnixNano(),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 
@@ -132,14 +144,14 @@ func (c *PeerDB) GetBestUser(id string) *pb.User {
 		if i == 0 {
 			latest = &pb.User{Address: addr, Name: name, Avatar: avatar}
 		} else if latest != nil {
-			if name != "" && latest.Name != "" {
+			if name != "" && latest.Name == "" {
 				latest.Name = name
 			}
-			if avatar != "" && latest.Avatar != "" {
+			if avatar != "" && latest.Avatar == "" {
 				latest.Avatar = avatar
 			}
 			if latest.Name != "" && latest.Avatar != "" {
-				rows.Close()
+				_ = rows.Close()
 				return ensureName(latest)
 			}
 		}
@@ -198,7 +210,7 @@ func (c *PeerDB) Count(query string) int {
 	q += ";"
 	row := c.db.QueryRow(q)
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 
