@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/textileio/go-textile/util"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -389,14 +391,15 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 
 	// add extra view info
 	mod.SchemaNode = thread.Schema
-	if mod.Head != "" {
-		hid, err := blockCIDFromNode(t.node, mod.Head)
+	for _, head := range util.SplitString(mod.Head, ",") {
+		hid, err := blockCIDFromNode(t.node, head)
 		if err != nil {
 			return nil, err
 		}
-		mod.HeadBlock = t.datastore.Blocks().Get(hid)
-		if mod.HeadBlock != nil {
-			mod.HeadBlock.User = t.PeerUser(mod.HeadBlock.Author)
+		block := t.datastore.Blocks().Get(hid)
+		if block != nil {
+			block.User = t.PeerUser(block.Author)
+			mod.HeadBlocks = append(mod.HeadBlocks, block)
 		}
 	}
 	mod.BlockCount = int32(t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", thread.Id)))
