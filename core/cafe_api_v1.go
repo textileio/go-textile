@@ -169,38 +169,47 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	body := buf.Bytes()
 
 	// pin inner node
-	env := new(pb.Envelope)
-	err = proto.Unmarshal(buf.Bytes(), env)
+	nenv := new(pb.Envelope)
+	err = proto.Unmarshal(body, nenv)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	tenv := new(pb.ThreadEnvelope)
-	err = ptypes.UnmarshalAny(env.Message.Payload, tenv)
+	err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	id, err := ipfs.AddObject(c.node.Ipfs(), bytes.NewReader(tenv.Node), true)
+	oid, err := ipfs.AddObject(c.node.Ipfs(), bytes.NewReader(tenv.Node), true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	node, err := ipfs.NodeAtCid(c.node.Ipfs(), *id)
+	node, err := ipfs.NodeAtCid(c.node.Ipfs(), *oid)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	bnode, err := extractNode(c.node.Ipfs(), node)
+	_, err = extractNode(c.node.Ipfs(), node)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
+	// pin envelope
+	id, err := ipfs.AddData(c.node.Ipfs(), bytes.NewReader(body), true, false)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	msgId := id.Hash().B58String()
 	err = c.node.datastore.CafeClientMessages().AddOrUpdate(&pb.CafeClientMessage{
-		Id:     bnode.hash.B58String(),
+		Id:     msgId,
 		Peer:   from,
 		Client: client.Id,
 		Date:   ptypes.TimestampNow(),
@@ -217,7 +226,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		}
 	}()
 
-	log.Debugf("delivered message %s", bnode.hash.B58String())
+	log.Debugf("delivered message %s", msgId)
 
 	g.Status(http.StatusOK)
 }

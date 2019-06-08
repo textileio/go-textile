@@ -198,7 +198,7 @@ An access token is required to register, and should be obtained separately from 
 	contactGetAddress = contactGetCmd.Arg("address", "Account Address").Required().String()
 
 	// delete
-	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rn")
+	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rm")
 	contactDeleteAddress = contactDeleteCmd.Arg("address", "Account Address").Required().String()
 
 	// search
@@ -265,7 +265,7 @@ Stacks may include:
 
 	// add
 	fileAddCmd      = fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
-	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").Required().String()
+	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").String()
 	fileAddThreadID = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileAddCaption  = fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
 	fileAddGroup    = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
@@ -581,15 +581,16 @@ The response contains a base58 encoded version of the random bytes token.`)
 	walletCmd = appCmd.Command("wallet", "Initialize a new wallet, or view accounts from an existing wallet").Alias("wallets")
 
 	// wallet init
-	walletInitCmd       = walletCmd.Command("init", "Initializes a new account wallet backed by a mnemonic recovery phrase")
-	walletInitWordCount = walletInitCmd.Flag("word-count", "Number of mnemonic recovery phrase words: 12,15,18,21,24").Short('w').Default("12").Int()
-	walletInitPassword  = walletInitCmd.Flag("password", "Mnemonic recovery phrase password (omit if none)").Short('p').String()
+	walletInitCmd       = walletCmd.Command("init", "Initializes a new account wallet backed by a mnemonic phrase")
+	walletInitWordCount = walletInitCmd.Flag("word-count", "Number of mnemonic phrase words: 12,15,18,21,24").Short('w').Default("12").Int()
+	walletInitPassword  = walletInitCmd.Flag("password", "Mnemonic password (omit if none)").Short('p').String()
 
 	// wallet accounts
 	walletAccountsCmd      = walletCmd.Command("accounts", "Shows the derived accounts (address/seed pairs) in a wallet").Alias("account")
-	walletAccountsPassword = walletAccountsCmd.Flag("password", "Mnemonic recovery phrase password (omit if none)").Short('p').String()
+	walletAccountsPassword = walletAccountsCmd.Flag("password", "Mnemonic password (omit if none)").Short('p').String()
 	walletAccountsDepth    = walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
 	walletAccountsOffset   = walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
+	walletAccountsMnemonic = walletAccountsCmd.Arg("mnemonic", "An existing mnemonic phrase").Required().String()
 )
 
 func Run() error {
@@ -893,7 +894,7 @@ func Run() error {
 		return WalletInit(*walletInitWordCount, *walletInitPassword)
 
 	case walletAccountsCmd.FullCommand():
-		return WalletAccounts(*walletAccountsPassword, *walletAccountsDepth, *walletAccountsOffset)
+		return WalletAccounts(*walletAccountsMnemonic, *walletAccountsPassword, *walletAccountsDepth, *walletAccountsOffset)
 
 	}
 

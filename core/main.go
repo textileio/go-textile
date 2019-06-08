@@ -277,16 +277,14 @@ func (t *Textile) Start() error {
 
 	// ensure older peers get latest profiles
 	if t.Mobile() {
-		err = ensureMobileConfig(t.repoPath)
-		if err != nil {
-			return err
-		}
+		err = ensureProfile(mobileProfile, t.repoPath)
+	} else if t.Server() {
+		err = ensureProfile(serverProfile, t.repoPath)
+	} else {
+		err = ensureProfile(desktopProfile, t.repoPath)
 	}
-	if t.Server() {
-		err = ensureServerConfig(t.repoPath)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
 	// raise file descriptor limit

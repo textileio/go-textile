@@ -78,10 +78,10 @@ message Thread {
     }
 
     // view info
-    Block head_block  = 101;
-    Node schema_node  = 102;
-    int32 block_count = 103;
-    int32 peer_count  = 104;
+    repeated Block head_blocks  = 101;
+    Node schema_node            = 102;
+    int32 block_count           = 103;
+    int32 peer_count            = 104;
 }
 
 message ThreadList {

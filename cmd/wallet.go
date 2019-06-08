@@ -41,7 +41,7 @@ func WalletInit(wordCount int, password string) error {
 	return nil
 }
 
-func WalletAccounts(password string, depth int, offset int) error {
+func WalletAccounts(mnemonic, password string, depth, offset int) error {
 	if depth < 1 || depth > 100 {
 		return fmt.Errorf("depth must be greater than 0 and less than 100")
 	}
@@ -49,7 +49,7 @@ func WalletAccounts(password string, depth int, offset int) error {
 		return fmt.Errorf("offset must be greater than 0 and less than depth")
 	}
 
-	wall := wallet.NewWalletFromRecoveryPhrase(password)
+	wall := wallet.NewWalletFromRecoveryPhrase(mnemonic)
 
 	for i := offset; i < offset+depth; i++ {
 		kp, err := wall.AccountAt(i, password)
