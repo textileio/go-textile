@@ -75,17 +75,18 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 		addrFilters = DefaultServerFilters
 	}
 
-	routing := "dht"
-	reprovider := "12h"
+	routing := "dhtclient"
+	reprovider := "0"
 	connMgrLowWater := 600
 	connMgrHighWater := 900
 	connMgrGracePeriod := time.Second * 20
 	if mobile {
-		routing = "dhtclient"
-		reprovider = "0"
-		connMgrLowWater = 20
-		connMgrHighWater = 40
-		connMgrGracePeriod = time.Minute
+		connMgrLowWater = 200
+		connMgrHighWater = 500
+	}
+	if server {
+		routing = "dht"
+		reprovider = "12h"
 	}
 
 	conf := &native.Config{
@@ -150,7 +151,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 			DisableNatPortMap:       server,
 			DisableRelay:            false,
 			EnableRelayHop:          server,
-			EnableAutoRelay:         mobile,
+			EnableAutoRelay:         !server,
 			EnableAutoNATService:    server,
 		},
 		Experimental: native.Experiments{
