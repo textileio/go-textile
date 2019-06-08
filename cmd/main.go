@@ -198,7 +198,7 @@ An access token is required to register, and should be obtained separately from 
 	contactGetAddress = contactGetCmd.Arg("address", "Account Address").Required().String()
 
 	// delete
-	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rn")
+	contactDeleteCmd     = contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rm")
 	contactDeleteAddress = contactDeleteCmd.Arg("address", "Account Address").Required().String()
 
 	// search
