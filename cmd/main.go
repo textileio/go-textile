@@ -265,7 +265,7 @@ Stacks may include:
 
 	// add
 	fileAddCmd      = fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
-	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").Required().String()
+	fileAddPath     = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").String()
 	fileAddThreadID = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileAddCaption  = fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
 	fileAddGroup    = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
