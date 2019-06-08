@@ -581,15 +581,16 @@ The response contains a base58 encoded version of the random bytes token.`)
 	walletCmd = appCmd.Command("wallet", "Initialize a new wallet, or view accounts from an existing wallet").Alias("wallets")
 
 	// wallet init
-	walletInitCmd       = walletCmd.Command("init", "Initializes a new account wallet backed by a mnemonic recovery phrase")
-	walletInitWordCount = walletInitCmd.Flag("word-count", "Number of mnemonic recovery phrase words: 12,15,18,21,24").Short('w').Default("12").Int()
-	walletInitPassword  = walletInitCmd.Flag("password", "Mnemonic recovery phrase password (omit if none)").Short('p').String()
+	walletInitCmd       = walletCmd.Command("init", "Initializes a new account wallet backed by a mnemonic phrase")
+	walletInitWordCount = walletInitCmd.Flag("word-count", "Number of mnemonic phrase words: 12,15,18,21,24").Short('w').Default("12").Int()
+	walletInitPassword  = walletInitCmd.Flag("password", "Mnemonic password (omit if none)").Short('p').String()
 
 	// wallet accounts
 	walletAccountsCmd      = walletCmd.Command("accounts", "Shows the derived accounts (address/seed pairs) in a wallet").Alias("account")
-	walletAccountsPassword = walletAccountsCmd.Flag("password", "Mnemonic recovery phrase password (omit if none)").Short('p').String()
+	walletAccountsPassword = walletAccountsCmd.Flag("password", "Mnemonic password (omit if none)").Short('p').String()
 	walletAccountsDepth    = walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
 	walletAccountsOffset   = walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
+	walletAccountsMnemonic = walletAccountsCmd.Arg("mnemonic", "An existing mnemonic phrase").Required().String()
 )
 
 func Run() error {
@@ -893,7 +894,7 @@ func Run() error {
 		return WalletInit(*walletInitWordCount, *walletInitPassword)
 
 	case walletAccountsCmd.FullCommand():
-		return WalletAccounts(*walletAccountsPassword, *walletAccountsDepth, *walletAccountsOffset)
+		return WalletAccounts(*walletAccountsMnemonic, *walletAccountsPassword, *walletAccountsDepth, *walletAccountsOffset)
 
 	}
 
