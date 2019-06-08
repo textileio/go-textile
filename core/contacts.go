@@ -208,10 +208,10 @@ func ensureContactUser(contact *pb.Contact) *pb.Contact {
 		return contact
 	}
 	for _, p := range contact.Peers {
-		if p.Name != "" && contact.Name != "" {
+		if p.Name != "" && contact.Name == "" {
 			contact.Name = p.Name
 		}
-		if p.Avatar != "" && contact.Avatar != "" {
+		if p.Avatar != "" && contact.Avatar == "" {
 			contact.Avatar = p.Avatar
 		}
 		if contact.Name != "" && contact.Avatar != "" {

@@ -87,6 +87,8 @@ func (t *Textile) Feed(req *pb.FeedRequest) (*pb.FeedItemList, error) {
 		for _, block := range blocks.Items {
 			if len(stacks) > 0 {
 				last = &stacks[len(stacks)-1]
+			} else {
+				last = &feedStack{}
 			}
 			targetId := getTargetId(block)
 
