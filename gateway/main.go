@@ -84,7 +84,7 @@ func (g *Gateway) Start(addr string) {
 	router.GET("/cafes", g.cafesHandler)
 
 	router.NoRoute(func(c *gin.Context) {
-		render404(c)
+		g.render404(c)
 	})
 
 	g.server = &http.Server{
@@ -145,13 +145,13 @@ func (g *Gateway) ipfsHandler(c *gin.Context) {
 		keyb, err := base58.Decode(key)
 		if err != nil {
 			log.Debugf("error decoding key %s: %s", key, err)
-			render404(c)
+			g.render404(c)
 			return
 		}
 		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
 			log.Debugf("error decrypting %s: %s", contentPath, err)
-			render404(c)
+			g.render404(c)
 			return
 		}
 		c.Render(200, render.Data{Data: plain})
@@ -171,14 +171,14 @@ func (g *Gateway) ipnsHandler(c *gin.Context) {
 	rootId, err := peer.IDB58Decode(c.Param("root"))
 	if err != nil {
 		log.Debugf("error decoding root %s: %s", c.Param("root"), err)
-		render404(c)
+		g.render404(c)
 		return
 	}
 
 	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId, time.Second*30)
 	if err != nil {
 		log.Debugf("error resolving profile %s: %s", c.Param("root"), err)
-		render404(c)
+		g.render404(c)
 		return
 	}
 
@@ -242,7 +242,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			root, err := ipfspath.ParsePath(pth)
 			if err != nil {
 				log.Debugf("error parsing path %s: %s", pth, err)
-				render404(c)
+				g.render404(c)
 				return nil
 			}
 
@@ -259,7 +259,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			ilinks, err := g.Node.LinksAtPath(pth)
 			if err != nil {
 				log.Debugf("error getting links %s: %s", pth, err)
-				render404(c)
+				g.render404(c)
 				return nil
 			}
 
@@ -268,7 +268,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 				ipath, err := ipfspath.ParsePath(pth + "/" + l.Name)
 				if err != nil {
 					log.Debugf("error parsing path %s: %s", pth, err)
-					render404(c)
+					g.render404(c)
 					return nil
 				}
 				links = append(links, link{
@@ -287,19 +287,25 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 		}
 
 		log.Debugf("error getting path %s: %s", pth, err)
-		render404(c)
+		g.render404(c)
 		return nil
 	}
 	return data
 }
 
 // render404 renders the 404 template
-func render404(c *gin.Context) {
+func (g *Gateway) render404(c *gin.Context) {
 	if strings.Contains(c.Request.URL.String(), "small/content") ||
 		strings.Contains(c.Request.URL.String(), "large/content") {
-		url := location.Get(c)
+		var url string
+		if g.Node.Config().Cafe.Host.URL != "" {
+			url = strings.TrimRight(g.Node.Config().Cafe.Host.URL, "/")
+		} else {
+			loc := location.Get(c)
+			url = fmt.Sprintf("%s://%s", loc.Scheme, loc.Host)
+		}
 		pth := strings.Replace(c.Request.URL.String(), "/content", "/d", 1)
-		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s://%s%s", url.Scheme, url.Host, pth))
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", url, pth))
 		return
 	}
 
