@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-contrib/location"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/jsonpb"
@@ -27,6 +26,7 @@ import (
 	"github.com/textileio/go-textile/gateway/templates"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -133,6 +133,12 @@ func (g *Gateway) Addr() string {
 // ipfsHandler renders and optionally decrypts data behind an IPFS address
 func (g *Gateway) ipfsHandler(c *gin.Context) {
 	contentPath := c.Param("root") + c.Param("path")
+
+	// ignore the last file extension in path
+	parts := util.SplitString(contentPath, ".")
+	if len(parts) > 1 {
+		contentPath = strings.Join(parts[:len(parts)-1], ".")
+	}
 
 	data := g.getDataAtPath(c, contentPath)
 	if data == nil {
