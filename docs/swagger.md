@@ -120,28 +120,6 @@ Removes a thread block by ID
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
 
-#### GET
-##### Summary:
-
-Gets thread block
-
-##### Description:
-
-Gets a thread block by ID
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| id | path | block id | Yes | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | block | [pb.Block](#pb.block) |
-| 404 | Not Found | string |
-
 ### /blocks/{id}/comment
 
 #### GET
@@ -215,6 +193,72 @@ Adds a comment to a thread block
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
 
+### /blocks/{id}/files
+
+#### GET
+##### Summary:
+
+Gets the metadata for a files block
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| id | path | block id | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | files | [pb.Files](#pb.files) |
+| 404 | Not Found | string |
+
+### /blocks/{id}/files/{index}/{path}/content
+
+#### GET
+##### Summary:
+
+Gets the decrypted file content of a file within a files block
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| id | path | block id | Yes | string |
+| index | path | file index | Yes | string |
+| path | path | file path | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | OK | string |
+| 400 | Bad Request | string |
+| 404 | Not Found | string |
+
+### /blocks/{id}/files/{index}/{path}/meta
+
+#### GET
+##### Summary:
+
+Gets the metadata of a file within a files block
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| id | path | block id | Yes | string |
+| index | path | file index | Yes | string |
+| path | path | file path | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | file | [pb.FileIndex](#pb.fileindex) |
+| 400 | Bad Request | string |
+| 404 | Not Found | string |
+
 ### /blocks/{id}/like
 
 #### GET
@@ -287,6 +331,26 @@ Adds a like to a thread block
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
 
+### /blocks/{id}/meta
+
+#### GET
+##### Summary:
+
+Gets the metadata for a block
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| id | path | block id | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | block | [pb.Block](#pb.block) |
+| 404 | Not Found | string |
+
 ### /cafes
 
 #### GET
@@ -321,7 +385,7 @@ Cafe
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| X-Textile-Args | header | cafe host | Yes | string |
+| X-Textile-Args | header | cafe id | Yes | string |
 | X-Textile-Opts | header | token: An access token supplied by the Cafe | No | string |
 
 ##### Responses
@@ -629,16 +693,16 @@ Newer annotations may have already been listed in the case as well.
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
 
-### /file/{hash}/data
+### /file/{hash}/content
 
 #### GET
 ##### Summary:
 
-File data at hash
+File content at hash
 
 ##### Description:
 
-Returns raw data for file
+Returns decrypted raw content for file
 
 ##### Parameters
 
@@ -651,6 +715,30 @@ Returns raw data for file
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
 | 200 | OK | string |
+| 404 | Not Found | string |
+
+### /file/{target}/meta
+
+#### GET
+##### Summary:
+
+File metadata at hash
+
+##### Description:
+
+Returns the metadata for file
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hash | path | file hash | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | file | [pb.FileIndex](#pb.fileindex) |
 | 404 | Not Found | string |
 
 ### /files
@@ -679,30 +767,6 @@ Paginates thread files. If thread id not provided, paginate all files. Specify
 | 400 | Bad Request | string |
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
-
-### /files/{block}
-
-#### GET
-##### Summary:
-
-Get thread file
-
-##### Description:
-
-Gets a thread file by block ID
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| block | path | block id | Yes | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | file | [pb.Files](#pb.files) |
-| 400 | Bad Request | string |
 
 ### /invites
 
@@ -1975,7 +2039,7 @@ Check validity of existing cafe access token
 | ---- | ---- | ----------- | -------- |
 | block_count | integer |  | No |
 | head | string |  | No |
-| head_block | [pb.Block](#pb.block) | view info | No |
+| head_blocks | [ [pb.Block](#pb.block) ] | view info | No |
 | id | string |  | No |
 | initiator | string |  | No |
 | key | string |  | No |
