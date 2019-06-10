@@ -261,8 +261,9 @@ func flushCafeRequests(limit int) (int, error) {
 			return count, err
 		}
 		if res.StatusCode >= 300 {
-			fmt.Printf("got bad status: %d\n", res.StatusCode)
-			err = cafesTestVars.mobile.FailCafeRequest(g)
+			reason := fmt.Sprintf("got bad status: %d\n", res.StatusCode)
+			fmt.Println(reason)
+			err = cafesTestVars.mobile.FailCafeRequest(g, reason)
 		} else {
 			err = cafesTestVars.mobile.CompleteCafeRequest(g)
 		}
