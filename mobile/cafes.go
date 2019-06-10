@@ -150,6 +150,8 @@ func (m *Mobile) CompleteCafeRequest(id string) error {
 		return err
 	}
 
+	log.Debugf("request %s completed", id)
+
 	return m.handleCafeRequestDone(id, m.cafeSyncGroupStatus(id))
 }
 
@@ -168,16 +170,25 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 	status.Error = reason
 	status.ErrorId = id
 
+	log.Warningf("request %s failed: %s", id, reason)
+
 	return m.handleCafeRequestDone(id, status)
 }
 
-// WriteCafeRequest returns an HTTP request object for the given group, writing payload to disk
+// WriteCafeRequest is the async version of writeCafeRequest
+func (m *Mobile) WriteCafeRequest(group string, cb Callback) {
+	go func() {
+		cb.Call(m.writeCafeRequest(group))
+	}()
+}
+
+// writeCafeRequest returns an HTTP request object for the given group, writing payload to disk
 // - store: PUT /store, body => multipart, one file per req
 // - unstore: DELETE /store/:cid, body => noop
 // - store thread: PUT /threads/:id, body => encrypted thread object (snapshot)
 // - unstore thread: DELETE /threads/:id, body => noop
 // - deliver message: POST /inbox/:pid, body => encrypted message
-func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
+func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

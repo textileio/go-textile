@@ -234,7 +234,7 @@ func flushCafeRequests(limit int) (int, error) {
 	// write the req for each group
 	reqs := make(map[string]*pb.CafeHTTPRequest)
 	for _, g := range groups.Values {
-		res, err = cafesTestVars.mobile.WriteCafeRequest(g)
+		res, err = cafesTestVars.mobile.writeCafeRequest(g)
 		if err != nil {
 			return count, err
 		}
