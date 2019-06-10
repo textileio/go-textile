@@ -150,11 +150,13 @@ func (m *Mobile) CompleteCafeRequest(id string) error {
 		return err
 	}
 
-	return m.handleCafeRequestDone(id, false)
+	log.Debugf("request %s completed", id)
+
+	return m.handleCafeRequestDone(id, m.cafeSyncGroupStatus(id))
 }
 
 // FailCafeRequest deletes a cafe request
-func (m *Mobile) FailCafeRequest(id string) error {
+func (m *Mobile) FailCafeRequest(id string, reason string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -164,16 +166,29 @@ func (m *Mobile) FailCafeRequest(id string) error {
 		return err
 	}
 
-	return m.handleCafeRequestDone(id, true)
+	status := m.cafeSyncGroupStatus(id)
+	status.Error = reason
+	status.ErrorId = id
+
+	log.Warningf("request %s failed: %s", id, reason)
+
+	return m.handleCafeRequestDone(id, status)
 }
 
-// WriteCafeRequest returns an HTTP request object for the given group, writing payload to disk
+// WriteCafeRequest is the async version of writeCafeRequest
+func (m *Mobile) WriteCafeRequest(group string, cb Callback) {
+	go func() {
+		cb.Call(m.writeCafeRequest(group))
+	}()
+}
+
+// writeCafeRequest returns an HTTP request object for the given group, writing payload to disk
 // - store: PUT /store, body => multipart, one file per req
 // - unstore: DELETE /store/:cid, body => noop
 // - store thread: PUT /threads/:id, body => encrypted thread object (snapshot)
 // - unstore thread: DELETE /threads/:id, body => noop
 // - deliver message: POST /inbox/:pid, body => encrypted message
-func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
+func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -191,7 +206,7 @@ func (m *Mobile) WriteCafeRequest(group string) ([]byte, error) {
 	var hreq *pb.CafeHTTPRequest
 
 	fail := func(reason string) ([]byte, error) {
-		err = m.FailCafeRequest(group)
+		err = m.FailCafeRequest(group, reason)
 		if err != nil {
 			return nil, err
 		}
@@ -359,9 +374,8 @@ func (m *Mobile) deleteCafeRequestBody(id string) error {
 }
 
 // handleCafeRequestDone handles clean up after a request is complete/failed
-func (m *Mobile) handleCafeRequestDone(id string, failed bool) error {
-	status := m.cafeSyncGroupStatus(id)
-	if failed {
+func (m *Mobile) handleCafeRequestDone(id string, status *pb.CafeSyncGroupStatus) error {
+	if status.Error != "" {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_FAILED, status)
 
 		// delete pending blocks
