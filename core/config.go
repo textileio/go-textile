@@ -90,6 +90,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		ws = parts[1]
 	default:
 		tcp = GetRandomPort()
+		ws = GetRandomPort()
 	}
 
 	list := []string{
@@ -104,8 +105,17 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	return rep.SetConfigKey("Addresses.Swarm", list)
 }
 
-// ensureMobileConfig ensures the low-power IPFS profile has been applied to the repo config
-func ensureMobileConfig(repoPath string) error {
+// profile defines config settings for different environments
+type profile int
+
+const (
+	desktopProfile profile = iota
+	mobileProfile
+	serverProfile
+)
+
+// ensureProfile ensures the config settings are active for the selected profile
+func ensureProfile(profile profile, repoPath string) error {
 	rep, err := fsrepo.Open(repoPath)
 	if err != nil {
 		return err
@@ -115,39 +125,55 @@ func ensureMobileConfig(repoPath string) error {
 		return err
 	}
 
-	conf.Routing.Type = "dhtclient"
-	conf.Reprovider.Interval = "0"
-	conf.Swarm.ConnMgr.LowWater = 200
-	conf.Swarm.ConnMgr.HighWater = 500
-	conf.Swarm.ConnMgr.GracePeriod = (time.Second * 20).String()
-	conf.Swarm.DisableBandwidthMetrics = true
-	conf.Swarm.EnableAutoRelay = false
-
-	return rep.SetConfig(conf)
-}
-
-// ensureServerConfig ensures the server IPFS profile has been applied to the repo config
-func ensureServerConfig(repoPath string) error {
-	rep, err := fsrepo.Open(repoPath)
-	if err != nil {
-		return err
+	if profile == serverProfile {
+		conf.Addresses.NoAnnounce = config.DefaultServerFilters
+		conf.Swarm.AddrFilters = config.DefaultServerFilters
+	} else {
+		conf.Addresses.NoAnnounce = make([]string, 0)
+		conf.Swarm.AddrFilters = make([]string, 0)
 	}
-	conf, err := rep.Config()
-	if err != nil {
-		return err
-	}
-
-	conf.Discovery.MDNS.Enabled = false
-	conf.Addresses.NoAnnounce = config.DefaultServerFilters
-	conf.Swarm.AddrFilters = config.DefaultServerFilters
-	conf.Swarm.DisableNatPortMap = true
-	conf.Swarm.EnableRelayHop = false
-	conf.Swarm.EnableAutoNATService = true
-
 	// tmp. ensure IPFS addresses are available in case we need to
 	// point a vanilla daemon at the repo.
 	conf.Addresses.API = []string{"/ip4/127.0.0.1/tcp/5001"}
 	conf.Addresses.Gateway = []string{"/ip4/127.0.0.1/tcp/8080"}
+
+	if profile == serverProfile {
+		conf.Discovery.MDNS.Enabled = false
+	} else {
+		conf.Discovery.MDNS.Enabled = true
+	}
+
+	if profile == serverProfile {
+		conf.Routing.Type = "dht"
+		conf.Reprovider.Interval = "12h"
+	} else {
+		conf.Routing.Type = "dhtclient"
+		conf.Reprovider.Interval = "0"
+	}
+
+	if profile == mobileProfile {
+		conf.Swarm.ConnMgr.LowWater = 200
+		conf.Swarm.ConnMgr.HighWater = 500
+		conf.Swarm.DisableBandwidthMetrics = true
+	} else {
+		conf.Swarm.ConnMgr.LowWater = 600
+		conf.Swarm.ConnMgr.HighWater = 900
+		conf.Swarm.DisableBandwidthMetrics = false
+	}
+	conf.Swarm.ConnMgr.GracePeriod = (time.Second * 20).String()
+
+	if profile == serverProfile {
+		conf.Swarm.DisableNatPortMap = true
+		conf.Swarm.EnableRelayHop = true
+		conf.Swarm.EnableAutoRelay = false
+		conf.Swarm.EnableAutoNATService = true
+	} else {
+		conf.Swarm.DisableNatPortMap = false
+		conf.Swarm.EnableRelayHop = false
+		conf.Swarm.EnableAutoRelay = true
+		conf.Swarm.EnableAutoNATService = false
+	}
+	conf.Swarm.DisableRelay = false
 
 	return rep.SetConfig(conf)
 }

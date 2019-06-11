@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -60,8 +59,8 @@ type Handler interface {
 	Protocol() protocol.ID
 	Start()
 	Ping(pid peer.ID) (PeerStatus, error)
-	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
-	HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{})
+	Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error)
+	HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{})
 }
 
 // NewService returns a service for the given config
@@ -82,14 +81,16 @@ func (srv *Service) Start() {
 }
 
 // Ping pings another peer and returns status
-func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
+func (srv *Service) Ping(p string) (PeerStatus, error) {
 	id := rand.Int31()
 	env, err := srv.NewEnvelope(pb.Message_PING, nil, &id, false)
 	if err != nil {
 		return "", err
 	}
 
-	if _, err := srv.SendRequest(p, env); err != nil {
+	_, err = srv.SendRequest(p, env)
+	if err != nil {
+		log.Errorf("ping error: %s", err)
 		return PeerOffline, nil
 	}
 
@@ -97,13 +98,18 @@ func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
 }
 
 // SendRequest sends out a request
-func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p)
+
+	pid, err := peer.IDB58Decode(p)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
-	ms, err := srv.messageSenderForPeer(ctx, p)
+	ms, err := srv.messageSenderForPeer(ctx, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -113,72 +119,17 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 		return nil, err
 	}
 
+	_ = srv.updateFromMessage(ctx, pid)
+
 	if rpmes == nil {
-		err := fmt.Errorf("no response from %s", p.Pretty())
+		err = fmt.Errorf("no response from %s", p)
 		log.Debug(err.Error())
 		return nil, err
 	}
 
-	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
-	if err := srv.handleError(rpmes); err != nil {
-		return nil, err
-	}
-
-	return rpmes, nil
-}
-
-// SendHTTPRequest sends a request over HTTP
-func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
-
-	payload, err := proto.Marshal(pmes)
+	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p)
+	err = srv.handleError(rpmes)
 	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		res, err := util.UnmarshalString(res.Body)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf(res)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if body == nil {
-		return nil, nil
-	}
-
-	rpmes := new(pb.Envelope)
-	if err := proto.Unmarshal(body, rpmes); err != nil {
-		return nil, err
-	}
-
-	if rpmes.Message == nil {
-		err := fmt.Errorf("no response from %s", addr)
-		log.Debug(err.Error())
-		return nil, err
-	}
-
-	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-	if err := srv.handleError(rpmes); err != nil {
 		return nil, err
 	}
 
@@ -186,7 +137,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 }
 
 // SendHTTPStreamRequest sends a request over HTTP
-func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan *pb.Envelope, chan error, *func()) {
+func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope, access string) (chan *pb.Envelope, chan error, *func()) {
 	rpmesCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 
@@ -206,7 +157,7 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			errCh <- err
 			return
 		}
-		req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
+		req.Header.Set("Authorization", "Basic "+access)
 
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}
@@ -235,7 +186,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
 			var rpmes *pb.Envelope
-			if err := decoder.Decode(&rpmes); err == io.EOF {
+			err = decoder.Decode(&rpmes)
+			if err == io.EOF {
 				return
 			} else if err != nil {
 				errCh <- err
@@ -243,14 +195,13 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			}
 
 			if rpmes == nil || rpmes.Message == nil {
-				err := fmt.Errorf("no response from %s", addr)
-				log.Debug(err.Error())
 				errCh <- err
 				return
 			}
 
 			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-			if err := srv.handleError(rpmes); err != nil {
+			err := srv.handleError(rpmes)
+			if err != nil {
 				errCh <- err
 				return
 			}
@@ -262,8 +213,13 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 }
 
 // SendMessage sends out a message
-func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+func (srv *Service) SendMessage(ctx context.Context, p string, pmes *pb.Envelope) error {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p)
+
+	pid, err := peer.IDB58Decode(p)
+	if err != nil {
+		return err
+	}
 
 	if ctx == nil {
 		var cancel context.CancelFunc
@@ -271,49 +227,12 @@ func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelop
 		defer cancel()
 	}
 
-	ms, err := srv.messageSenderForPeer(ctx, p)
+	ms, err := srv.messageSenderForPeer(ctx, pid)
 	if err != nil {
 		return err
 	}
 
-	if err := ms.SendMessage(ctx, pmes); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// SendHTTPMessage sends a message over HTTP
-func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
-
-	payload, err := proto.Marshal(pmes)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		res, err := util.UnmarshalString(req.Body)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf(res)
-	}
-
-	return nil
+	return ms.SendMessage(ctx, pmes)
 }
 
 // NewEnvelope returns a signed pb message for transport
@@ -329,10 +248,10 @@ func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *in
 	message := &pb.Message{Type: mtype, Payload: payload}
 
 	if id != nil {
-		message.RequestId = *id
+		message.Request = *id
 	}
 	if response {
-		message.IsResponse = true
+		message.Response = true
 	}
 
 	ser, err := proto.Marshal(message)
@@ -374,16 +293,15 @@ func (srv *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 // handleError receives an error response
 func (srv *Service) handleError(env *pb.Envelope) error {
 	if env.Message.Payload == nil && env.Message.Type != pb.Message_PONG {
-		err := fmt.Errorf("message payload with type %s is nil", env.Message.Type.String())
-		log.Error(err.Error())
-		return err
+		return fmt.Errorf("message payload with type %s is nil", env.Message.Type.String())
 	}
 
 	if env.Message.Type != pb.Message_ERROR {
 		return nil
 	} else {
 		errMsg := new(pb.Error)
-		if err := ptypes.UnmarshalAny(env.Message.Payload, errMsg); err != nil {
+		err := ptypes.UnmarshalAny(env.Message.Payload, errMsg)
+		if err != nil {
 			return err
 		}
 		return fmt.Errorf(errMsg.Message)
@@ -391,7 +309,7 @@ func (srv *Service) handleError(env *pb.Envelope) error {
 }
 
 // handleCore provides service level handlers for common message types
-func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+func (srv *Service) handleCore(mtype pb.Message_Type) func(*pb.Envelope, peer.ID) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_PING:
 		return srv.handlePing
@@ -401,17 +319,12 @@ func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope
 }
 
 // handlePing receives a PING message
-func (srv *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.RequestId, true)
+func (srv *Service) handlePing(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
+	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.Request, true)
 }
 
 var dhtReadMessageTimeout = time.Minute
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
-
-type bufferedWriteCloser interface {
-	ggio.WriteCloser
-	Flush() error
-}
 
 // The Protobuf writer performs multiple small writes when writing a message.
 // We need to buffer those writes, to make sure that we're not sending a new
@@ -421,12 +334,26 @@ type bufferedDelimitedWriter struct {
 	ggio.WriteCloser
 }
 
-func newBufferedDelimitedWriter(str io.Writer) bufferedWriteCloser {
-	w := bufio.NewWriter(str)
-	return &bufferedDelimitedWriter{
-		Writer:      w,
-		WriteCloser: ggio.NewDelimitedWriter(w),
+var writerPool = sync.Pool{
+	New: func() interface{} {
+		w := bufio.NewWriter(nil)
+		return &bufferedDelimitedWriter{
+			Writer:      w,
+			WriteCloser: ggio.NewDelimitedWriter(w),
+		}
+	},
+}
+
+func writeMsg(w io.Writer, mes *pb.Envelope) error {
+	bw := writerPool.Get().(*bufferedDelimitedWriter)
+	bw.Reset(w)
+	err := bw.WriteMsg(mes)
+	if err == nil {
+		err = bw.Flush()
 	}
+	bw.Reset(nil)
+	writerPool.Put(bw)
+	return err
 }
 
 func (w *bufferedDelimitedWriter) Flush() error {
@@ -435,39 +362,37 @@ func (w *bufferedDelimitedWriter) Flush() error {
 
 // handleNewStream implements the inet.StreamHandler
 func (srv *Service) handleNewStream(s inet.Stream) {
-	go srv.handleNewMessage(s)
+	defer s.Reset()
+	if srv.handleNewMessage(s) {
+		// Gracefully close the stream for writes.
+		_ = s.Close()
+	}
 }
 
-func (srv *Service) handleNewMessage(s inet.Stream) {
+func (srv *Service) handleNewMessage(s inet.Stream) bool {
 	ctx := srv.Node().Context()
+
 	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
 	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
-	w := newBufferedDelimitedWriter(cw)
 	mPeer := s.Conn().RemotePeer()
 
 	for {
-		select {
-		// end loop on context close
-		case <-srv.Node().Context().Done():
-			return
-		default:
-		}
-
-		// receive msg
-		pmes := new(pb.Envelope)
-		switch err := r.ReadMsg(pmes); err {
+		var pmes pb.Envelope
+		switch err := r.ReadMsg(&pmes); err {
 		case io.EOF:
-			s.Close()
-			return
-		case nil:
+			return true
 		default:
-			s.Reset()
-			log.Debugf("error unmarshaling data: %s", err)
-			return
+			// This string test is necessary because there isn't a single stream reset error
+			// instance	in use.
+			if err.Error() != "stream reset" {
+				log.Debugf("error reading message: %s", err)
+			}
+			return false
+		case nil:
 		}
 
-		if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+		if err := srv.VerifyEnvelope(&pmes, mPeer); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
 		}
@@ -477,18 +402,20 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 		if handler == nil {
 			// get service specific handler
 			handler = srv.handler.Handle
-			// TODO: handle stream requests over p2p?
 		}
 
 		log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-		rpmes, err := handler(mPeer, pmes)
+		rpmes, err := handler(&pmes, mPeer)
 		if err != nil {
-			s.Reset()
-			log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
-			return
+			log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
+			return false
 		}
 
-		// if nil response, return it before serializing
+		err = srv.updateFromMessage(ctx, mPeer)
+		if err != nil {
+			log.Warningf("error updating from: %s", err)
+		}
+
 		if rpmes == nil {
 			continue
 		}
@@ -497,14 +424,10 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 		log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 		// send out response msg
-		err = w.WriteMsg(rpmes)
-		if err == nil {
-			err = w.Flush()
-		}
+		err = writeMsg(cw, rpmes)
 		if err != nil {
-			s.Reset()
-			log.Errorf("send response error: %s", err)
-			return
+			log.Debugf("error writing response: %s", err)
+			return false
 		}
 	}
 }
@@ -545,12 +468,14 @@ func (srv *Service) listen(tag string) {
 			}
 
 			pmes := new(pb.Envelope)
-			if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
-				log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
+			err := proto.Unmarshal(msg.Data(), pmes)
+			if err != nil {
+				log.Warningf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
 				continue
 			}
 
-			if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+			err = srv.VerifyEnvelope(pmes, mPeer)
+			if err != nil {
 				log.Warningf("error verifying message: %s", err)
 				continue
 			}
@@ -563,9 +488,9 @@ func (srv *Service) listen(tag string) {
 			}
 
 			log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-			rpmes, err := handler(mPeer, pmes)
+			rpmes, err := handler(pmes, mPeer)
 			if err != nil {
-				log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
+				log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
 				continue
 			}
 
@@ -578,8 +503,9 @@ func (srv *Service) listen(tag string) {
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-			if err := srv.SendMessage(ctx, mPeer, rpmes); err != nil {
-				log.Errorf("error sending message response to %s: %s", mPeer, err)
+			err = srv.SendMessage(ctx, mPeer.Pretty(), rpmes)
+			if err != nil {
+				log.Warningf("error sending message response to %s: %s", mPeer, err)
 			}
 			cancel()
 		}

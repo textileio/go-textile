@@ -48,6 +48,8 @@ func (a *api) addThreadMessages(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, msg)
 }
 

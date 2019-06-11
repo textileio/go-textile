@@ -1,8 +1,11 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+
+	"github.com/textileio/go-textile/ipfs"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -28,7 +31,7 @@ type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
 	getThread        func(string) *Thread
-	addThread        func([]byte) (mh.Multihash, error)
+	addThread        func([]byte, []string) (mh.Multihash, error)
 	removeThread     func(string) (mh.Multihash, error)
 	sendNotification func(*pb.Notification) error
 	online           bool
@@ -40,7 +43,7 @@ func NewThreadsService(
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(string) *Thread,
-	addThread func([]byte) (mh.Multihash, error),
+	addThread func([]byte, []string) (mh.Multihash, error),
 	removeThread func(string) (mh.Multihash, error),
 	sendNotification func(*pb.Notification) error,
 ) *ThreadsService {
@@ -67,42 +70,70 @@ func (h *ThreadsService) Start() {
 
 // Ping pings another peer
 func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
-	return h.service.Ping(pid)
+	return h.service.Ping(pid.Pretty())
 }
 
 // Handle is called by the underlying service handler method
-func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
 		return nil, nil
 	}
+
 	tenv := new(pb.ThreadEnvelope)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, tenv); err != nil {
+	err := ptypes.UnmarshalAny(env.Message.Payload, tenv)
+	if err != nil {
 		return nil, err
+	}
+
+	var hash mh.Multihash
+	var ciphertext []byte
+	var parents []string
+	if tenv.Ciphertext != nil {
+		// old block
+		hash, err = mh.FromB58String(tenv.Hash)
+		if err != nil {
+			return nil, err
+		}
+		ciphertext = tenv.Ciphertext
+		// parents are not yet known
+	} else {
+		id, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), false)
+		if err != nil {
+			return nil, err
+		}
+		node, err := ipfs.NodeAtCid(h.service.Node(), *id)
+		if err != nil {
+			return nil, err
+		}
+		bnode, err := extractNode(h.service.Node(), node)
+		if err != nil {
+			return nil, err
+		}
+		hash = bnode.hash
+		ciphertext = bnode.ciphertext
+		parents = bnode.parents
 	}
 
 	// check for an account signature
 	var accountPeer bool
 	if tenv.Sig != nil {
-		if err := h.service.Account.Verify(tenv.Ciphertext, tenv.Sig); err == nil {
+		err = h.service.Account.Verify(ciphertext, tenv.Sig)
+		if err == nil {
 			accountPeer = true
 		}
-	}
-
-	hash, err := mh.FromB58String(tenv.Hash)
-	if err != nil {
-		return nil, err
 	}
 
 	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
-		if err := h.handleAdd(hash, tenv, accountPeer); err != nil {
+		err = h.handleAdd(hash, ciphertext, parents, tenv.Thread, accountPeer)
+		if err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
-	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
+	block, err := thrd.handleBlock(hash, ciphertext)
 	if err != nil {
 		if err == ErrBlockExists {
 			// exists, abort
@@ -110,6 +141,9 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 			return nil, nil
 		}
 		return nil, err
+	}
+	if len(block.Header.Parents) > 0 {
+		parents = block.Header.Parents
 	}
 
 	if accountPeer {
@@ -125,28 +159,28 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	var leave bool
 	switch block.Type {
 	case pb.Block_MERGE:
-		err = h.handleMerge(thrd, hash, block)
+		err = h.handleMerge(thrd, hash, block, parents)
 	case pb.Block_IGNORE:
-		err = h.handleIgnore(thrd, hash, block)
+		err = h.handleIgnore(thrd, hash, block, parents)
 	case pb.Block_FLAG:
-		err = h.handleFlag(thrd, hash, block)
+		err = h.handleFlag(thrd, hash, block, parents)
 	case pb.Block_JOIN:
-		err = h.handleJoin(thrd, hash, block)
+		err = h.handleJoin(thrd, hash, block, parents, accountPeer)
 	case pb.Block_ANNOUNCE:
-		err = h.handleAnnounce(thrd, hash, block)
+		err = h.handleAnnounce(thrd, hash, block, parents)
 	case pb.Block_LEAVE:
-		err = h.handleLeave(thrd, hash, block, accountPeer)
+		err = h.handleLeave(thrd, hash, block, parents, accountPeer)
 		if accountPeer {
 			leave = true // we will leave as well
 		}
 	case pb.Block_TEXT:
-		err = h.handleMessage(thrd, hash, block)
+		err = h.handleMessage(thrd, hash, block, parents)
 	case pb.Block_FILES:
-		err = h.handleFiles(thrd, hash, block)
+		err = h.handleFiles(thrd, hash, block, parents)
 	case pb.Block_COMMENT:
-		err = h.handleComment(thrd, hash, block)
+		err = h.handleComment(thrd, hash, block, parents)
 	case pb.Block_LIKE:
-		err = h.handleLike(thrd, hash, block)
+		err = h.handleLike(thrd, hash, block, parents)
 	default:
 		return nil, nil
 	}
@@ -154,23 +188,26 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	parents, err := thrd.followParents(block.Header.Parents)
+	parents, err = thrd.followParents(parents)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := thrd.handleHead(hash, parents); err != nil {
+	err = thrd.handleHead(hash.B58String(), parents)
+	if err != nil {
 		return nil, err
 	}
 
 	// handle newly discovered peers during back prop
-	if err := thrd.sendWelcome(); err != nil {
+	err = thrd.sendWelcome()
+	if err != nil {
 		return nil, err
 	}
 
 	// we may be auto-leaving
 	if leave {
-		if _, err := h.removeThread(thrd.Id); err != nil {
+		_, err = h.removeThread(thrd.Id)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -182,43 +219,44 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
+func (h *ThreadsService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{}) {
 	// no-op
 	return make(chan *pb.Envelope), make(chan error), make(chan interface{})
 }
 
 // SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
-	return h.service.SendMessage(ctx, pid, env)
+func (h *ThreadsService) SendMessage(ctx context.Context, peerId string, env *pb.Envelope) error {
+	return h.service.SendMessage(ctx, peerId, env)
 }
 
 // NewEnvelope signs and wraps an encypted block for transport
-func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte, sig []byte) (*pb.Envelope, error) {
+func (h *ThreadsService) NewEnvelope(threadId string, node []byte, sig []byte) (*pb.Envelope, error) {
 	tenv := &pb.ThreadEnvelope{
-		Thread:     threadId,
-		Hash:       hash.B58String(),
-		Ciphertext: ciphertext,
-		Sig:        sig,
+		Thread: threadId,
+		Node:   node,
+		Sig:    sig,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
 
 // handleAdd receives an invite message
-func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, accountPeer bool) error {
-	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, tenv.Ciphertext)
+func (h *ThreadsService) handleAdd(hash mh.Multihash, ciphertext []byte, parents []string, threadId string, accountPeer bool) error {
+	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
 		return nil
 	}
 	block := new(pb.ThreadBlock)
-	if err := proto.Unmarshal(plaintext, block); err != nil {
+	err = proto.Unmarshal(plaintext, block)
+	if err != nil {
 		return err
 	}
 	if block.Type != pb.Block_ADD {
 		return ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadAdd)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err = ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return err
 	}
 
@@ -226,7 +264,8 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
 
 		// can auto-join
-		if _, err := h.addThread(plaintext); err != nil {
+		_, err = h.addThread(plaintext, parents)
+		if err != nil {
 			return err
 		}
 		return nil
@@ -238,13 +277,15 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		}
 	}
 
-	if err := h.datastore.Invites().Add(&pb.Invite{
+	err = h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
+		Parents: parents,
 		Name:    msg.Thread.Name,
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
-	}); err != nil {
+	})
+	if err != nil {
 		if !db.ConflictError(err) {
 			return err
 		}
@@ -254,7 +295,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 
 	note := h.newNotification(block.Header, pb.Notification_INVITE_RECEIVED)
 	note.SubjectDesc = msg.Thread.Name
-	note.Subject = tenv.Thread
+	note.Subject = threadId
 	note.Block = hash.B58String() // invite block
 	note.Body = "invited you to join"
 
@@ -262,33 +303,36 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 }
 
 // handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	return thrd.handleMergeBlock(hash, block)
+func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	return thrd.handleMergeBlock(hash, block, parents)
 }
 
 // handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleIgnoreBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleIgnoreBlock(hash, block, parents)
+	return err
 }
 
 // handleFlag receives a flag message
-func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleFlagBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleFlagBlock(hash, block, parents)
+	return err
 }
 
 // handleJoin receives a join message
-func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleJoinBlock(hash, block); err != nil {
+func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
+	_, err := thrd.handleJoinBlock(hash, block, parents)
+	if err != nil {
 		return err
 	}
 
-	note := h.newNotification(block.Header, pb.Notification_PEER_JOINED)
+	var ntype pb.Notification_Type
+	if accountPeer {
+		ntype = pb.Notification_ACCOUNT_PEER_JOINED
+	} else {
+		ntype = pb.Notification_PEER_JOINED
+	}
+	note := h.newNotification(block.Header, ntype)
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
 	note.Block = hash.B58String()
@@ -298,20 +342,25 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 }
 
 // handleAnnounce receives an announce message
-func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleAnnounceBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	_, err := thrd.handleAnnounceBlock(hash, block, parents)
+	return err
 }
 
 // handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
-	if err := thrd.handleLeaveBlock(hash, block); err != nil {
+func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string, accountPeer bool) error {
+	err := thrd.handleLeaveBlock(hash, block, parents)
+	if err != nil {
 		return err
 	}
 
-	note := h.newNotification(block.Header, pb.Notification_PEER_LEFT)
+	var ntype pb.Notification_Type
+	if accountPeer {
+		ntype = pb.Notification_ACCOUNT_PEER_LEFT
+	} else {
+		ntype = pb.Notification_PEER_LEFT
+	}
+	note := h.newNotification(block.Header, ntype)
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
 	note.Block = hash.B58String()
@@ -321,8 +370,8 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 }
 
 // handleMessage receives a message message
-func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleMessageBlock(hash, block)
+func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleMessageBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -337,8 +386,8 @@ func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *p
 }
 
 // handleData receives a files message
-func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleFilesBlock(hash, block)
+func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleFilesBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -354,8 +403,8 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 }
 
 // handleComment receives a comment message
-func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleCommentBlock(hash, block)
+func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleCommentBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}
@@ -382,8 +431,8 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 }
 
 // handleLike receives a like message
-func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleLikeBlock(hash, block)
+func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+	msg, err := thrd.handleLikeBlock(hash, block, parents)
 	if err != nil {
 		return err
 	}

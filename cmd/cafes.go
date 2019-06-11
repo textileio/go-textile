@@ -4,9 +4,9 @@ import (
 	"net/http"
 )
 
-func CafeAdd(url string, token string) error {
+func CafeAdd(peerId string, token string) error {
 	res, err := executeJsonCmd(http.MethodPost, "cafes", params{
-		args: []string{url},
+		args: []string{peerId},
 		opts: map[string]string{"token": token},
 	}, nil)
 	if err != nil {
@@ -44,7 +44,7 @@ func CafeDelete(cafeID string) error {
 }
 
 func CafeMessages() error {
-	res, err := executeStringCmd(http.MethodGet, "cafes/messages", params{})
+	res, err := executeStringCmd(http.MethodPost, "cafes/messages", params{})
 	if err != nil {
 		return err
 	}

@@ -29,8 +29,8 @@ var ErrMissingContentLink = fmt.Errorf("content link not in node")
 const MetaLinkName = "meta"
 const ContentLinkName = "content"
 
-var ValidMetaLinkNames = []string{"f", "meta"}
-var ValidContentLinkNames = []string{"d", "content"}
+var ValidMetaLinkNames = []string{"meta", "f"}
+var ValidContentLinkNames = []string{"content", "d"}
 
 type AddFileConfig struct {
 	Input     []byte `json:"input"`
@@ -97,13 +97,14 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, 
 		reader = bytes.NewReader(res.File)
 	}
 
-	hash, err := ipfs.AddData(t.node, reader, mill.Pin())
+	hash, err := ipfs.AddData(t.node, reader, mill.Pin(), false)
 	if err != nil {
 		return nil, err
 	}
 	model.Hash = hash.Hash().B58String()
 
-	if err := t.datastore.Files().Add(model); err != nil {
+	err = t.datastore.Files().Add(model)
+	if err != nil {
 		if db.ConflictError(err) {
 			// we may have lost the race
 			return t.datastore.Files().Get(model.Hash), nil
@@ -130,7 +131,8 @@ func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
 
 func (t *Textile) AddSchema(jsonstr string, name string) (*pb.FileIndex, error) {
 	var node pb.Node
-	if err := jsonpb.UnmarshalString(jsonstr, &node); err != nil {
+	err := jsonpb.UnmarshalString(jsonstr, &node)
+	if err != nil {
 		return nil, err
 	}
 
@@ -150,9 +152,11 @@ func (t *Textile) AddNodeFromFiles(files []*pb.FileIndex) (ipld.Node, *pb.Keys, 
 	keys := &pb.Keys{Files: make(map[string]string)}
 	outer := uio.NewDirectory(t.node.DAG)
 
+	var err error
 	for i, file := range files {
 		link := strconv.Itoa(i)
-		if err := t.fileNode(file, outer, link); err != nil {
+		err = t.fileNode(file, outer, link)
+		if err != nil {
 			return nil, nil, err
 		}
 		keys.Files["/"+link+"/"] = file.Key
@@ -162,7 +166,8 @@ func (t *Textile) AddNodeFromFiles(files []*pb.FileIndex) (ipld.Node, *pb.Keys, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := ipfs.PinNode(t.node, node, false); err != nil {
+	err = ipfs.PinNode(t.node, node, false)
+	if err != nil {
 		return nil, nil, err
 	}
 	return node, keys, nil
@@ -176,8 +181,10 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 		inner := uio.NewDirectory(t.node.DAG)
 		olink := strconv.Itoa(i)
 
+		var err error
 		for link, file := range dir.Files {
-			if err := t.fileNode(file, inner, link); err != nil {
+			err = t.fileNode(file, inner, link)
+			if err != nil {
 				return nil, nil, err
 			}
 			keys.Files["/"+olink+"/"+link+"/"] = file.Key
@@ -187,12 +194,14 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := ipfs.PinNode(t.node, node, false); err != nil {
+		err = ipfs.PinNode(t.node, node, false)
+		if err != nil {
 			return nil, nil, err
 		}
 
 		id := node.Cid().Hash().B58String()
-		if err := ipfs.AddLinkToDirectory(t.node, outer, olink, id); err != nil {
+		err = ipfs.AddLinkToDirectory(t.node, outer, olink, id)
+		if err != nil {
 			return nil, nil, err
 		}
 	}
@@ -201,18 +210,11 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := ipfs.PinNode(t.node, node, false); err != nil {
+	err = ipfs.PinNode(t.node, node, false)
+	if err != nil {
 		return nil, nil, err
 	}
 	return node, keys, nil
-}
-
-func (t *Textile) FileIndex(hash string) (*pb.FileIndex, error) {
-	file := t.datastore.Files().Get(hash)
-	if file == nil {
-		return nil, ErrFileNotFound
-	}
-	return file, nil
 }
 
 func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
@@ -266,7 +268,8 @@ func (t *Textile) TargetNodeKeys(node ipld.Node) (*pb.Keys, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := t.fileNodeKeys(fn, i, &keys.Files); err != nil {
+		err = t.fileNodeKeys(fn, i, &keys.Files)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -305,11 +308,13 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 	}
 
 	pair := uio.NewDirectory(t.node.DAG)
-	if _, err := ipfs.AddDataToDirectory(t.node, pair, MetaLinkName, reader); err != nil {
+	_, err = ipfs.AddDataToDirectory(t.node, pair, MetaLinkName, reader)
+	if err != nil {
 		return err
 	}
 
-	if err := ipfs.AddLinkToDirectory(t.node, pair, ContentLinkName, file.Hash); err != nil {
+	err = ipfs.AddLinkToDirectory(t.node, pair, ContentLinkName, file.Hash)
+	if err != nil {
 		return err
 	}
 
@@ -317,7 +322,8 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 	if err != nil {
 		return err
 	}
-	if err := ipfs.PinNode(t.node, node, false); err != nil {
+	err = ipfs.PinNode(t.node, node, false)
+	if err != nil {
 		return err
 	}
 
@@ -335,9 +341,9 @@ func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
 	return t.datastore.Files().Get(c.Cid.Hash().B58String()), nil
 }
 
-func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
+func (t *Textile) checksum(plaintext []byte, wontEncrypt bool) string {
 	var add int
-	if willEncrypt {
+	if wontEncrypt {
 		add = 1
 	}
 	plaintext = append(plaintext, byte(add))

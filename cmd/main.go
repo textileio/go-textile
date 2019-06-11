@@ -173,11 +173,11 @@ func Run() error {
 	// cafe add
 	cafeAddCmd := cafeCmd.Command("add", `Registers with a cafe and saves an expiring service session token.
 An access token is required to register, and should be obtained separately from the target cafe.`)
-	cafeAddURL   := cafeAddCmd.Arg("url", "The host cafe public URL").Required().String()
+    cafeAddPeerID := cafeAddCmd.Arg("peer", "The host cafe's IPFS peer ID").Required().String()
 	cafeAddToken := cafeAddCmd.Flag("token", "An access token supplied by the cafe").Short('t').Required().String()
 	// @todo is this consistent with the rest?
 	cmds[cafeAddCmd.FullCommand()] = func () error {
-		return CafeAdd(*cafeAddURL, *cafeAddToken)
+		return CafeAdd(*cafeAddPeerID, *cafeAddToken)
 	}
 
 	// cafe list

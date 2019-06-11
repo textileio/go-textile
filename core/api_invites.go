@@ -43,6 +43,8 @@ func (a *api) createInvites(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, invite)
 }
 
@@ -108,6 +110,8 @@ func (a *api) acceptInvites(g *gin.Context) {
 		return
 	}
 
+	go a.node.cafeOutbox.Flush()
+
 	pbJSON(g, http.StatusCreated, block)
 }
 
@@ -127,6 +131,8 @@ func (a *api) ignoreInvites(g *gin.Context) {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+
+	go a.node.cafeOutbox.Flush()
 
 	g.String(http.StatusOK, "ok")
 }

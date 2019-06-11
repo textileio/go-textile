@@ -21,6 +21,7 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
+		Invitee: p.Id,
 	}
 
 	pid, err := peer.IDB58Decode(p.Id)
@@ -32,21 +33,14 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_ADD, true, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(pk, plaintext)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// create new peer for posting (it will get added if+when they accept)
-	target := pb.ThreadPeer{Id: p.Id}
-
-	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
-		return nil, err
-	}
-
-	log.Debugf("sent ADD to %s for %s", p.Id, t.Id)
+	log.Debugf("created ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -68,35 +62,35 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_ADD, true, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	go t.cafeOutbox.Flush()
+	nhash, err := t.commitNode(res.hash.B58String(), nil, false)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	log.Debugf("created external ADD for %s", t.Id)
 
-	return res.hash, key, nil
+	return nhash, key, nil
 }
 
 // handleAddBlock handles an incoming add.
 // This happens right before a join. The invite is not kept on-chain,
 // so we only need to follow parents and update HEAD.
-func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
-	if _, err := t.followParents(block.Header.Parents); err != nil {
+func (t *Thread) handleAddBlock(parents []string) error {
+	_, err := t.followParents(parents)
+	if err != nil {
 		return err
 	}
 
 	// update HEAD if parents of the invite are actual updates
-	if len(block.Header.Parents) > 0 {
-		hash, err := mh.FromB58String(block.Header.Parents[0])
+	if len(parents) > 0 {
+		err = t.updateHead(parents)
 		if err != nil {
-			return err
-		}
-		if err := t.updateHead(hash); err != nil {
 			return err
 		}
 	}

@@ -3,7 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"strings"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,8 +12,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
+	uio "github.com/ipfs/go-unixfs/io"
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
@@ -22,7 +22,18 @@ import (
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
 	"github.com/textileio/go-textile/repo/db"
+	"github.com/textileio/go-textile/schema"
+	"github.com/textileio/go-textile/util"
 )
+
+// blockLinkName is the name of the block link in a thread node
+const blockLinkName = "block"
+
+// parentsLinkName is the name of the parents link in a thread node
+const parentsLinkName = "parents"
+
+// ErrInvalidNode indicates the thread node is not valid
+var ErrInvalidNode = fmt.Errorf("thread node is not valid")
 
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
 var ErrNotShareable = fmt.Errorf("thread is not shareable")
@@ -122,19 +133,20 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		pushUpdate:  conf.PushUpdate,
 	}
 
-	if err := thrd.loadSchema(); err != nil {
+	err = thrd.loadSchema()
+	if err != nil {
 		return nil, err
 	}
 	return thrd, nil
 }
 
-// Head returns content id of the latest update
-func (t *Thread) Head() (string, error) {
+// Heads returns the node ids of the current HEADs
+func (t *Thread) Heads() ([]string, error) {
 	mod := t.datastore.Threads().Get(t.Id)
 	if mod == nil {
-		return "", errThreadReload
+		return nil, errThreadReload
 	}
-	return mod.Head, nil
+	return util.SplitString(mod.Head, ","), nil
 }
 
 // LatestFiles returns the most recent files block
@@ -172,7 +184,7 @@ func (t *Thread) UpdateSchema(hash string) error {
 	return t.loadSchema()
 }
 
-// followParents tries to follow a list of chains of block ids, processing along the way
+// followParents follows a list of node links, processing along the way
 // Note: Returns a final list of existing parent hashes that were reached during the tree traversal
 func (t *Thread) followParents(parents []string) ([]string, error) {
 	if len(parents) == 0 {
@@ -190,7 +202,6 @@ func (t *Thread) followParents(parents []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		ends, err := t.followParent(hash)
 		if err != nil {
 			log.Warningf("failed to follow parent %s: %s", parent, err)
@@ -210,20 +221,43 @@ func (t *Thread) followParents(parents []string) ([]string, error) {
 
 // followParent tries to follow a tree of blocks, processing along the way
 func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node(), parent.B58String())
+	var hash mh.Multihash
+	var ciphertext []byte
+	var parents []string
+	node, err := ipfs.NodeAtPath(t.node(), parent.B58String())
 	if err != nil {
 		return nil, err
 	}
+	if len(node.Links()) == 0 {
+		// older block
+		hash = parent
+		ciphertext, err = ipfs.DataAtPath(t.node(), hash.B58String())
+		if err != nil {
+			return nil, err
+		}
+		// parents are not yet known
+	} else {
+		bnode, err := extractNode(t.node(), node)
+		if err != nil {
+			return nil, err
+		}
+		hash = bnode.hash
+		ciphertext = bnode.ciphertext
+		parents = bnode.parents
+	}
 
-	block, err := t.handleBlock(parent, ciphertext)
+	block, err := t.handleBlock(hash, ciphertext)
 	if err != nil {
 		if err == ErrBlockExists {
 			// exists, abort
-			log.Debugf("%s exists, aborting", parent.B58String())
+			log.Debugf("%s exists, aborting", hash.B58String())
 
 			return []string{parent.B58String()}, nil
 		}
 		return nil, err
+	}
+	if len(block.Header.Parents) > 0 {
+		parents = block.Header.Parents
 	}
 
 	if block.Header.Author != "" {
@@ -234,25 +268,25 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 
 	switch block.Type {
 	case pb.Block_MERGE:
-		err = t.handleMergeBlock(parent, block)
+		err = t.handleMergeBlock(hash, block, parents)
 	case pb.Block_IGNORE:
-		_, err = t.handleIgnoreBlock(parent, block)
+		_, err = t.handleIgnoreBlock(hash, block, parents)
 	case pb.Block_FLAG:
-		_, err = t.handleFlagBlock(parent, block)
+		_, err = t.handleFlagBlock(hash, block, parents)
 	case pb.Block_JOIN:
-		_, err = t.handleJoinBlock(parent, block)
+		_, err = t.handleJoinBlock(hash, block, parents)
 	case pb.Block_ANNOUNCE:
-		_, err = t.handleAnnounceBlock(parent, block)
+		_, err = t.handleAnnounceBlock(hash, block, parents)
 	case pb.Block_LEAVE:
-		err = t.handleLeaveBlock(parent, block)
+		err = t.handleLeaveBlock(hash, block, parents)
 	case pb.Block_TEXT:
-		_, err = t.handleMessageBlock(parent, block)
+		_, err = t.handleMessageBlock(hash, block, parents)
 	case pb.Block_FILES:
-		_, err = t.handleFilesBlock(parent, block)
+		_, err = t.handleFilesBlock(hash, block, parents)
 	case pb.Block_COMMENT:
-		_, err = t.handleCommentBlock(parent, block)
+		_, err = t.handleCommentBlock(hash, block, parents)
 	case pb.Block_LIKE:
-		_, err = t.handleLikeBlock(parent, block)
+		_, err = t.handleLikeBlock(hash, block, parents)
 	default:
 		return nil, fmt.Errorf(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
@@ -260,7 +294,7 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 		return nil, err
 	}
 
-	return t.followParents(block.Header.Parents)
+	return t.followParents(parents)
 }
 
 // addOrUpdatePeer collects and saves thread peers
@@ -269,11 +303,12 @@ func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
 		return nil
 	}
 
-	if err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
+	err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
 		Id:       peer.Id,
 		Thread:   t.Id,
 		Welcomed: false,
-	}); err != nil {
+	})
+	if err != nil {
 		if !db.ConflictError(err) {
 			return err
 		}
@@ -284,24 +319,13 @@ func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
 
 // newBlockHeader creates a new header
 func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
-	head, err := t.Head()
-	if err != nil {
-		return nil, err
-	}
-
 	pdate, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
 		return nil, err
 	}
 
-	var parents []string
-	if head != "" {
-		parents = strings.Split(head, ",")
-	}
-
 	return &pb.ThreadBlockHeader{
 		Date:    pdate,
-		Parents: parents,
 		Author:  t.node().Identity.Pretty(),
 		Address: t.account.Address(),
 	}, nil
@@ -312,10 +336,11 @@ type commitResult struct {
 	hash       mh.Multihash
 	ciphertext []byte
 	header     *pb.ThreadBlockHeader
+	parents    []string
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
-func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, add bool, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
@@ -345,36 +370,39 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encryp
 		return nil, err
 	}
 
-	hash, err := t.addBlock(ciphertext)
+	hash, err := t.addBlock(ciphertext, !add)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commitResult{hash, ciphertext, header}, nil
+	return &commitResult{
+		hash:       hash,
+		ciphertext: ciphertext,
+		header:     header,
+		parents:    []string{"pending"},
+	}, nil
 }
 
 // addBlock adds to ipfs
-func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
-	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true)
+func (t *Thread) addBlock(ciphertext []byte, hashOnly bool) (mh.Multihash, error) {
+	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true, hashOnly)
 	if err != nil {
 		return nil, err
 	}
 	hash := id.Hash().B58String()
 
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.Group(t.Id)); err != nil {
-		return nil, err
+	if !hashOnly {
+		err = t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.SyncGroup(hash))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return id.Hash(), nil
 }
 
-// handleBlock receives an incoming encrypted block
-func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
-	index := t.datastore.Blocks().Get(hash.B58String())
-	if index != nil {
-		return nil, ErrBlockExists
-	}
-
+// unmarshalBlock decrypts and unmarshals an encrypted block
+func (t *Thread) unmarshalBlock(ciphertext []byte) (*pb.ThreadBlock, error) {
 	block := new(pb.ThreadBlock)
 	plaintext, err := t.Decrypt(ciphertext)
 	if err != nil {
@@ -384,7 +412,8 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 			return nil, err
 		}
 	} else {
-		if err := proto.Unmarshal(plaintext, block); err != nil {
+		err = proto.Unmarshal(plaintext, block)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -394,10 +423,102 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 		return nil, fmt.Errorf("nil message payload")
 	}
 
-	if _, err := t.addBlock(ciphertext); err != nil {
+	return block, nil
+}
+
+// handleBlock receives an incoming encrypted block
+func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
+	index := t.datastore.Blocks().Get(hash.B58String())
+	if index != nil {
+		return nil, ErrBlockExists
+	}
+
+	block, err := t.unmarshalBlock(ciphertext)
+	if err != nil {
 		return nil, err
 	}
+	_, err = t.addBlock(ciphertext, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return block, nil
+}
+
+// commitNode writes the block to an IPLD node
+func (t *Thread) commitNode(block string, additionalParents []string, updateHead bool) (mh.Multihash, error) {
+	dir := uio.NewDirectory(t.node().DAG)
+
+	// add block
+	err := ipfs.AddLinkToDirectory(t.node(), dir, blockLinkName, block)
+	if err != nil {
+		return nil, err
+	}
+
+	// add parents
+	heads, err := t.Heads()
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range additionalParents {
+		heads = append(heads, p)
+	}
+	pdir := uio.NewDirectory(t.node().DAG)
+	for i, p := range heads {
+		err = ipfs.AddLinkToDirectory(t.node(), pdir, strconv.Itoa(i), p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	pnode, err := pdir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.PinNode(t.node(), pnode, false)
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.AddLinkToDirectory(t.node(), dir, parentsLinkName, pnode.Cid().Hash().B58String())
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := dir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.PinNode(t.node(), node, false)
+	if err != nil {
+		return nil, err
+	}
+	nhash := node.Cid().Hash()
+
+	// update block parents
+	err = t.datastore.Blocks().UpdateParents(block, heads)
+	if err != nil {
+		return nil, err
+	}
+
+	if updateHead {
+		err = t.updateHead([]string{nhash.B58String()})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// store nodes
+	group := cafeReqOpt.Group(nhash.B58String())
+	syncGroup := cafeReqOpt.SyncGroup(nhash.B58String())
+	err = t.cafeOutbox.Add(nhash.B58String(), pb.CafeRequest_STORE, group, syncGroup)
+	if err != nil {
+		return nil, err
+	}
+	err = t.cafeOutbox.Add(pnode.Cid().Hash().B58String(), pb.CafeRequest_STORE, group, syncGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	return nhash, nil
 }
 
 // indexBlock stores off index info for this block type
@@ -406,7 +527,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 		Id:      commit.hash.B58String(),
 		Type:    blockType,
 		Date:    commit.header.Date,
-		Parents: commit.header.Parents,
+		Parents: commit.parents,
 		Thread:  t.Id,
 		Author:  commit.header.Author,
 		Target:  target,
@@ -420,41 +541,36 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 	return nil
 }
 
-// handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed
-// - parents are the parents of the incoming chain
-func (t *Thread) handleHead(inbound mh.Multihash, parents []string) (mh.Multihash, error) {
-	head, err := t.Head()
+// handleHead determines what the next set of HEADs will be.
+// One of three situations will occur:
+// 1) fast-forward: the inbound parents are identical to current heads (heads -> [inbound])
+// 2) partial-split: at least one inbound parent matches a current head (heads -> [inbound, unmatched...])
+// 3) full-split: zero inbound parents match a current head (heads -> [inbound, current...])
+func (t *Thread) handleHead(inbound string, inboundParents []string) error {
+	heads, err := t.Heads()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	next := []string{inbound}
 
-	// fast-forward is possible if current HEAD is equal to one of the incoming parents
-	var fastForwardable bool
-	if head == "" {
-		fastForwardable = true
-	} else {
-		for _, parent := range parents {
-			if head == parent {
-				fastForwardable = true
+outer:
+	for _, head := range heads {
+		for _, ip := range inboundParents {
+			if head == ip {
+				continue outer
 			}
 		}
-	}
-	if fastForwardable {
-		// no need for a merge
-		log.Debugf("fast-forwarded to %s", inbound.B58String())
-		if err := t.updateHead(inbound); err != nil {
-			return nil, err
-		}
-		return nil, nil
+		// this head was not found, keep it
+		next = append(next, head)
 	}
 
-	// needs merge
-	return t.merge(inbound)
+	return t.updateHead(next)
 }
 
 // updateHead updates the ref to the content id of the latest update
-func (t *Thread) updateHead(head mh.Multihash) error {
-	if err := t.datastore.Threads().UpdateHead(t.Id, head.B58String()); err != nil {
+func (t *Thread) updateHead(heads []string) error {
+	err := t.datastore.Threads().UpdateHead(t.Id, heads)
+	if err != nil {
 		return err
 	}
 
@@ -468,80 +584,109 @@ func (t *Thread) sendWelcome() error {
 		return nil
 	}
 
-	head, err := t.Head()
+	heads, err := t.Heads()
 	if err != nil {
 		return err
 	}
-	if head == "" {
+	if len(heads) == 0 {
 		return nil
 	}
-
-	ciphertext, err := ipfs.DataAtPath(t.node(), head)
-	if err != nil {
-		return err
-	}
-
-	hash, err := mh.FromB58String(head)
-	if err != nil {
-		return err
-	}
-	res := &commitResult{hash: hash, ciphertext: ciphertext}
-	if err := t.post(res, peers); err != nil {
-		return err
-	}
-
-	if err := t.datastore.ThreadPeers().WelcomeByThread(t.Id); err != nil {
-		return err
-	}
-	for _, p := range peers {
-		log.Debugf("WELCOME sent to %s at %s", p.Id, head)
-	}
-	return nil
-}
-
-// post publishes an encrypted message to thread peers
-func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
-	go t.cafeOutbox.Flush()
-
-	if len(peers) == 0 {
-		return nil
-	}
-
-	// add account signature
-	sig, err := t.account.Sign(commit.ciphertext)
-	if err != nil {
-		return err
-	}
-	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext, sig)
-	if err != nil {
-		return err
-	}
-
-	for _, tp := range peers {
-		pid, err := peer.IDB58Decode(tp.Id)
+	for _, head := range heads {
+		ndata, err := ipfs.ObjectAtPath(t.node(), head)
+		if err != nil {
+			return err
+		}
+		block, err := blockCIDFromNode(t.node(), head)
 		if err != nil {
 			return err
 		}
 
-		if err := t.blockOutbox.Add(pid, env); err != nil {
+		ciphertext, err := ipfs.DataAtPath(t.node(), block)
+		if err != nil {
 			return err
+		}
+		sig, err := t.account.Sign(ciphertext)
+		if err != nil {
+			return err
+		}
+		env, err := t.service().NewEnvelope(t.Id, ndata, sig)
+		if err != nil {
+			return err
+		}
+
+		for _, tp := range peers {
+			err = t.blockOutbox.Add(tp.Id, env)
+			if err != nil {
+				return err
+			}
+			log.Debugf("WELCOME sent to %s at %s", tp.Id, head)
 		}
 	}
 
-	go t.blockOutbox.Flush()
+	return t.datastore.ThreadPeers().WelcomeByThread(t.Id)
+}
+
+// post publishes an encrypted message to thread peers
+func (t *Thread) post(block string, peers []pb.ThreadPeer, updateHead bool) error {
+	nhash, err := t.commitNode(block, nil, updateHead)
+	if err != nil {
+		return err
+	}
+	ndata, err := ipfs.ObjectAtPath(t.node(), nhash.B58String())
+	if err != nil {
+		return err
+	}
+
+	ciphertext, err := ipfs.DataAtPath(t.node(), block)
+	if err != nil {
+		return err
+	}
+	sig, err := t.account.Sign(ciphertext)
+	if err != nil {
+		return err
+	}
+	env, err := t.service().NewEnvelope(t.Id, ndata, sig)
+	if err != nil {
+		return err
+	}
+
+	tblock, err := t.unmarshalBlock(ciphertext)
+	if err != nil {
+		return err
+	}
+	if tblock.Type == pb.Block_ADD {
+		msg := new(pb.ThreadAdd)
+		err = ptypes.UnmarshalAny(tblock.Payload, msg)
+		if err != nil {
+			return err
+		}
+		peers = append(peers, pb.ThreadPeer{Id: msg.Invitee})
+		if len(peers) == 0 { // external invite
+			return nil
+		}
+	} else if len(peers) == 0 {
+		peers = t.Peers()
+	}
+
+	for _, tp := range peers {
+		err = t.blockOutbox.Add(tp.Id, env)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 // store adds a store thread request
 func (t *Thread) store() error {
-	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD, cafeReqOpt.Group(t.Id))
+	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
 }
 
 // readable returns whether or not this thread is readable from the
 // perspective of the given address
 func (t *Thread) readable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {
@@ -561,7 +706,7 @@ func (t *Thread) readable(addr string) bool {
 // annotatable returns whether or not this thread is annotatable from the
 // perspective of the given address
 func (t *Thread) annotatable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {
@@ -581,7 +726,7 @@ func (t *Thread) annotatable(addr string) bool {
 // writable returns whether or not this thread can accept files from the
 // perspective of the given address
 func (t *Thread) writable(addr string) bool {
-	if addr == t.initiator {
+	if addr == "" || addr == t.initiator {
 		return true
 	}
 	switch t.ttype {
@@ -645,15 +790,99 @@ func (t *Thread) loadSchema() error {
 	}
 
 	var sch pb.Node
-	if err := jsonpb.UnmarshalString(string(data), &sch); err != nil {
+	err = jsonpb.UnmarshalString(string(data), &sch)
+	if err != nil {
 		return err
 	}
 	t.Schema = &sch
 
 	// pin/repin to ensure remotely added schemas are readily accessible
-	if _, err := ipfs.AddData(t.node(), bytes.NewReader(data), true); err != nil {
+	_, err = ipfs.AddData(t.node(), bytes.NewReader(data), true, false)
+	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// validateNode ensures that the node contains the correct links
+func validateNode(node ipld.Node) error {
+	links := node.Links()
+	if schema.LinkByName(links, []string{blockLinkName}) == nil {
+		return ErrInvalidNode
+	}
+	if schema.LinkByName(links, []string{parentsLinkName}) == nil {
+		return ErrInvalidNode
+	}
+	return nil
+}
+
+// blockNode represents the components of a block wrapped by an ipld node
+type blockNode struct {
+	hash       mh.Multihash
+	ciphertext []byte
+	parents    []string
+}
+
+// extractNode pulls out block components from an ipld node
+func extractNode(ipfsNode *core.IpfsNode, node ipld.Node) (*blockNode, error) {
+	bnode := &blockNode{}
+
+	err := validateNode(node)
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.PinNode(ipfsNode, node, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// extract block
+	blink := schema.LinkByName(node.Links(), []string{blockLinkName})
+	cnode, err := ipfs.NodeAtLink(ipfsNode, blink)
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.PinNode(ipfsNode, cnode, false)
+	if err != nil {
+		return nil, err
+	}
+	bnode.hash = blink.Cid.Hash()
+	bnode.ciphertext, err = ipfs.DataAtPath(ipfsNode, bnode.hash.B58String())
+	if err != nil {
+		return nil, err
+	}
+
+	// extract parents
+	plink := schema.LinkByName(node.Links(), []string{parentsLinkName})
+	pnode, err := ipfs.NodeAtLink(ipfsNode, plink)
+	if err != nil {
+		return nil, err
+	}
+	err = ipfs.PinNode(ipfsNode, pnode, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range pnode.Links() {
+		bnode.parents = append(bnode.parents, l.Cid.Hash().B58String())
+	}
+
+	return bnode, nil
+}
+
+// blockCIDFromNode returns the inner block id from its ipld wrapper
+func blockCIDFromNode(ipfsNode *core.IpfsNode, nhash string) (string, error) {
+	node, err := ipfs.NodeAtPath(ipfsNode, nhash)
+	if err != nil {
+		return "", err
+	}
+	if len(node.Links()) == 0 {
+		// old block
+		return nhash, nil
+	}
+	link := schema.LinkByName(node.Links(), []string{blockLinkName})
+	if link == nil {
+		return "", ErrInvalidNode
+	}
+	return link.Cid.Hash().B58String(), nil
 }

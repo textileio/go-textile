@@ -17,6 +17,8 @@ func (m *Mobile) AddContact(contact []byte) error {
 		return err
 	}
 
+	m.node.FlushCafes()
+
 	return m.node.AddContact(model)
 }
 
@@ -48,6 +50,8 @@ func (m *Mobile) RemoveContact(address string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
+
+	m.node.FlushCafes()
 
 	return m.node.RemoveContact(address)
 }

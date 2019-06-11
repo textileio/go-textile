@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
@@ -28,15 +29,16 @@ func init() {
 
 func setupPeerDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
+	_ = initDatabaseTables(conn, "")
 	peerStore = NewPeerStore(conn, new(sync.Mutex))
 }
 
 func TestPeerDB_Add(t *testing.T) {
-	if err := peerStore.Add(&pb.Peer{
+	err := peerStore.Add(&pb.Peer{
 		Id:      "abcde",
 		Address: "address",
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -47,7 +49,8 @@ func TestPeerDB_Add(t *testing.T) {
 	}
 	defer stmt.Close()
 	var id string
-	if err := stmt.QueryRow("abcde").Scan(&id); err != nil {
+	err = stmt.QueryRow("abcde").Scan(&id)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -74,7 +77,8 @@ func TestPeerDB_AddOrUpdate(t *testing.T) {
 	testPeer.Name = "joe"
 	testPeer.Avatar = "Qm123"
 	testPeer.Inboxes = []*pb.Cafe{testCafe}
-	if err := peerStore.AddOrUpdate(testPeer); err != nil {
+	err := peerStore.AddOrUpdate(testPeer)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -86,7 +90,8 @@ func TestPeerDB_AddOrUpdate(t *testing.T) {
 	defer stmt.Close()
 	var name string
 	var updated int64
-	if err := stmt.QueryRow("abcde").Scan(&name, &updated); err != nil {
+	err = stmt.QueryRow("abcde").Scan(&name, &updated)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -102,53 +107,81 @@ func TestPeerDB_AddOrUpdate(t *testing.T) {
 
 func TestPeerDB_GetBestUserAgain(t *testing.T) {
 	setupPeerDB()
-	if err := peerStore.Add(&pb.Peer{
+	now := time.Now().UnixNano()
+	err := peerStore.Add(&pb.Peer{
 		Id:      "abcde",
 		Address: "address",
-	}); err != nil {
+		Updated: util.ProtoTs(now),
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := peerStore.Add(&pb.Peer{
+	err = peerStore.Add(&pb.Peer{
 		Id:      "abcdef",
 		Address: "address",
 		Name:    "name",
 		Avatar:  "avatar",
-	}); err != nil {
+		Updated: util.ProtoTs(now + 1e9),
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
 	best := peerStore.GetBestUser("abcde")
 	if best.Address != "address" {
-		t.Error("best peer should have older name")
+		t.Error("wrong address")
 	}
 	if best.Name != "name" {
-		t.Error("best peer should have older name")
+		t.Error("wrong name")
 	}
 	if best.Avatar != "avatar" {
-		t.Error("best peer should have older avatar")
+		t.Error("wrong avatar")
+	}
+	err = peerStore.Add(&pb.Peer{
+		Id:      "abcdefg",
+		Address: "address",
+		Name:    "new",
+		Avatar:  "new",
+		Updated: util.ProtoTs(now + 2e9),
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	best = peerStore.GetBestUser("abcde")
+	if best.Address != "address" {
+		t.Error("wrong address")
+	}
+	if best.Name != "new" {
+		t.Error("wrong name")
+	}
+	if best.Avatar != "new" {
+		t.Error("wrong avatar")
 	}
 }
 
 func TestPeerDB_List(t *testing.T) {
 	setupPeerDB()
-	if err := peerStore.Add(&pb.Peer{
+	err := peerStore.Add(&pb.Peer{
 		Id:      "abcde",
 		Address: "address1",
 		Name:    "joe",
 		Avatar:  "Qm123",
 		Inboxes: []*pb.Cafe{testCafe},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := peerStore.Add(&pb.Peer{
+	err = peerStore.Add(&pb.Peer{
 		Id:      "fghij",
 		Address: "address2",
 		Name:    "joe",
 		Avatar:  "Qm123",
 		Inboxes: []*pb.Cafe{testCafe, testCafe},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -165,7 +198,8 @@ func TestPeerDB_Count(t *testing.T) {
 }
 
 func TestPeerDB_UpdateName(t *testing.T) {
-	if err := peerStore.UpdateName(testPeer.Id, "mike"); err != nil {
+	err := peerStore.UpdateName(testPeer.Id, "mike")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -181,7 +215,8 @@ func TestPeerDB_UpdateName(t *testing.T) {
 }
 
 func TestPeerDB_UpdateAvatar(t *testing.T) {
-	if err := peerStore.UpdateAvatar(testPeer.Id, "avatar2"); err != nil {
+	err := peerStore.UpdateAvatar(testPeer.Id, "avatar2")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -198,7 +233,8 @@ func TestPeerDB_UpdateAvatar(t *testing.T) {
 
 func TestPeerDB_UpdateInboxes(t *testing.T) {
 	testCafe.Peer = "newone"
-	if err := peerStore.UpdateInboxes(testPeer.Id, []*pb.Cafe{testCafe}); err != nil {
+	err := peerStore.UpdateInboxes(testPeer.Id, []*pb.Cafe{testCafe})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -213,7 +249,8 @@ func TestPeerDB_UpdateInboxes(t *testing.T) {
 }
 
 func TestPeerDB_Delete(t *testing.T) {
-	if err := peerStore.Delete("abcde"); err != nil {
+	err := peerStore.Delete("abcde")
+	if err != nil {
 		t.Error(err)
 	}
 	stmt, err := peerStore.PrepareQuery("select id from peers where id=?")
@@ -222,7 +259,8 @@ func TestPeerDB_Delete(t *testing.T) {
 	}
 	defer stmt.Close()
 	var id string
-	if err = stmt.QueryRow("abcde").Scan(&id); err == nil {
+	err = stmt.QueryRow("abcde").Scan(&id)
+	if err == nil {
 		t.Error("delete failed")
 	}
 }

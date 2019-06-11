@@ -35,6 +35,8 @@ func (m *Mobile) AddThread(config []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	m.node.FlushCafes()
+
 	return proto.Marshal(view)
 }
 
@@ -49,7 +51,14 @@ func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
 		return err
 	}
 
-	return m.node.AddOrUpdateThread(mthrd)
+	err := m.node.AddOrUpdateThread(mthrd)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // RenameThread call core RenameThread
@@ -58,7 +67,14 @@ func (m *Mobile) RenameThread(id string, name string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.RenameThread(id, name)
+	err := m.node.RenameThread(id, name)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // Thread calls core Thread
@@ -74,6 +90,7 @@ func (m *Mobile) Thread(id string) ([]byte, error) {
 		}
 		return nil, err
 	}
+
 	return proto.Marshal(view)
 }
 
@@ -122,6 +139,8 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 		return "", err
 	}
 
+	m.node.FlushCafes()
+
 	return hash.B58String(), nil
 }
 
@@ -131,7 +150,14 @@ func (m *Mobile) SnapshotThreads() error {
 		return core.ErrStopped
 	}
 
-	return m.node.SnapshotThreads()
+	err := m.node.SnapshotThreads()
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
 
 // SearchThreadSnapshots calls core SearchThreadSnapshots

@@ -2,7 +2,6 @@ syntax = "proto3";
 option java_package = "io.textile.pb";
 option go_package = "pb";
 
-import "view.proto";
 import "query.proto";
 import "message.proto";
 
@@ -11,21 +10,20 @@ message MobileWalletAccount {
     string address = 2;
 }
 
-message MobilePreparedFiles {
-    Directory dir           = 1;
-    map<string, string> pin = 2;
-}
-
 enum MobileEventType {
     NODE_START  = 0;
     NODE_ONLINE = 1;
     NODE_STOP   = 2;
 
-    WALLET_UPDATE = 10;
-    THREAD_UPDATE = 11;
-    NOTIFICATION  = 12;
+    ACCOUNT_UPDATE = 10;
+    THREAD_UPDATE  = 11;
+    NOTIFICATION   = 12;
 
     QUERY_RESPONSE = 20;
+
+	CAFE_SYNC_GROUP_UPDATE   = 30;
+	CAFE_SYNC_GROUP_COMPLETE = 31;
+	CAFE_SYNC_GROUP_FAILED   = 32;
 }
 
 message MobileQueryEvent {

@@ -14,6 +14,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/mill"
@@ -21,326 +22,86 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-// PrepareFiles processes base64 encoded data for a thread, but does NOT share it
-func (m *Mobile) PrepareFiles(data string, threadId string, cb Callback) {
+var fileConfigOpt fileConfigOption
+
+type fileConfigSettings struct {
+	Data      []byte
+	Path      string
+	Plaintext bool
+}
+
+type fileConfigOption func(*fileConfigSettings)
+
+func (fileConfigOption) Data(val []byte) fileConfigOption {
+	return func(settings *fileConfigSettings) {
+		settings.Data = val
+	}
+}
+
+func (fileConfigOption) Path(val string) fileConfigOption {
+	return func(settings *fileConfigSettings) {
+		settings.Path = val
+	}
+}
+
+func (fileConfigOption) Plaintext(val bool) fileConfigOption {
+	return func(settings *fileConfigSettings) {
+		settings.Plaintext = val
+	}
+}
+
+func fileConfigOptions(opts ...fileConfigOption) *fileConfigSettings {
+	options := &fileConfigSettings{}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+	return options
+}
+
+func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callback) {
 	go func() {
-		cb.Call(m.PrepareFilesSync(data, threadId))
+		hash, err := m.addData(data, threadId, caption)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		cb.Call(m.blockView(hash))
 	}()
 }
 
-// PrepareFilesByPath processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesByPath(path string, threadId string, cb Callback) {
+// AddFiles builds a directory from paths and adds it to the thread
+// Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
+func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
 	go func() {
-		cb.Call(m.PrepareFilesByPathSync(path, threadId))
+		pths := new(pb.Strings)
+		err := proto.Unmarshal(paths, pths)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		hash, err := m.addFiles(pths.Values, threadId, caption)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		cb.Call(m.blockView(hash))
 	}()
 }
 
-// PrepareFiles processes base64 encoded data for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	dec, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, err
-	}
-
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return nil, core.ErrThreadNotFound
-	}
-
-	if thrd.Schema == nil {
-		return nil, core.ErrThreadSchemaRequired
-	}
-
-	mdir := &pb.MobilePreparedFiles{
-		Dir: &pb.Directory{
-			Files: make(map[string]*pb.FileIndex),
-		},
-		Pin: make(map[string]string),
-	}
-
-	writeDir := m.RepoPath + "/tmp/"
-
-	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
-	if err != nil {
-		return nil, err
-	}
-	if mil != nil {
-		conf, err := m.getFileConfig(mil, dec, "", thrd.Schema.Plaintext)
+func (m *Mobile) ShareFiles(target string, threadId string, caption string, cb Callback) {
+	go func() {
+		hash, err := m.shareFiles(target, threadId, caption)
 		if err != nil {
-			return nil, err
+			cb.Call(nil, err)
+			return
 		}
 
-		added, err := m.node.AddFileIndex(mil, *conf)
-		if err != nil {
-			return nil, err
-		}
-		mdir.Dir.Files[schema.SingleFileTag] = added
-
-		if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
-			mdir.Pin[added.Hash] = writeDir + added.Hash
-		}
-
-	} else if len(thrd.Schema.Links) > 0 {
-
-		// determine order
-		steps, err := schema.Steps(thrd.Schema.Links)
-		if err != nil {
-			return nil, err
-		}
-
-		// send each link
-		for _, step := range steps {
-			mil, err := getMill(step.Link.Mill, step.Link.Opts)
-			if err != nil {
-				return nil, err
-			}
-			var conf *core.AddFileConfig
-
-			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, dec, "", step.Link.Plaintext)
-				if err != nil {
-					return nil, err
-				}
-
-			} else {
-				if mdir.Dir.Files[step.Link.Use] == nil {
-					return nil, fmt.Errorf(step.Link.Use + " not found")
-				}
-
-				conf, err = m.getFileConfig(mil, dec, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			added, err := m.node.AddFileIndex(mil, *conf)
-			if err != nil {
-				return nil, err
-			}
-			mdir.Dir.Files[step.Name] = added
-
-			if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
-				mdir.Pin[added.Hash] = writeDir + added.Hash
-			}
-		}
-	} else {
-		return nil, schema.ErrEmptySchema
-	}
-
-	for hash, pth := range mdir.Pin {
-		if err := m.writeFileContent(hash, pth); err != nil {
-			return nil, err
-		}
-	}
-
-	return proto.Marshal(mdir)
-}
-
-// PrepareFilesByPath processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return nil, core.ErrThreadNotFound
-	}
-
-	if thrd.Schema == nil {
-		return nil, core.ErrThreadSchemaRequired
-	}
-
-	var use string
-	if ref, err := ipfspath.ParsePath(path); err == nil {
-		parts := strings.Split(ref.String(), "/")
-		use = parts[len(parts)-1]
-	}
-
-	mdir := &pb.MobilePreparedFiles{
-		Dir: &pb.Directory{
-			Files: make(map[string]*pb.FileIndex),
-		},
-		Pin: make(map[string]string),
-	}
-
-	writeDir := m.RepoPath + "/tmp/"
-
-	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
-	if err != nil {
-		return nil, err
-	}
-	if mil != nil {
-		conf, err := m.getFileConfigByPath(mil, path, use, thrd.Schema.Plaintext)
-		if err != nil {
-			return nil, err
-		}
-
-		added, err := m.node.AddFileIndex(mil, *conf)
-		if err != nil {
-			return nil, err
-		}
-		mdir.Dir.Files[schema.SingleFileTag] = added
-
-		if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
-			mdir.Pin[added.Hash] = writeDir + added.Hash
-		}
-
-	} else if len(thrd.Schema.Links) > 0 {
-
-		// determine order
-		steps, err := schema.Steps(thrd.Schema.Links)
-		if err != nil {
-			return nil, err
-		}
-
-		// send each link
-		for _, step := range steps {
-			mil, err := getMill(step.Link.Mill, step.Link.Opts)
-			if err != nil {
-				return nil, err
-			}
-			var conf *core.AddFileConfig
-
-			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfigByPath(mil, path, use, step.Link.Plaintext)
-				if err != nil {
-					return nil, err
-				}
-
-			} else {
-				if mdir.Dir.Files[step.Link.Use] == nil {
-					return nil, fmt.Errorf(step.Link.Use + " not found")
-				}
-
-				conf, err = m.getFileConfigByPath(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			added, err := m.node.AddFileIndex(mil, *conf)
-			if err != nil {
-				return nil, err
-			}
-			mdir.Dir.Files[step.Name] = added
-
-			if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
-				mdir.Pin[added.Hash] = writeDir + added.Hash
-			}
-		}
-	} else {
-		return nil, schema.ErrEmptySchema
-	}
-
-	for hash, pth := range mdir.Pin {
-		if err := m.writeFileContent(hash, pth); err != nil {
-			return nil, err
-		}
-	}
-
-	return proto.Marshal(mdir)
-}
-
-// AddFiles adds a prepared file to a thread
-func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return nil, core.ErrThreadNotFound
-	}
-
-	var node ipld.Node
-	var keys *pb.Keys
-
-	mdir := new(pb.Directory)
-	if err := proto.Unmarshal(dir, mdir); err != nil {
-		return nil, err
-	}
-	if len(mdir.Files) == 0 {
-		return nil, fmt.Errorf("no files found")
-	}
-
-	var err error
-	file := mdir.Files[schema.SingleFileTag]
-	if file != nil {
-
-		node, keys, err = m.node.AddNodeFromFiles([]*pb.FileIndex{file})
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-
-		rdir := &pb.Directory{Files: make(map[string]*pb.FileIndex)}
-		for k, file := range mdir.Files {
-			rdir.Files[k] = file
-		}
-
-		node, keys, err = m.node.AddNodeFromDirs(&pb.DirectoryList{Items: []*pb.Directory{rdir}})
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if node == nil {
-		return nil, fmt.Errorf("no files found")
-	}
-
-	hash, err := thrd.AddFiles(node, caption, keys.Files)
-	if err != nil {
-		return nil, err
-	}
-
-	if thrd.Key == m.node.Account().Address() {
-		if err := m.node.SetAvatar(); err != nil {
-			return nil, err
-		}
-	}
-
-	return m.blockView(hash)
-}
-
-// AddFilesByTarget adds a prepared file to a thread by referencing its top level hash
-func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return nil, core.ErrThreadNotFound
-	}
-
-	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
-	if err != nil {
-		return nil, err
-	}
-
-	keys, err := m.node.TargetNodeKeys(node)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := thrd.AddFiles(node, caption, keys.Files)
-	if err != nil {
-		return nil, err
-	}
-
-	if thrd.Key == m.node.Account().Address() {
-		if err := m.node.SetAvatar(); err != nil {
-			return nil, err
-		}
-	}
-
-	return m.blockView(hash)
+		cb.Call(m.blockView(hash))
+	}()
 }
 
 // Files calls core Files
@@ -418,7 +179,7 @@ func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, 
 			continue
 		}
 
-		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
+		file, err := m.node.FileMeta(dlink.Cid.Hash().B58String())
 		if err != nil {
 			if err == core.ErrFileNotFound {
 				return "", nil
@@ -459,22 +220,188 @@ func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, 
 	return m.FileContent(hash)
 }
 
-func (m *Mobile) getFileConfig(mil mill.Mill, data []byte, use string, plaintext bool) (*core.AddFileConfig, error) {
-	var reader io.ReadSeeker
-	conf := &core.AddFileConfig{}
+func (m *Mobile) addData(data []byte, threadId string, caption string) (mh.Multihash, error) {
+	dir, err := m.buildDirectory(data, "", threadId)
+	if err != nil {
+		return nil, err
+	}
 
-	if use == "" {
-		reader = bytes.NewReader(data)
-	} else {
-		var file *pb.FileIndex
-		var err error
-		reader, file, err = m.node.FileContent(use)
+	return m.writeFiles(&pb.DirectoryList{Items: []*pb.Directory{dir}}, threadId, caption)
+}
+
+func (m *Mobile) addFiles(paths []string, threadId string, caption string) (mh.Multihash, error) {
+	dirs := &pb.DirectoryList{Items: make([]*pb.Directory, 0)}
+	for _, pth := range paths {
+		dir, err := m.buildDirectory(nil, pth, threadId)
+		if err != nil {
+			return nil, err
+		}
+		dirs.Items = append(dirs.Items, dir)
+	}
+
+	return m.writeFiles(dirs, threadId, caption)
+}
+
+func (m *Mobile) shareFiles(target string, threadId string, caption string) (mh.Multihash, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return nil, core.ErrThreadNotFound
+	}
+
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := m.node.TargetNodeKeys(node)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	if err != nil {
+		return nil, err
+	}
+
+	m.node.FlushCafes()
+
+	return hash, nil
+}
+
+func (m *Mobile) buildDirectory(data []byte, path string, threadId string) (*pb.Directory, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return nil, core.ErrThreadNotFound
+	}
+
+	if thrd.Schema == nil {
+		return nil, core.ErrThreadSchemaRequired
+	}
+
+	dir := &pb.Directory{
+		Files: make(map[string]*pb.FileIndex),
+	}
+
+	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
+	if err != nil {
+		return nil, err
+	}
+	if mil != nil {
+		conf, err := m.getFileConfig(mil,
+			fileConfigOpt.Data(data),
+			fileConfigOpt.Path(path),
+			fileConfigOpt.Plaintext(thrd.Schema.Plaintext),
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		conf.Name = file.Name
-		conf.Use = file.Checksum
+		added, err := m.node.AddFileIndex(mil, *conf)
+		if err != nil {
+			return nil, err
+		}
+		dir.Files[schema.SingleFileTag] = added
+
+	} else if len(thrd.Schema.Links) > 0 {
+
+		// determine order
+		steps, err := schema.Steps(thrd.Schema.Links)
+		if err != nil {
+			return nil, err
+		}
+
+		// send each link
+		for _, step := range steps {
+			mil, err := getMill(step.Link.Mill, step.Link.Opts)
+			if err != nil {
+				return nil, err
+			}
+			var conf *core.AddFileConfig
+
+			if step.Link.Use == schema.FileTag {
+				conf, err = m.getFileConfig(mil,
+					fileConfigOpt.Data(data),
+					fileConfigOpt.Path(path),
+					fileConfigOpt.Plaintext(step.Link.Plaintext),
+				)
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				if dir.Files[step.Link.Use] == nil {
+					return nil, fmt.Errorf(step.Link.Use + " not found")
+				}
+
+				conf, err = m.getFileConfig(mil,
+					fileConfigOpt.Data(data),
+					fileConfigOpt.Path(dir.Files[step.Link.Use].Hash),
+					fileConfigOpt.Plaintext(step.Link.Plaintext),
+				)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			added, err := m.node.AddFileIndex(mil, *conf)
+			if err != nil {
+				return nil, err
+			}
+			dir.Files[step.Name] = added
+		}
+	} else {
+		return nil, schema.ErrEmptySchema
+	}
+
+	return dir, nil
+}
+
+func (m *Mobile) getFileConfig(mil mill.Mill, opts ...fileConfigOption) (*core.AddFileConfig, error) {
+	var reader io.ReadSeeker
+	conf := &core.AddFileConfig{}
+	settings := fileConfigOptions(opts...)
+
+	if settings.Data != nil {
+		reader = bytes.NewReader(settings.Data)
+	} else {
+		ref, err := ipfspath.ParsePath(settings.Path)
+		if err == nil {
+			parts := strings.Split(ref.String(), "/")
+			hash := parts[len(parts)-1]
+			var file *pb.FileIndex
+			reader, file, err = m.node.FileContent(hash)
+			if err != nil {
+				if err == core.ErrFileNotFound {
+					// just cat the data from ipfs
+					b, err := ipfs.DataAtPath(m.node.Ipfs(), ref.String())
+					if err != nil {
+						return nil, err
+					}
+					reader = bytes.NewReader(b)
+					conf.Use = ref.String()
+				} else {
+					return nil, err
+				}
+			} else {
+				conf.Use = file.Checksum
+			}
+		} else { // lastly, try and open as an os file
+			f, err := os.Open(settings.Path)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+			reader = f
+			_, conf.Name = filepath.Split(f.Name())
+		}
 	}
 
 	var err error
@@ -486,77 +413,16 @@ func (m *Mobile) getFileConfig(mil mill.Mill, data []byte, use string, plaintext
 			return nil, err
 		}
 	}
-	reader.Seek(0, 0)
+	_, _ = reader.Seek(0, 0)
 
 	input, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 	conf.Input = input
-	conf.Plaintext = plaintext
+	conf.Plaintext = settings.Plaintext
 
 	return conf, nil
-}
-
-func (m *Mobile) getFileConfigByPath(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
-	var reader io.ReadSeeker
-	conf := &core.AddFileConfig{}
-
-	if use == "" {
-		f, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		reader = f
-
-		_, file := filepath.Split(f.Name())
-		conf.Name = file
-
-	} else {
-		var file *pb.FileIndex
-		var err error
-		reader, file, err = m.node.FileContent(use)
-		if err != nil {
-			return nil, err
-		}
-
-		conf.Name = file.Name
-		conf.Use = file.Checksum
-	}
-
-	var err error
-	if mil.ID() == "/json" {
-		conf.Media = "application/json"
-	} else {
-		conf.Media, err = m.node.GetMedia(reader, mil)
-		if err != nil {
-			return nil, err
-		}
-	}
-	reader.Seek(0, 0)
-
-	input, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	conf.Input = input
-	conf.Plaintext = plaintext
-
-	return conf, nil
-}
-
-func (m *Mobile) writeFileContent(hash string, pth string) error {
-	if err := os.MkdirAll(filepath.Dir(pth), os.ModePerm); err != nil {
-		return err
-	}
-
-	data, err := m.node.DataAtPath(hash)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(pth, data, 0644)
 }
 
 func getMill(id string, opts map[string]string) (mill.Mill, error) {
@@ -585,4 +451,46 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func (m *Mobile) writeFiles(dirs *pb.DirectoryList, threadId string, caption string) (mh.Multihash, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	if len(dirs.Items) == 0 || len(dirs.Items[0].Files) == 0 {
+		return nil, fmt.Errorf("no files found")
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return nil, core.ErrThreadNotFound
+	}
+
+	var node ipld.Node
+	var keys *pb.Keys
+
+	var err error
+	file := dirs.Items[0].Files[schema.SingleFileTag]
+	if file != nil {
+		node, keys, err = m.node.AddNodeFromFiles([]*pb.FileIndex{file})
+	} else {
+		node, keys, err = m.node.AddNodeFromDirs(dirs)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if node == nil {
+		return nil, fmt.Errorf("no files found")
+	}
+
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	if err != nil {
+		return nil, err
+	}
+
+	m.node.FlushCafes()
+
+	return hash, nil
 }

@@ -1,12 +1,12 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/core"
 	peer "github.com/libp2p/go-libp2p-peer"
-	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
@@ -63,18 +63,13 @@ func (q *CafeInbox) CheckMessages() error {
 	wg := sync.WaitGroup{}
 	var cerr error
 	for _, session := range sessions {
-		cafe, err := peer.IDB58Decode(session.Id)
-		if err != nil {
-			cerr = err
-			continue
-		}
 		wg.Add(1)
-		go func(cafe peer.ID) {
-			if err := q.service().CheckMessages(cafe); err != nil {
+		go func(cafeId string) {
+			if err := q.service().CheckMessages(cafeId); err != nil {
 				cerr = err
 			}
 			wg.Done()
-		}(cafe)
+		}(session.Id)
 	}
 	wg.Wait()
 	return cerr
@@ -102,26 +97,25 @@ func (q *CafeInbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize)); err != nil {
-		log.Errorf("cafe inbox batch error: %s", err)
-		return
-	}
+	q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize))
 }
 
 // batch flushes a batch of messages
-func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
+func (q *CafeInbox) batch(msgs []pb.CafeMessage) {
 	log.Debugf("handling %d cafe messages", len(msgs))
 	if len(msgs) == 0 {
-		return nil
+		return
 	}
 
 	for _, msg := range msgs {
 		go func(msg pb.CafeMessage) {
-			if err := q.handle(msg); err != nil {
+			err := q.handle(msg)
+			if err != nil {
 				log.Warningf("handle attempt failed for cafe message %s: %s", msg.Id, err)
 				return
 			}
-			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
+			err = q.datastore.CafeMessages().Delete(msg.Id)
+			if err != nil {
 				log.Errorf("failed to delete cafe message %s: %s", msg.Id, err)
 			} else {
 				log.Debugf("handled cafe message %s", msg.Id)
@@ -134,37 +128,34 @@ func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
 	next := q.datastore.CafeMessages().List(offset, cafeInFlushGroupSize)
 
 	// keep going
-	return q.batch(next)
+	q.batch(next)
 }
 
 // handle handles a single message
 func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 	pid, err := peer.IDB58Decode(msg.Peer)
 	if err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error decoding msg peer: %s", err), msg)
 	}
 
-	// download the actual message
-	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
+	envb, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
-		return q.handleErr(err, msg)
-	}
-
-	envb, err := crypto.Decrypt(q.node().PrivateKey, ciphertext)
-	if err != nil {
-		return q.handleErr(err, msg)
+		return q.handleErr(fmt.Errorf("error getting msg data: %s", err), msg)
 	}
 	env := new(pb.Envelope)
-	if err := proto.Unmarshal(envb, env); err != nil {
+	err = proto.Unmarshal(envb, env)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 
-	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
+	err = q.threadsService().service.VerifyEnvelope(env, pid)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 
 	// pass to thread service for normal handling
-	if _, err := q.threadsService().Handle(pid, env); err != nil {
+	_, err = q.threadsService().Handle(env, pid)
+	if err != nil {
 		return q.handleErr(err, msg)
 	}
 	return nil
@@ -172,14 +163,14 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 
 // handleErr deletes or adds an attempt to a message processing error
 func (q *CafeInbox) handleErr(herr error, msg pb.CafeMessage) error {
+	var err error
 	if msg.Attempts+1 >= maxDownloadAttempts {
-		if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
-			return err
-		}
+		err = q.datastore.CafeMessages().Delete(msg.Id)
 	} else {
-		if err := q.datastore.CafeMessages().AddAttempt(msg.Id); err != nil {
-			return err
-		}
+		err = q.datastore.CafeMessages().AddAttempt(msg.Id)
+	}
+	if err != nil {
+		return err
 	}
 	return herr
 }

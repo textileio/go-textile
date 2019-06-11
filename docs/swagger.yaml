@@ -444,10 +444,11 @@ definitions:
         type: integer
       head:
         type: string
-      head_block:
-        $ref: '#/definitions/pb.Block'
+      head_blocks:
         description: view info
-        type: object
+        items:
+          $ref: '#/definitions/pb.Block'
+        type: array
       id:
         type: string
       initiator:
@@ -622,29 +623,6 @@ paths:
       summary: Remove thread block
       tags:
       - blocks
-    get:
-      description: Gets a thread block by ID
-      parameters:
-      - description: block id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: block
-          schema:
-            $ref: '#/definitions/pb.Block'
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Gets thread block
-      tags:
-      - blocks
   /blocks/{id}/comment:
     get:
       description: Gets a thread comment by block ID
@@ -729,6 +707,102 @@ paths:
       summary: Add a comment
       tags:
       - blocks
+  /blocks/{id}/files:
+    get:
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: files
+          schema:
+            $ref: '#/definitions/pb.Files'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Gets the metadata for a files block
+      tags:
+      - files
+  /blocks/{id}/files/{index}/{path}/content:
+    get:
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: file index
+        in: path
+        name: index
+        required: true
+        type: string
+      - description: file path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Gets the decrypted file content of a file within a files block
+      tags:
+      - files
+  /blocks/{id}/files/{index}/{path}/meta:
+    get:
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: file index
+        in: path
+        name: index
+        required: true
+        type: string
+      - description: file path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: file
+          schema:
+            $ref: '#/definitions/pb.FileIndex'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Gets the metadata of a file within a files block
+      tags:
+      - files
   /blocks/{id}/like:
     get:
       description: Gets a thread like by block ID
@@ -808,6 +882,29 @@ paths:
       summary: Add a like
       tags:
       - blocks
+  /blocks/{id}/meta:
+    get:
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: block
+          schema:
+            $ref: '#/definitions/pb.Block'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Gets the metadata for a block
+      tags:
+      - blocks
   /cafes:
     get:
       description: |-
@@ -834,7 +931,7 @@ paths:
         token is required to register, and should be obtained separately from the target
         Cafe
       parameters:
-      - description: cafe host
+      - description: cafe id
         in: header
         name: X-Textile-Args
         required: true
@@ -1194,9 +1291,9 @@ paths:
       summary: Paginates post and annotation block types
       tags:
       - feed
-  /file/{hash}/data:
+  /file/{hash}/content:
     get:
-      description: Returns raw data for file
+      description: Returns decrypted raw content for file
       parameters:
       - description: file hash
         in: path
@@ -1214,7 +1311,31 @@ paths:
           description: Not Found
           schema:
             type: string
-      summary: File data at hash
+      summary: File content at hash
+      tags:
+      - files
+  /file/{target}/meta:
+    get:
+      description: Returns the metadata for file
+      parameters:
+      - description: file hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: file
+          schema:
+            $ref: '#/definitions/pb.FileIndex'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: File metadata at hash
       tags:
       - files
   /files:
@@ -1250,30 +1371,6 @@ paths:
           schema:
             type: string
       summary: Paginates thread files
-      tags:
-      - files
-  /files/{block}:
-    get:
-      description: Gets a thread file by block ID
-      parameters:
-      - description: block id
-        in: path
-        name: block
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: file
-          schema:
-            $ref: '#/definitions/pb.Files'
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-      summary: Get thread file
       tags:
       - files
   /invites:

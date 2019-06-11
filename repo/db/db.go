@@ -53,7 +53,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	conn.SetMaxIdleConns(2)
 	conn.SetMaxOpenConns(4)
 	if pin != "" {
-		p := "pragma key='" + pin + "';"
+		p := "pragma key='" + strings.Replace(pin, "'", "''", -1) + "';"
 		if _, err := conn.Exec(p); err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func (d *SQLiteDatastore) Ping() error {
 }
 
 func (d *SQLiteDatastore) Close() {
-	d.db.Close()
+	_ = d.db.Close()
 }
 
 func (d *SQLiteDatastore) Config() repo.ConfigStore {
@@ -205,7 +205,7 @@ func ConflictError(err error) bool {
 func initDatabaseTables(db *sql.DB, pin string) error {
 	var sqlStmt string
 	if pin != "" {
-		sqlStmt = "PRAGMA key = '" + pin + "';"
+		sqlStmt = "pragma key = '" + strings.Replace(pin, "'", "''", -1) + "';"
 	}
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
@@ -236,7 +236,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);
 
-    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
+    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null, parents text not null);
     create index invite_date on invites (date);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, target text, type integer not null, body text not null, read integer not null);
@@ -248,10 +248,12 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null, cafe blob not null);
 
-    create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, cafe blob not null, type integer not null, date integer not null, size integer not null, groupId text not null, status integer not null);
+    create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, cafe blob not null, groupId text not null, syncGroupId text not null, type integer not null, date integer not null, size integer not null, status integer not null, attempts integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
-    create index cafe_request_date on cafe_requests (date);
     create index cafe_request_groupId on cafe_requests (groupId);
+    create index cafe_request_syncGroupId on cafe_requests (syncGroupId);
+    create index cafe_request_date on cafe_requests (date);
+    create index cafe_request_status on cafe_requests (status);
 
     create table cafe_messages (id text primary key not null, peerId text not null, date integer not null, attempts integer not null);
     create index cafe_message_date on cafe_messages (date);

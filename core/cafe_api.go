@@ -15,8 +15,8 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// cafeApiVersion is the cafe api version
-const cafeApiVersion = "v0"
+// CafeApiVersion is the cafe api version
+const CafeApiVersion = "v1"
 
 // cafeApiHost is the instance used by the core instance
 var cafeApiHost *cafeApi
@@ -43,6 +43,11 @@ func (t *Textile) CafeApiAddr() string {
 	return cafeApiHost.addr
 }
 
+// CafeInfo returns info about this cafe
+func (t *Textile) CafeInfo() *pb.Cafe {
+	return t.cafe.info
+}
+
 // startCafeApi starts the host instance
 func (t *Textile) startCafeApi(addr string) {
 	gin.SetMode(gin.ReleaseMode)
@@ -57,11 +62,6 @@ func (t *Textile) stopCafeApi() error {
 		return nil
 	}
 	return cafeApiHost.stop()
-}
-
-// CafeInfo returns info about this cafe
-func (t *Textile) CafeInfo() *pb.Cafe {
-	return t.cafe.info
 }
 
 // start starts the cafe api
@@ -91,7 +91,7 @@ func (c *cafeApi) start() {
 
 	store := v1.Group("/store", c.validateToken)
 	{
-		store.PUT("/:cid", c.store)
+		store.PUT("", c.store)
 		store.DELETE("/:cid", c.unstore)
 	}
 
@@ -103,7 +103,12 @@ func (c *cafeApi) start() {
 
 	inbox := v1.Group("/inbox")
 	{
-		inbox.POST("/:pid", c.deliverMessage)
+		inbox.POST("/:from/:to", c.deliverMessage)
+	}
+
+	search := v1.Group("/search", c.validateToken)
+	{
+		search.POST("", c.search)
 	}
 
 	c.server = &http.Server{
@@ -155,14 +160,18 @@ func (c *cafeApi) validateToken(g *gin.Context) {
 	token := auth[1]
 
 	protocol := string(c.node.cafe.Protocol())
-	if err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil); err != nil {
+	claims, err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil)
+	if err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:
 			c.abort(g, http.StatusUnauthorized, nil)
 		case jwt.ErrInvalid:
 			c.abort(g, http.StatusForbidden, nil)
 		}
+		return
 	}
+
+	g.Set("from", claims.Subject)
 }
 
 // verifyKeyFunc returns the correct key for token verification

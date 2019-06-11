@@ -82,7 +82,7 @@ type ThreadStore interface {
 	GetByKey(key string) *pb.Thread
 	List() *pb.ThreadList
 	Count() int
-	UpdateHead(id string, head string) error
+	UpdateHead(id string, heads []string) error
 	UpdateName(id string, name string) error
 	UpdateSchema(id string, hash string) error
 	Delete(id string) error
@@ -108,6 +108,7 @@ type BlockStore interface {
 	Get(id string) *pb.Block
 	List(offset string, limit int, query string) *pb.BlockList
 	Count(query string) int
+	UpdateParents(id string, parents []string) error
 	Delete(id string) error
 	DeleteByThread(threadId string) error
 }
@@ -154,13 +155,20 @@ type CafeRequestStore interface {
 	Queryable
 	Add(req *pb.CafeRequest) error
 	Get(id string) *pb.CafeRequest
+	GetGroup(group string) *pb.CafeRequestList
+	GetSyncGroup(group string) string
+	Count(status pb.CafeRequest_Status) int
 	List(offset string, limit int) *pb.CafeRequestList
-	ListCompletedGroups() []string
-	CountByGroup(groupId string) int
-	GroupStatus(groupId string) *pb.CafeRequestGroupStatus
+	ListGroups(offset string, limit int) []string
+	SyncGroupComplete(syncGroupId string) bool
+	SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
+	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
+	AddAttempt(id string) error
 	Delete(id string) error
 	DeleteByGroup(groupId string) error
+	DeleteBySyncGroup(syncGroupId string) error
+	DeleteCompleteSyncGroups() error
 	DeleteByCafe(cafeId string) error
 }
 

@@ -222,8 +222,7 @@ func add(dirs []*pb.Directory, threadID string, caption string, verbose bool) (*
 func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 	ref, err := ipfspath.ParsePath(pth)
 	if err == nil {
-		parts := strings.Split(ref.String(), "/")
-		pth = parts[len(parts)-1]
+		pth = ref.String()
 	}
 
 	var f *os.File

@@ -51,6 +51,9 @@ func (m *Mobile) AcceptInviteViaNotification(id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	m.node.FlushCafes()
+
 	return addr.B58String(), nil
 }
 
@@ -60,5 +63,12 @@ func (m *Mobile) IgnoreInviteViaNotification(id string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.IgnoreInviteViaNotification(id)
+	err := m.node.IgnoreInviteViaNotification(id)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
 }
