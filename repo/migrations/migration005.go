@@ -118,7 +118,6 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 	defer tfile.Close()
 	for _, thrd := range threads {
-		// @todo should this be removed?
 		if thrd.name == "default" {
 			defaults = append(defaults, thrd)
 		}
@@ -140,7 +139,6 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		}
 	}
 
-	// @todo should this be removed?
 	// collect default thread photo blocks
 	var photos []*photoRow
 	for _, thread := range defaults {
