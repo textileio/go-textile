@@ -7,13 +7,13 @@ import (
 	"github.com/textileio/go-textile/wallet"
 )
 
-func WalletInit(wordCount int, password string) error {
-	wcount, err := wallet.NewWordCount(wordCount)
+func WalletInit(words int, passphrase string) error {
+	wordCount, err := wallet.NewWordCount(words)
 	if err != nil {
 		return err
 	}
 
-	w, err := wallet.NewWallet(wcount.EntropySize())
+	w, err := wallet.NewWallet(wordCount.EntropySize())
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func WalletInit(wordCount int, password string) error {
 	fmt.Println("")
 
 	// show first account
-	kp, err := w.AccountAt(0, password)
+	kp, err := w.AccountAt(0, passphrase)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func WalletInit(wordCount int, password string) error {
 	return nil
 }
 
-func WalletAccounts(password string, depth int, offset int) error {
+func WalletAccounts(mnemonic string, passphrase string, depth int, offset int) error {
 	if depth < 1 || depth > 100 {
 		return fmt.Errorf("depth must be greater than 0 and less than 100")
 	}
@@ -49,10 +49,10 @@ func WalletAccounts(password string, depth int, offset int) error {
 		return fmt.Errorf("offset must be greater than 0 and less than depth")
 	}
 
-	wall := wallet.NewWalletFromRecoveryPhrase(password)
+	wall := wallet.NewWalletFromRecoveryPhrase(mnemonic)
 
 	for i := offset; i < offset+depth; i++ {
-		kp, err := wall.AccountAt(i, password)
+		kp, err := wall.AccountAt(i, passphrase)
 		if err != nil {
 			return err
 		}

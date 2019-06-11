@@ -210,8 +210,8 @@ func (a *api) peersThreads(g *gin.Context) {
 }
 
 // rmThreads godoc
-// @Summary Leave and remove a thread
-// @Description Leaves and removes a thread
+// @Summary Abandons a thread.
+// @Description Abandons a thread, and if no one else is participating, then the thread dissipates.
 // @Tags threads
 // @Param id path string true "thread id"
 // @Success 204 {string} string "ok"

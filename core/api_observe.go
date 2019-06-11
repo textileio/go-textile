@@ -9,19 +9,19 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// getThreadsSubscribe godoc
-// @Summary Subscribe to thread updates
-// @Description Subscribes to updates in a thread or all threads. An update is generated
+// getThreadsObserve godoc
+// @Summary Observe to thread updates
+// @Description Observes updates in a thread or all threads. An update is generated
 // @Description when a new block is added to a thread. There are several update types:
 // @Description MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
 // @Tags subscribe
 // @Produce application/json
-// @Param id path string false "thread id, omit to stream all events"
+// @Param thread path string false "thread id, omit to stream all events"
 // @Param X-Textile-Opts header string false "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(type=,events="false")
 // @Success 200 {object} pb.FeedItem "stream of updates"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /subscribe/{id} [get]
-func (a *api) getThreadsSubscribe(g *gin.Context) {
+func (a *api) getThreadsObserve(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)

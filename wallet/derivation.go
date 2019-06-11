@@ -21,7 +21,8 @@ const (
 	// TextileAccountPathFormat is a path format used for Textile key pair
 	// derivation as described in SEP-00XX. Use with `fmt.Sprintf` and `DeriveForPath`.
 	TextileAccountPathFormat = "m/44'/406'/%d'"
-	// FirstHardenedIndex is the index of the first hardened key.
+	// FirstHardenedIndex is the index of the first hardened key (2^31).
+	// https://youtu.be/2HrMlVr1QX8?t=390
 	FirstHardenedIndex = uint32(0x80000000)
 	// As in https://github.com/satoshilabs/slips/blob/master/slip-0010.md
 	seedModifier = "ed25519 seed"

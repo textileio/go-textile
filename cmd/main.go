@@ -28,8 +28,12 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func threadFilesCommand (parent *kingpin.CmdClause) (*kingpin.CmdClause, func () error) {
-	cmd      := parent.Command("thread", "Paginates the files of a thread, or of all threads")
+func threadFilesCommand (parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func () error) {
+	cmd      := parent.Command(names[0], "Paginates the files of a thread, or of all threads")
+	for _, name := range names[1:] {
+		cmd = cmd.Alias(name)
+	}
+
 	threadID := cmd.Arg("thread", "Thread ID, omit for all").String()
 	offset   := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	limit    := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
@@ -38,9 +42,13 @@ func threadFilesCommand (parent *kingpin.CmdClause) (*kingpin.CmdClause, func ()
 	}
 }
 
-func blockFilesCommand (parent *kingpin.CmdClause) (*kingpin.CmdClause, func () error) {
-	cmd     := parent.Command("block", "Get the files, or a specific file, of a Files Block")
-	blockID := cmd.Arg("files-block", "Files Block ID").Required().String()
+func blockFilesCommand (parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func () error) {
+	cmd     := parent.Command(names[0], "Get the files, or a specific file, of a Files Block")
+	for _, name := range names[1:] {
+		cmd = cmd.Alias(name)
+	}
+
+	blockID := cmd.Arg("block", "Files Block ID").Required().String()
 	index   := cmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
 	path    := cmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
 	content := cmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
@@ -97,17 +105,20 @@ var (
 func Run() error {
 	cmds := make(map[string]func () error)
 
+	// configure
+	appCmd.UsageTemplate(kingpin.CompactUsageTemplate)
+
 	// ================================
 
 	// account
-	accountCmd := appCmd.Command("account", "Manage a wallet account")
+	accountCmd := appCmd.Command("account", "Manage the account that the initialised textile repository is associated with")
 
 	// account get
 	accountGetCmd := accountCmd.Command("get", "Shows the local peer's account info as a contact").Default()
 	cmds[accountGetCmd.FullCommand()] = AccountGet
 
 	// account seed
-	accountSeedCmd := accountCmd.Command("seed", "Shows the local peer's account seed")
+	accountSeedCmd := accountCmd.Command("seed", "Shows the local peer's account seed, treat this as top secret")
 	cmds[accountSeedCmd.FullCommand()] = AccountSeed
 
 	// account address
@@ -128,8 +139,7 @@ func Run() error {
 
 	// block list
 	blockListCmd      := blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls").Default()
-	blockListThreadID := blockListCmd.Arg("thread", "Thread ID").String()
-	// @todo is this required?
+	blockListThreadID := blockListCmd.Arg("thread", "Thread ID").Required().String()
 	blockListOffset   := blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	blockListLimit    := blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 	blockListDots     := blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
@@ -152,8 +162,8 @@ func Run() error {
 	}
 
 	// block file alias
-	blockFileCmd, blockFileCallback := blockFilesCommand(blockCmd)
-	cmds[blockFileCmd.Hidden().FullCommand()] = blockFileCallback
+	blockFileCmd, blockFileCallback := blockFilesCommand(blockCmd, []string{"files", "file"})
+	cmds[blockFileCmd.FullCommand()] = blockFileCallback
 
 	// ================================
 
@@ -349,11 +359,11 @@ Stacks may include:
 	fileListCmd := fileCmd.Command("list", `Get all the files, or just the files for a specific thread or block`).Alias("ls").Default()
 
 	// file list thread
-	fileListThreadCmd, fileListThreadCallback := threadFilesCommand(fileListCmd)
+	fileListThreadCmd, fileListThreadCallback := threadFilesCommand(fileListCmd, []string{"thread"})
 	cmds[fileListThreadCmd.Default().FullCommand()] = fileListThreadCallback
 
 	// file list block
-	fileListBlockCmd, fileListBlockCallback := blockFilesCommand(fileListCmd)
+	fileListBlockCmd, fileListBlockCallback := blockFilesCommand(fileListCmd, []string{"block"})
 	cmds[fileListBlockCmd.FullCommand()] = fileListBlockCallback
 
 	// file keys
@@ -393,7 +403,7 @@ Stacks may include:
 	// ================================
 
 	// init
-	initCmd               := appCmd.Command("init", "Initialise a repository for the account seed that textile will use for subsequent commands")
+	initCmd               := appCmd.Command("init", "Configure textile to use the account by creating a local repository to house its data")
 	initAccountSeed       := initCmd.Arg("account-seed", "The account seed to use, if you do not have one, refer to: textile wallet --help").Required().String()
 	initPin               := initCmd.Flag("pin", "Specify a pin for datastore encryption").Short('p').String()
 	initRepo              := initCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
@@ -687,12 +697,12 @@ There are two types of invites, direct account-to-account and external:
 
 	// ================================
 
-	// subscribe
-	subscribeCmd      := appCmd.Command("subscribe", "Subscribes to updates in a thread or all threads. An update is generated when a new block is added to a thread.").Alias("sub")
-	subscribeThreadID := subscribeCmd.Arg("thread", "Thread ID, omit for all").String()
-	subscribeType     := subscribeCmd.Flag("type", "Only be alerted to specific type of updates, possible values: merge, ignore, flag, join, announce, leave, text, files comment, like. Can be used multiple times, e.g., --type files --type comment").Short('k').Strings()
-	cmds[subscribeCmd.FullCommand()] = func () error {
-		return SubscribeCommand(*subscribeThreadID, *subscribeType)
+	// observe
+	observeCmd      := appCmd.Command("observe", "Observe updates in a thread or all threads. An update is generated when a new block is added to a thread.").Alias("subscribe").Alias("listen").Alias("stream")
+	observeThreadID := observeCmd.Arg("thread", "Thread ID, omit for all").String()
+	observeType     := observeCmd.Flag("type", "Only be alerted to specific type of updates, possible values: merge, ignore, flag, join, announce, leave, text, files comment, like. Can be used multiple times, e.g., --type files --type comment").Short('k').Strings()
+	cmds[observeCmd.FullCommand()] = func () error {
+		return ObserveCommand(*observeThreadID, *observeType)
 	}
 
 	// ================================
@@ -772,11 +782,11 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 		return ThreadRename(*threadRenameName, *threadRenameThreadID)
 	}
 
-	// thread unsubscribe
-	threadUnsubscribeCmd      := threadCmd.Command("unsubscribe", "Unsubscribe from the thread, and if no one else remains subscribed, deletes it").Alias("unsub").Alias("remove").Alias("rm")
-	threadUnsubscribeThreadID := threadUnsubscribeCmd.Arg("thread", "Thread ID").Required().String()
-	cmds[threadUnsubscribeCmd.FullCommand()] = func () error {
-		return ThreadUnsubscribe(*threadUnsubscribeThreadID)
+	// thread abandon
+	threadAbandonCmd      := threadCmd.Command("abandon", "Abandon a thread. If no one is else remains participating, the thread dissipates.").Alias("unsubscribe").Alias("leave").Alias("remove").Alias("rm")
+	threadAbandonThreadID := threadAbandonCmd.Arg("thread", "Thread ID").Required().String()
+	cmds[threadAbandonCmd.FullCommand()] = func () error {
+		return ThreadAbandon(*threadAbandonThreadID)
 	}
 
 	// thread snapshot
@@ -805,8 +815,8 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	}
 
 	// thread file
-	threadFileCmd, threadFileCallback := threadFilesCommand(threadCmd)
-	cmds[threadFileCmd.Hidden().FullCommand()] = threadFileCallback
+	threadFileCmd, threadFileCallback := threadFilesCommand(threadCmd, []string{"files", "file"})
+	cmds[threadFileCmd.FullCommand()] = threadFileCallback
 
 	// ================================
 	// @todo are tokens blocks?
@@ -815,14 +825,11 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	tokenCmd := appCmd.Command("token", "Tokens allow other peers to register with a cafe peer").Alias("tokens")
 
 	// token create
-	tokenCreateCmd := tokenCmd.Command("create", `Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
-The response contains a base58 encoded version of the random bytes token.`).Alias("generate").Alias("init")
+	tokenCreateCmd := tokenCmd.Command("add", `Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
+The response contains a base58 encoded version of the random bytes token.`).Alias("create").Alias("generate").Alias("init")
 	tokenCreateNoStore := tokenCreateCmd.Flag("no-store", "If used instead of token, the token is generated but not stored in the local cafe database").Short('n').Bool()
+	// @todo at some point remove --no-store, if no one is using it
 	tokenCreateToken   := tokenCreateCmd.Flag("token", "If used instead of no-store, use this existing token rather than creating a new one").Short('t').String()
-	// ^ this seems overly complex, perhaps an arg and flag would be better?
-	// also, kingpin supports the `no-*` prefix, so you could do Flag("store").Default("yes") however, because of the weird behaviour here,
-	// it doesn't make sense to use it here
-	// @todo what exactly does specifying a token accomplish, if we already have a token, then why use this command?
 	cmds[tokenCreateCmd.FullCommand()] = func () error {
 		return TokenCreate(*tokenCreateToken, *tokenCreateNoStore)
 	}
@@ -859,23 +866,24 @@ The response contains a base58 encoded version of the random bytes token.`).Alia
 	// ================================
 
 	// wallet
-	walletCmd := appCmd.Command("wallet", "Generate a new wallet, or view the accounts within an existing wallet").Alias("wallets")
+	walletCmd := appCmd.Command("wallet", "Create a new wallet, or list its available accounts").Alias("wallets")
 
 	// wallet init
-	walletInitCmd       := walletCmd.Command("create", "Generates a wallet, using a mnemonic phrase to seed it").Alias("init").Alias("generate")
-	walletInitPassword  := walletInitCmd.Arg("seed", "Specify a custom seed instead of generating a seed automatically").String()
-	walletInitWordCount := walletInitCmd.Flag("words", "If automatically generating a seed, then how many words should be used? 12, 15, 18, 21, 24").Short('w').Default("12").Int()
+	walletInitCmd        := walletCmd.Command("create", "Generate a hierarchical deterministic wallet and output the first child account. A wallet is a seed that deterministically generates child accounts. Child accounts are used to interact with textile. Formula: Autogenerated Mnemonic + Optionally Specified Passphrase = Generated Seed. The seed, mnemonic, and passphrase must be kept top secret. The mnemonic and passphrase must be remembered by you.").Alias("init").Alias("generate")
+	walletInitPassphrase := walletInitCmd.Arg("passphrase", "If provided, the resultant wallet seed will be salted with this passphrase, resulting in a different (and more unique) wallet seed than if just the mnemonic was used.").String()
+	walletInitWords      := walletInitCmd.Flag("words", "How many words to use for the autogenerated mnemonic? 12, 15, 18, 21, 24").Short('w').Default("12").Int()
 	cmds[walletInitCmd.FullCommand()] = func () error {
-		return WalletInit(*walletInitWordCount, *walletInitPassword)
+		return WalletInit(*walletInitWords, *walletInitPassphrase)
 	}
 
 	// wallet accounts
-	walletAccountsCmd      := walletCmd.Command("accounts", "Shows the derived accounts within an existing wallet").Alias("account")
-	walletAccountsPassword := walletAccountsCmd.Arg("seed", "Seed phrase of the wallet to fetch the accounts for").String()
-	walletAccountsDepth    := walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
-	walletAccountsOffset   := walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
+	walletAccountsCmd        := walletCmd.Command("accounts", "List the available accounts (within a specific range) within the wallet's deterministic bounds. Formula: Account = Account Index + Parent Private Key from Parent Seed. Parent Seed = Wallet Mnemonic + Passphrase.").Alias("account")
+	walletAccountsMnemonic  := walletAccountsCmd.Arg("mnemonic", "The autogenerated mnemonic of the wallet").Required().String()
+	walletAccountsPassphrase := walletAccountsCmd.Arg("passphrase", "If the wallet was generated with a passphrase, specify it here to ensure the accounts you are listing are for the same wallet").String()
+	walletAccountsDepth      := walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
+	walletAccountsOffset     := walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
 	cmds[walletAccountsCmd.FullCommand()] = func () error {
-		return WalletAccounts(*walletAccountsPassword, *walletAccountsDepth, *walletAccountsOffset)
+		return WalletAccounts(*walletAccountsMnemonic, *walletAccountsPassphrase, *walletAccountsDepth, *walletAccountsOffset)
 	}
 
 	// ================================
@@ -1111,7 +1119,7 @@ func handleSearchStream(pth string, param params) []pb.QueryResult {
 
 func nextPage() error {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("press enter for the next page...")
+	fmt.Print("press ctrl+c to exit, press enter for next page...")
 	if _, err := reader.ReadString('\n'); err != nil {
 		return err
 	}

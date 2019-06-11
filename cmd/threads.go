@@ -106,7 +106,7 @@ func ThreadRename(name string, threadID string) error {
 	return nil
 }
 
-func ThreadUnsubscribe(threadID string) error {
+func ThreadAbandon(threadID string) error {
 	res, err := executeStringCmd(http.MethodDelete, "threads/"+threadID, params{})
 	if err != nil {
 		return err

@@ -321,6 +321,7 @@ func (t *Textile) ThreadPeers(id string) (*pb.PeerList, error) {
 }
 
 // RemoveThread removes a thread
+// @todo rename to abandon to be consistent with CLI+API
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	var thrd *Thread
 	var index int
