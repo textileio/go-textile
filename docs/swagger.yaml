@@ -562,9 +562,8 @@ paths:
         traversing the hash tree.
       parameters:
       - default: thread=,offset=,limit=5
-        description: 'thread: Thread ID (can also use ''default''), offset: Offset
-          ID to start listing from (omit for latest), limit: List page size (default:
-          5)'
+        description: 'thread: Thread ID, offset: Offset ID to start listing from (omit
+          for latest), limit: List page size (default: 5)'
         in: header
         name: X-Textile-Opts
         type: string
@@ -1340,9 +1339,8 @@ paths:
       - files
   /files:
     get:
-      description: |-
-        Paginates thread files. If thread id not provided, paginate all files. Specify
-        "default" to use the default thread (if set).
+      description: Paginates thread files. If thread id not provided, paginate all
+        files.
       parameters:
       - default: thread=,offset=,limit=5
         description: 'thread: Thread ID. Omit for all, offset: Offset ID to start
@@ -2083,13 +2081,13 @@ paths:
   /subscribe/{id}:
     get:
       description: |-
-        Subscribes to updates in a thread or all threads. An update is generated
+        Observes updates in a thread or all threads. An update is generated
         when a new block is added to a thread. There are several update types:
         MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
       parameters:
       - description: thread id, omit to stream all events
         in: path
-        name: id
+        name: thread
         type: string
       - default: type=,events="false"
         description: 'type: Or''d list of event types (e.g., FILES|COMMENTS|LIKES)
@@ -2110,7 +2108,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Subscribe to thread updates
+      summary: Observe to thread updates
       tags:
       - subscribe
   /summary:
@@ -2190,7 +2188,8 @@ paths:
       - threads
   /threads/{id}:
     delete:
-      description: Leaves and removes a thread
+      description: Abandons a thread, and if no one else is participating, then the
+        thread dissipates.
       parameters:
       - description: thread id
         in: path
@@ -2210,7 +2209,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Leave and remove a thread
+      summary: Abandons a thread.
       tags:
       - threads
     get:
@@ -2371,8 +2370,7 @@ paths:
       - threads
   /threads/{id}/peers:
     get:
-      description: Lists all peers in a thread, optionally listing peers in the default
-        thread
+      description: Lists all peers in a thread
       parameters:
       - description: thread id
         in: path

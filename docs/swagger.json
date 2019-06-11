@@ -99,7 +99,7 @@
                     {
                         "type": "string",
                         "default": "thread=,offset=,limit=5",
-                        "description": "thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)",
+                        "description": "thread: Thread ID, offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)",
                         "name": "X-Textile-Opts",
                         "in": "header"
                     }
@@ -1195,7 +1195,7 @@
         },
         "/files": {
             "get": {
-                "description": "Paginates thread files. If thread id not provided, paginate all files. Specify\n\"default\" to use the default thread (if set).",
+                "description": "Paginates thread files. If thread id not provided, paginate all files.",
                 "produces": [
                     "application/json"
                 ],
@@ -2261,19 +2261,19 @@
         },
         "/subscribe/{id}": {
             "get": {
-                "description": "Subscribes to updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
+                "description": "Observes updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "subscribe"
                 ],
-                "summary": "Subscribe to thread updates",
+                "summary": "Observe to thread updates",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "thread id, omit to stream all events",
-                        "name": "id",
+                        "name": "thread",
                         "in": "path"
                     },
                     {
@@ -2483,11 +2483,11 @@
                 }
             },
             "delete": {
-                "description": "Leaves and removes a thread",
+                "description": "Abandons a thread, and if no one else is participating, then the thread dissipates.",
                 "tags": [
                     "threads"
                 ],
-                "summary": "Leave and remove a thread",
+                "summary": "Abandons a thread.",
                 "parameters": [
                     {
                         "type": "string",
@@ -2669,7 +2669,7 @@
         },
         "/threads/{id}/peers": {
             "get": {
-                "description": "Lists all peers in a thread, optionally listing peers in the default thread",
+                "description": "Lists all peers in a thread",
                 "produces": [
                     "application/json"
                 ],

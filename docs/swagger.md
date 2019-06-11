@@ -83,7 +83,7 @@ traversing the hash tree.
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| X-Textile-Opts | header | thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5) | No | string |
+| X-Textile-Opts | header | thread: Thread ID, offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5) | No | string |
 
 ##### Responses
 
@@ -750,8 +750,7 @@ Paginates thread files
 
 ##### Description:
 
-Paginates thread files. If thread id not provided, paginate all files. Specify
-"default" to use the default thread (if set).
+Paginates thread files. If thread id not provided, paginate all files.
 
 ##### Parameters
 
@@ -1367,11 +1366,11 @@ Searches the network for thread snapshots
 #### GET
 ##### Summary:
 
-Subscribe to thread updates
+Observe to thread updates
 
 ##### Description:
 
-Subscribes to updates in a thread or all threads. An update is generated
+Observes updates in a thread or all threads. An update is generated
 when a new block is added to a thread. There are several update types:
 MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
 
@@ -1379,7 +1378,7 @@ MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| id | path | thread id, omit to stream all events | No | string |
+| thread | path | thread id, omit to stream all events | No | string |
 | X-Textile-Opts | header | type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON | No | string |
 
 ##### Responses
@@ -1451,11 +1450,11 @@ a Thread object
 #### DELETE
 ##### Summary:
 
-Leave and remove a thread
+Abandons a thread.
 
 ##### Description:
 
-Leaves and removes a thread
+Abandons a thread, and if no one else is participating, then the thread dissipates.
 
 ##### Parameters
 
@@ -1606,7 +1605,7 @@ List all thread peers
 
 ##### Description:
 
-Lists all peers in a thread, optionally listing peers in the default thread
+Lists all peers in a thread
 
 ##### Parameters
 
