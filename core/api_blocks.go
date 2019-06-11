@@ -47,11 +47,12 @@ func getFile(files *pb.Files, indexStr string, path string) (*pb.FileIndex, erro
 	// file
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
-		return nil, err, http.StatusBadRequest
+		return nil, fmt.Errorf("invalid file index %s with error %s", indexStr, err), http.StatusBadRequest
 	}
 	file, ok := files.Files[index].Links[path]
 	if !ok {
-		return nil, err, http.StatusNotFound
+		// fmt.Print(files.Files[index])
+		return nil, fmt.Errorf("failed to get the file at index %d path %s", index, path), http.StatusNotFound
 	}
 	return file, nil, http.StatusOK
 }
