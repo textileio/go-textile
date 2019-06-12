@@ -28,7 +28,9 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func threadBlocksCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
+type cmdsMap map[string]func() error
+
+func threadBlocksCommand(cmds cmdsMap, parent *kingpin.CmdClause, names []string) *kingpin.CmdClause {
 	cmd := parent.Command(names[0], "Paginates blocks in a thread")
 	for _, name := range names[1:] {
 		cmd = cmd.Alias(name)
@@ -38,12 +40,14 @@ func threadBlocksCommand(parent *kingpin.CmdClause, names []string) (*kingpin.Cm
 	blockListOffset := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	blockListLimit := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 	blockListDots := cmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
-	return cmd, func() error {
+	cmds[cmd.FullCommand()] = func() error {
 		return BlockList(*blockListThreadID, *blockListOffset, *blockListLimit, *blockListDots)
 	}
+
+	return cmd
 }
 
-func threadFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
+func threadFilesCommand(cmds cmdsMap, parent *kingpin.CmdClause, names []string) *kingpin.CmdClause {
 	cmd := parent.Command(names[0], "Paginates the files of a thread, or of all threads")
 	for _, name := range names[1:] {
 		cmd = cmd.Alias(name)
@@ -52,24 +56,35 @@ func threadFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.Cmd
 	threadID := cmd.Arg("thread", "Thread ID, omit for all").String()
 	offset := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	limit := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
-	return cmd, func() error {
+	cmds[cmd.FullCommand()] = func() error {
 		return FileListThread(*threadID, *offset, *limit)
 	}
+
+	return cmd
 }
 
-func blockFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
-	cmd := parent.Command(names[0], "Get the files, or a specific file, of a Files Block")
+func blockFilesCommand(cmds cmdsMap, parent *kingpin.CmdClause, names []string) *kingpin.CmdClause {
+	cmd := parent.Command(names[0], "Commands to interact with File Blocks")
 	for _, name := range names[1:] {
 		cmd = cmd.Alias(name)
 	}
 
-	blockID := cmd.Arg("block", "Files Block ID").Required().String()
-	index := cmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
-	path := cmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
-	content := cmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
-	return cmd, func() error {
-		return FileListBlock(*blockID, *index, *path, *content)
+	listCmd := cmd.Command("list", "List all files within a File Block").Alias("ls").Default()
+	listBlockID := listCmd.Arg("block", "File Block ID").Required().String()
+	cmds[listCmd.FullCommand()] = func() error {
+		return FileListBlock(*listBlockID)
 	}
+
+	getCmd := cmd.Command("get", "Get a specific file within the File Block")
+	getBlockID := getCmd.Arg("block", "File Block ID").Required().String()
+	getIndex := getCmd.Flag("index", "The index of the file to fetch").Default("0").Int()
+	getPath := getCmd.Flag("path", "The link path of the file to fetch").Default(".").String()
+	getContent := getCmd.Flag("content", "If provided, the decrypted content of the file is retrieved").Bool()
+	cmds[getCmd.FullCommand()] = func() error {
+		return FileGetBlock(*getBlockID, *getIndex, *getPath, *getContent)
+	}
+
+	return cmd
 }
 
 type method string // e.g. http.MethodGet
@@ -118,7 +133,7 @@ var (
 )
 
 func Run() error {
-	cmds := make(map[string]func() error)
+	cmds := make(cmdsMap)
 
 	// configure
 	appCmd.UsageTemplate(kingpin.CompactUsageTemplate)
@@ -153,8 +168,7 @@ func Run() error {
 	blockCmd := appCmd.Command("block", "Threads are composed of an append-only log of blocks, use these commands to manage them").Alias("blocks")
 
 	// block list
-	blockListCmd, blockListCallback := threadBlocksCommand(blockCmd, []string{"list", "ls"})
-	cmds[blockListCmd.FullCommand()] = blockListCallback
+	threadBlocksCommand(cmds, blockCmd, []string{"list", "ls"})
 
 	// block meta
 	blockMetaCmd := blockCmd.Command("meta", "Get the metadata for a block").Alias("get")
@@ -171,8 +185,7 @@ func Run() error {
 	}
 
 	// block file alias
-	blockFileCmd, blockFileCallback := blockFilesCommand(blockCmd, []string{"files", "file"})
-	cmds[blockFileCmd.FullCommand()] = blockFileCallback
+	blockFilesCommand(cmds, blockCmd, []string{"files", "file"})
 
 	// ================================
 
@@ -367,12 +380,11 @@ Stacks may include:
 	fileListCmd := fileCmd.Command("list", `Get all the files, or just the files for a specific thread or block`).Alias("ls").Default()
 
 	// file list thread
-	fileListThreadCmd, fileListThreadCallback := threadFilesCommand(fileListCmd, []string{"thread"})
-	cmds[fileListThreadCmd.Default().FullCommand()] = fileListThreadCallback
+	fileListThreadCmd := threadFilesCommand(cmds, fileListCmd, []string{"thread"})
+	fileListThreadCmd.Default()
 
 	// file list block
-	fileListBlockCmd, fileListBlockCallback := blockFilesCommand(fileListCmd, []string{"block"})
-	cmds[fileListBlockCmd.FullCommand()] = fileListBlockCallback
+	blockFilesCommand(cmds, fileListCmd, []string{"block"})
 
 	// file keys
 	fileKeysCmd := fileCmd.Command("keys", "Shows the encryption keys for each content/meta pair for the given block DAG target").Alias("key")
@@ -821,12 +833,10 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	}
 
 	// thread file
-	threadFileCmd, threadFileCallback := threadFilesCommand(threadCmd, []string{"files", "file"})
-	cmds[threadFileCmd.FullCommand()] = threadFileCallback
+	threadFilesCommand(cmds, threadCmd, []string{"files", "file"})
 
 	// thread block
-	threadBlockCmd, threadBlockCallback := threadBlocksCommand(threadCmd, []string{"blocks", "block"})
-	cmds[threadBlockCmd.FullCommand()] = threadBlockCallback
+	threadBlocksCommand(cmds, threadCmd, []string{"blocks", "block"})
 
 	// ================================
 	// Tokens are local-only,

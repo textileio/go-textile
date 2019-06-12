@@ -44,17 +44,36 @@ func getFiles(node *Textile, id string) (*pb.Files, error, int) {
 }
 
 func getFile(files *pb.Files, indexStr string, path string) (*pb.FileIndex, error, int) {
-	// file
+	var f *pb.File
+	var fi *pb.FileIndex
+
+	// index conversion
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid file index %s with error %s", indexStr, err), http.StatusBadRequest
 	}
-	file, ok := files.Files[index].Links[path]
-	if !ok {
-		// fmt.Print(files.Files[index])
-		return nil, fmt.Errorf("failed to get the file at index %d path %s", index, path), http.StatusNotFound
+
+	// index
+	f = files.Files[index]
+	if f == nil {
+		return nil, fmt.Errorf("failed to get the file at index %d, did not exist", index), http.StatusNotFound
 	}
-	return file, nil, http.StatusOK
+
+	// path
+	if path == "" || path == "." {
+		fi = f.File
+		if fi == nil {
+			return nil, fmt.Errorf("failed to get the file at index %d, no file content", index), http.StatusNotFound
+		}
+	} else {
+		fi := f.Links[path]
+		if fi == nil {
+			return nil, fmt.Errorf("failed to get the file at index %d path %s, did not exist", index, path), http.StatusNotFound
+		}
+	}
+
+	// return
+	return fi, nil, http.StatusOK
 }
 
 func getFilesFile(node *Textile, id string, indexStr string, path string) (*pb.FileIndex, error, int) {

@@ -452,16 +452,46 @@ func FileListThread(threadID string, offset string, limit int) error {
 // ------------------------------------
 // > file list block
 
-func FileListBlock(blockID string, index int, path string, content bool) error {
+func FileListBlock(blockID string) error {
+	// block
 	urlPath := "blocks/" + blockID + "/files"
-	if path != "" {
-		urlPath += "/" + strconv.Itoa(index) + "/" + strings.Trim(path, "/")
-		if content {
-			urlPath += "/content"
-		} else {
-			urlPath += "/meta"
-		}
+
+	// fetch
+	res, err := executeJsonCmd(http.MethodGet, urlPath, params{}, nil)
+	if err != nil {
+		return err
 	}
+	output(res)
+
+	// return
+	return nil
+}
+
+// ------------------------------------
+// > file get block
+
+func FileGetBlock(blockID string, index int, path string, content bool) error {
+	// block
+	urlPath := "blocks/" + blockID + "/files"
+
+	// index
+	urlPath += "/" + strconv.Itoa(index)
+
+	// path
+	if path == "" {
+		urlPath += "/."
+	} else {
+		urlPath += "/" + strings.Trim(path, "/")
+	}
+
+	// content
+	if content {
+		urlPath += "/content"
+	} else {
+		urlPath += "/meta"
+	}
+
+	// fetch
 	if content {
 		err := executeBlobCmd(http.MethodGet, urlPath, params{})
 		if err != nil {
@@ -474,6 +504,8 @@ func FileListBlock(blockID string, index int, path string, content bool) error {
 		}
 		output(res)
 	}
+
+	// return
 	return nil
 }
 
