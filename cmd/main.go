@@ -28,31 +28,31 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func threadFilesCommand (parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func () error) {
-	cmd      := parent.Command(names[0], "Paginates the files of a thread, or of all threads")
+func threadFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
+	cmd := parent.Command(names[0], "Paginates the files of a thread, or of all threads")
 	for _, name := range names[1:] {
 		cmd = cmd.Alias(name)
 	}
 
 	threadID := cmd.Arg("thread", "Thread ID, omit for all").String()
-	offset   := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
-	limit    := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
-	return cmd, func () error {
+	offset := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
+	limit := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+	return cmd, func() error {
 		return FileListThread(*threadID, *offset, *limit)
 	}
 }
 
-func blockFilesCommand (parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func () error) {
-	cmd     := parent.Command(names[0], "Get the files, or a specific file, of a Files Block")
+func blockFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
+	cmd := parent.Command(names[0], "Get the files, or a specific file, of a Files Block")
 	for _, name := range names[1:] {
 		cmd = cmd.Alias(name)
 	}
 
 	blockID := cmd.Arg("block", "Files Block ID").Required().String()
-	index   := cmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
-	path    := cmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
+	index := cmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
+	path := cmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
 	content := cmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
-	return cmd, func () error {
+	return cmd, func() error {
 		return FileListBlock(*blockID, *index, *path, *content)
 	}
 }
@@ -103,7 +103,7 @@ var (
 )
 
 func Run() error {
-	cmds := make(map[string]func () error)
+	cmds := make(map[string]func() error)
 
 	// configure
 	appCmd.UsageTemplate(kingpin.CompactUsageTemplate)
@@ -126,9 +126,9 @@ func Run() error {
 	cmds[accountAddressCmd.FullCommand()] = AccountAddress
 
 	// account sync
-	accountSyncCmd  := accountCmd.Command("sync", "Syncs the local account peer with other peers found on the network")
+	accountSyncCmd := accountCmd.Command("sync", "Syncs the local account peer with other peers found on the network")
 	accountSyncWait := accountSyncCmd.Flag("wait", "Stops searching after 'wait' seconds have elapsed (max 30s)").Default("2").Int()
-	cmds[accountSyncCmd.FullCommand()] = func () error {
+	cmds[accountSyncCmd.FullCommand()] = func() error {
 		return AccountSync(*accountSyncWait)
 	}
 
@@ -138,26 +138,26 @@ func Run() error {
 	blockCmd := appCmd.Command("block", "Threads are composed of an append-only log of blocks, use these commands to manage them").Alias("blocks")
 
 	// block list
-	blockListCmd      := blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls").Default()
+	blockListCmd := blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls").Default()
 	blockListThreadID := blockListCmd.Arg("thread", "Thread ID").Required().String()
-	blockListOffset   := blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
-	blockListLimit    := blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
-	blockListDots     := blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
-	cmds[blockListCmd.FullCommand()] = func () error {
+	blockListOffset := blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
+	blockListLimit := blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+	blockListDots := blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
+	cmds[blockListCmd.FullCommand()] = func() error {
 		return BlockList(*blockListThreadID, *blockListOffset, *blockListLimit, *blockListDots)
 	}
 
 	// block meta
-	blockMetaCmd     := blockCmd.Command("meta", "Get the metadata for a block").Alias("get")
+	blockMetaCmd := blockCmd.Command("meta", "Get the metadata for a block").Alias("get")
 	blockMetaBlockID := blockMetaCmd.Arg("block", "Block ID").Required().String()
-	cmds[blockMetaCmd.FullCommand()] = func () error {
+	cmds[blockMetaCmd.FullCommand()] = func() error {
 		return BlockMeta(*blockMetaBlockID)
 	}
 
 	// block ignore
-	blockIgnoreCmd     := blockCmd.Command("ignore", "Remove a block by marking it to be ignored").Alias("remove").Alias("rm")
+	blockIgnoreCmd := blockCmd.Command("ignore", "Remove a block by marking it to be ignored").Alias("remove").Alias("rm")
 	blockIgnoreBlockID := blockIgnoreCmd.Arg("block", "Block ID").Required().String()
-	cmds[blockIgnoreCmd.FullCommand()] = func () error {
+	cmds[blockIgnoreCmd.FullCommand()] = func() error {
 		return BlockIgnore(*blockIgnoreBlockID)
 	}
 
@@ -173,10 +173,10 @@ func Run() error {
 	// cafe add
 	cafeAddCmd := cafeCmd.Command("add", `Registers with a cafe and saves an expiring service session token.
 An access token is required to register, and should be obtained separately from the target cafe.`)
-    cafeAddPeerID := cafeAddCmd.Arg("peer", "The host cafe's IPFS peer ID").Required().String()
+	cafeAddPeerID := cafeAddCmd.Arg("peer", "The host cafe's IPFS peer ID").Required().String()
 	cafeAddToken := cafeAddCmd.Flag("token", "An access token supplied by the cafe").Short('t').Required().String()
 	// @todo is this consistent with the rest?
-	cmds[cafeAddCmd.FullCommand()] = func () error {
+	cmds[cafeAddCmd.FullCommand()] = func() error {
 		return CafeAdd(*cafeAddPeerID, *cafeAddToken)
 	}
 
@@ -185,16 +185,16 @@ An access token is required to register, and should be obtained separately from 
 	cmds[cafeListCmd.FullCommand()] = CafeList
 
 	// cafe get
-	cafeGetCmd    := cafeCmd.Command("get", "Gets and displays info about a cafe session")
+	cafeGetCmd := cafeCmd.Command("get", "Gets and displays info about a cafe session")
 	cafeGetCafeID := cafeGetCmd.Arg("cafe", "Cafe ID").Required().String()
-	cmds[cafeGetCmd.FullCommand()] = func () error {
+	cmds[cafeGetCmd.FullCommand()] = func() error {
 		return CafeGet(*cafeGetCafeID)
 	}
 
 	// cafe delete
-	cafeDeleteCmd    := cafeCmd.Command("delete", "Deregisters a cafe (content will expire based on the cafe's service rules)").Alias("del").Alias("remove").Alias("rm")
+	cafeDeleteCmd := cafeCmd.Command("delete", "Deregisters a cafe (content will expire based on the cafe's service rules)").Alias("del").Alias("remove").Alias("rm")
 	cafeDeleteCafeID := cafeDeleteCmd.Arg("cafe", "Cafe ID").Required().String()
-	cmds[cafeDeleteCmd.FullCommand()] = func () error {
+	cmds[cafeDeleteCmd.FullCommand()] = func() error {
 		return CafeDelete(*cafeDeleteCafeID)
 	}
 
@@ -205,9 +205,9 @@ An access token is required to register, and should be obtained separately from 
 	// ================================
 
 	// chat
-	chatCmd      := appCmd.Command("chat", `Starts an interactive chat session in a thread`)
+	chatCmd := appCmd.Command("chat", `Starts an interactive chat session in a thread`)
 	chatThreadID := chatCmd.Arg("thread", "Thread ID").Required().String()
-	cmds[chatCmd.FullCommand()] = func () error {
+	cmds[chatCmd.FullCommand()] = func() error {
 		return Chat(*chatThreadID)
 	}
 
@@ -217,41 +217,41 @@ An access token is required to register, and should be obtained separately from 
 	commentCmd := appCmd.Command("comment", "Comments are added as blocks in a thread, which target another block, usually a file(s)").Alias("comments")
 
 	// comment add
-	commentAddCmd     := commentCmd.Command("add", "Attach a comment to a block")
+	commentAddCmd := commentCmd.Command("add", "Attach a comment to a block")
 	commentAddBlockID := commentAddCmd.Arg("block", "The Block ID to attach the comment to").Required().String()
-	commentAddBody    := commentAddCmd.Arg("body", "Text to use as the comment").Required().String()
-	cmds[commentAddCmd.FullCommand()] = func () error {
+	commentAddBody := commentAddCmd.Arg("body", "Text to use as the comment").Required().String()
+	cmds[commentAddCmd.FullCommand()] = func() error {
 		return CommentAdd(*commentAddBlockID, *commentAddBody)
 	}
 
 	// comment list
-	commentListCmd     := commentCmd.Command("list", "Get the comments that are attached to a block").Alias("ls").Default()
+	commentListCmd := commentCmd.Command("list", "Get the comments that are attached to a block").Alias("ls").Default()
 	commentListBlockID := commentListCmd.Arg("block", "The Block ID which the comments attached to").Required().String()
-	cmds[commentListCmd.FullCommand()] = func () error {
+	cmds[commentListCmd.FullCommand()] = func() error {
 		return CommentList(*commentListBlockID)
 	}
 
 	// comment get
-	commentGetCmd     := commentCmd.Command("get", "Get a comment by its own Block ID")
+	commentGetCmd := commentCmd.Command("get", "Get a comment by its own Block ID")
 	commentGetBlockID := commentGetCmd.Arg("comment-block", "Comment Block ID").Required().String()
-	cmds[commentGetCmd.FullCommand()] = func () error {
+	cmds[commentGetCmd.FullCommand()] = func() error {
 		return CommentGet(*commentGetBlockID)
 	}
 
 	// comment ignore
-	commentIgnoreCmd     := commentCmd.Command("ignore", "Ignore a comment by its own Block ID").Alias("remove").Alias("rm")
+	commentIgnoreCmd := commentCmd.Command("ignore", "Ignore a comment by its own Block ID").Alias("remove").Alias("rm")
 	commentIgnoreBlockID := commentIgnoreCmd.Arg("comment-block", "Comment Block ID").Required().String()
-	cmds[commentIgnoreCmd.FullCommand()] = func () error {
+	cmds[commentIgnoreCmd.FullCommand()] = func() error {
 		return CommentIgnore(*commentIgnoreBlockID)
 	}
 
 	// ================================
 
 	// config
-	configCmd   := appCmd.Command("config", "Get or set configuration variables").Alias("conf")
-	configName  := configCmd.Arg("name", "If provided, will restrict the operation to this specific configuration variable, e.g. 'Addresses.API'").String()
+	configCmd := appCmd.Command("config", "Get or set configuration variables").Alias("conf")
+	configName := configCmd.Arg("name", "If provided, will restrict the operation to this specific configuration variable, e.g. 'Addresses.API'").String()
 	configValue := configCmd.Arg("value", `If provided, will set the specific configuration variable to this JSON escaped value, e.g. '"127.0.0.1:40600"'`).String()
-	cmds[configCmd.FullCommand()] = func () error {
+	cmds[configCmd.FullCommand()] = func() error {
 		return Config(*configName, *configValue)
 	}
 
@@ -261,11 +261,11 @@ An access token is required to register, and should be obtained separately from 
 	contactCmd := appCmd.Command("contact", "Manage local contacts and find other contacts on the network").Alias("contacts")
 
 	// contact add
-	contactAddCmd     := contactCmd.Command("add", "Adds a contact by display name or account address to known contacts")
-	contactAddName    := contactAddCmd.Flag("name", "Add by display name").Short('n').String()
+	contactAddCmd := contactCmd.Command("add", "Adds a contact by display name or account address to known contacts")
+	contactAddName := contactAddCmd.Flag("name", "Add by display name").Short('n').String()
 	contactAddAddress := contactAddCmd.Flag("address", "Add by account address").Short('a').String()
-	contactAddWait    := contactAddCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed").Int()
-	cmds[contactAddCmd.FullCommand()] = func () error {
+	contactAddWait := contactAddCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed").Int()
+	cmds[contactAddCmd.FullCommand()] = func() error {
 		return ContactAdd(*contactAddName, *contactAddAddress, *contactAddWait)
 	}
 
@@ -274,29 +274,29 @@ An access token is required to register, and should be obtained separately from 
 	cmds[contactListCmd.FullCommand()] = ContactList
 
 	// contact get
-	contactGetCmd     := contactCmd.Command("get", "Gets a known contact")
+	contactGetCmd := contactCmd.Command("get", "Gets a known contact")
 	contactGetAddress := contactGetCmd.Arg("address", "Account Address").Required().String()
-	cmds[contactGetCmd.FullCommand()] = func () error {
+	cmds[contactGetCmd.FullCommand()] = func() error {
 		return ContactGet(*contactGetAddress)
 	}
 
 	// contact delete
-	contactDeleteCmd     := contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rm")
+	contactDeleteCmd := contactCmd.Command("delete", "Deletes a known contact").Alias("del").Alias("remove").Alias("rm")
 	contactDeleteAddress := contactDeleteCmd.Arg("address", "Account Address").Required().String()
-	cmds[contactDeleteCmd.FullCommand()] = func () error {
+	cmds[contactDeleteCmd.FullCommand()] = func() error {
 		return ContactDelete(*contactDeleteAddress)
 	}
 
 	// contact search
-	contactSearchCmd     := contactCmd.Command("search", "Searches locally and on the network for contacts").Alias("find")
-	contactSearchName    := contactSearchCmd.Flag("name", "Search by display name").Short('n').String()
+	contactSearchCmd := contactCmd.Command("search", "Searches locally and on the network for contacts").Alias("find")
+	contactSearchName := contactSearchCmd.Flag("name", "Search by display name").Short('n').String()
 	contactSearchAddress := contactSearchCmd.Flag("address", "Search by account address").Short('a').String()
 	// @todo what is the point of this, as `textile contact get <address>` can do this?
-	contactSearchLocal   := contactSearchCmd.Flag("only-local", "Only search local contacts").Bool()
-	contactSearchRemote  := contactSearchCmd.Flag("only-remote", "Only search remote contacts").Bool()
-	contactSearchLimit   := contactSearchCmd.Flag("limit", "Stops searching after [limit] results are found").Default("5").Int()
-	contactSearchWait    := contactSearchCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
-	cmds[contactSearchCmd.FullCommand()] = func () error {
+	contactSearchLocal := contactSearchCmd.Flag("only-local", "Only search local contacts").Bool()
+	contactSearchRemote := contactSearchCmd.Flag("only-remote", "Only search remote contacts").Bool()
+	contactSearchLimit := contactSearchCmd.Flag("limit", "Stops searching after [limit] results are found").Default("5").Int()
+	contactSearchWait := contactSearchCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
+	cmds[contactSearchCmd.FullCommand()] = func() error {
 		return ContactSearch(*contactSearchName, *contactSearchAddress, *contactSearchLocal, *contactSearchRemote, *contactSearchLimit, *contactSearchWait)
 	}
 	// @todo why not make this part of `textile contact list`?
@@ -305,11 +305,11 @@ An access token is required to register, and should be obtained separately from 
 	// ================================
 
 	// daemon
-	daemonCmd  := appCmd.Command("daemon", "Start a node daemon session")
+	daemonCmd := appCmd.Command("daemon", "Start a node daemon session")
 	daemonRepo := daemonCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
-	daemonPin  := daemonCmd.Flag("pin", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
+	daemonPin := daemonCmd.Flag("pin", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
 	daemonDocs := daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
-	cmds[daemonCmd.FullCommand()] = func () error {
+	cmds[daemonCmd.FullCommand()] = func() error {
 		repo, err := getRepo(*daemonRepo)
 		if err != nil {
 			return err
@@ -341,11 +341,11 @@ Stacks may include:
 - One or more annotations about a post. The newest annotation assumes the "top" position in the stack. Additional
  annotations are nested under the target. Newer annotations may have already been listed in the case as well.`)
 	feedThreadID := feedCmd.Arg("thread", "Thread ID, omit for all").String()
-	feedOffset   := feedCmd.Flag("offset", "Offset ID to start listening from").Short('o').String()
-	feedLimit    := feedCmd.Flag("limit", "List page size").Short('l').Default("3").Int()
-	feedMode     := feedCmd.Flag("mode", "Feed mode, one of: chrono, annotated, stacks").Short('m').Default("chrono").String()
+	feedOffset := feedCmd.Flag("offset", "Offset ID to start listening from").Short('o').String()
+	feedLimit := feedCmd.Flag("limit", "List page size").Short('l').Default("3").Int()
+	feedMode := feedCmd.Flag("mode", "Feed mode, one of: chrono, annotated, stacks").Short('m').Default("chrono").String()
 	// ^ when kingpin v2 lands with enumerables, we could move the usage docs to the enum docs
-	cmds[feedCmd.FullCommand()] = func () error {
+	cmds[feedCmd.FullCommand()] = func() error {
 		return Feed(*feedThreadID, *feedOffset, *feedLimit, *feedMode)
 	}
 
@@ -367,57 +367,57 @@ Stacks may include:
 	cmds[fileListBlockCmd.FullCommand()] = fileListBlockCallback
 
 	// file keys
-	fileKeysCmd      := fileCmd.Command("keys", "Shows file keys under the given target").Alias("key")
+	fileKeysCmd := fileCmd.Command("keys", "Shows file keys under the given target").Alias("key")
 	fileKeysTargetID := fileKeysCmd.Arg("target-block", "Files Block Target ID").Required().String()
 	// @todo why is this a block target
-	cmds[fileKeysCmd.FullCommand()] = func () error {
+	cmds[fileKeysCmd.FullCommand()] = func() error {
 		return FileKeys(*fileKeysTargetID)
 	}
 
 	// file add
-	fileAddCmd      := fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
+	fileAddCmd := fileCmd.Command("add", `Adds a file, directory, or hash to a thread. Files not supported by the thread schema are ignored`)
 	fileAddThreadID := fileAddCmd.Arg("thread", "Thread ID").Required().String()
-	fileAddPath     := fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash. If omitted, you must provide a stdin blob input.").String()
-	fileAddCaption  := fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
-	fileAddGroup    := fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
-	fileAddVerbose  := fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
-	cmds[fileAddCmd.FullCommand()] = func () error {
+	fileAddPath := fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash. If omitted, you must provide a stdin blob input.").String()
+	fileAddCaption := fileAddCmd.Flag("caption", "File(s) caption").Short('c').String()
+	fileAddGroup := fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object, includes nested directories").Short('g').Bool()
+	fileAddVerbose := fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
+	cmds[fileAddCmd.FullCommand()] = func() error {
 		return FileAdd(*fileAddPath, *fileAddThreadID, *fileAddCaption, *fileAddGroup, *fileAddVerbose)
 	}
 
 	// file ignore
-	fileIgnoreCmd     := fileCmd.Command("ignore", `Ignores a thread file by its own block ID`).Alias("remove").Alias("rm")
+	fileIgnoreCmd := fileCmd.Command("ignore", `Ignores a thread file by its own block ID`).Alias("remove").Alias("rm")
 	fileIgnoreBlockID := fileIgnoreCmd.Arg("files-block", "Files Block ID").Required().String()
-	cmds[fileIgnoreCmd.FullCommand()] = func () error {
+	cmds[fileIgnoreCmd.FullCommand()] = func() error {
 		return FileIgnore(*fileIgnoreBlockID)
 	}
 
 	// file get
-	fileGetCmd     := fileCmd.Command("get", "Get the metadata or content of a specific file")
-	fileGetHash    := fileGetCmd.Arg("hash", "File Hash").Required().String()
+	fileGetCmd := fileCmd.Command("get", "Get the metadata or content of a specific file")
+	fileGetHash := fileGetCmd.Arg("hash", "File Hash").Required().String()
 	fileGetContent := fileGetCmd.Flag("content", "If provided, the decrypted content of the file is retrieved").Bool()
-	cmds[fileGetCmd.FullCommand()] = func () error {
+	cmds[fileGetCmd.FullCommand()] = func() error {
 		return FileGet(*fileGetHash, *fileGetContent)
 	}
 
 	// ================================
 
 	// init
-	initCmd               := appCmd.Command("init", "Configure textile to use the account by creating a local repository to house its data")
-	initAccountSeed       := initCmd.Arg("account-seed", "The account seed to use, if you do not have one, refer to: textile wallet --help").Required().String()
-	initPin               := initCmd.Flag("pin", "Specify a pin for datastore encryption").Short('p').String()
-	initRepo              := initCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
-	initIpfsServerMode    := initCmd.Flag("server", "Apply IPFS server profile").Bool()
-	initIpfsSwarmPorts    := initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
-	initLogFiles          := initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("true").Bool()
-	initApiBindAddr       := initCmd.Flag("api-bind-addr", "Set the local API address").Default("127.0.0.1:40600").String()
-	initCafeApiBindAddr   := initCmd.Flag("cafe-bind-addr", "Set the cafe REST API address").Default("0.0.0.0:40601").String()
-	initGatewayBindAddr   := initCmd.Flag("gateway-bind-addr", "Set the IPFS gateway address").Default("127.0.0.1:5050").String()
+	initCmd := appCmd.Command("init", "Configure textile to use the account by creating a local repository to house its data")
+	initAccountSeed := initCmd.Arg("account-seed", "The account seed to use, if you do not have one, refer to: textile wallet --help").Required().String()
+	initPin := initCmd.Flag("pin", "Specify a pin for datastore encryption").Short('p').String()
+	initRepo := initCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
+	initIpfsServerMode := initCmd.Flag("server", "Apply IPFS server profile").Bool()
+	initIpfsSwarmPorts := initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
+	initLogFiles := initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("true").Bool()
+	initApiBindAddr := initCmd.Flag("api-bind-addr", "Set the local API address").Default("127.0.0.1:40600").String()
+	initCafeApiBindAddr := initCmd.Flag("cafe-bind-addr", "Set the cafe REST API address").Default("0.0.0.0:40601").String()
+	initGatewayBindAddr := initCmd.Flag("gateway-bind-addr", "Set the IPFS gateway address").Default("127.0.0.1:5050").String()
 	initProfilingBindAddr := initCmd.Flag("profile-bind-addr", "Set the profiling address").Default("127.0.0.1:6060").String()
-	initCafeOpen          := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Bool()
-	initCafeURL           := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
-	initCafeNeighborURL   := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
-	cmds[initCmd.FullCommand()] = func () error {
+	initCafeOpen := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Bool()
+	initCafeURL := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
+	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
+	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
 		if err != nil {
 			return fmt.Errorf(fmt.Sprintf("parse account seed failed: %s", err))
@@ -466,11 +466,11 @@ There are two types of invites, direct account-to-account and external:
 - External invites are encrypted with a single-use key and are useful for onboarding new users.`).Alias("invites")
 
 	// invite create
-	inviteCreateCmd      := inviteCmd.Command("create", "Creates a direct account-to-account or external invite to a thread")
+	inviteCreateCmd := inviteCmd.Command("create", "Creates a direct account-to-account or external invite to a thread")
 	inviteCreateThreadID := inviteCreateCmd.Arg("thread", "Thread ID").Required().String()
-	inviteCreateAddress  := inviteCreateCmd.Flag("address", "Account Address, omit to create an external invite").Short('a').String()
-	inviteCreateWait     := inviteCreateCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
-	cmds[inviteCreateCmd.FullCommand()] = func () error {
+	inviteCreateAddress := inviteCreateCmd.Flag("address", "Account Address, omit to create an external invite").Short('a').String()
+	inviteCreateWait := inviteCreateCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
+	cmds[inviteCreateCmd.FullCommand()] = func() error {
 		return InviteCreate(*inviteCreateThreadID, *inviteCreateAddress, *inviteCreateWait)
 	}
 
@@ -480,16 +480,16 @@ There are two types of invites, direct account-to-account and external:
 
 	// invite accept
 	inviteAcceptCmd := inviteCmd.Command("accept", "Accepts a direct account-to-account or external invite to a thread")
-	inviteAcceptID  := inviteAcceptCmd.Arg("id", "Invite ID that you have received").Required().String()
+	inviteAcceptID := inviteAcceptCmd.Arg("id", "Invite ID that you have received").Required().String()
 	inviteAcceptKey := inviteAcceptCmd.Flag("key", "Key for an external invite").Short('k').String()
-	cmds[inviteAcceptCmd.FullCommand()] = func () error {
+	cmds[inviteAcceptCmd.FullCommand()] = func() error {
 		return InviteAccept(*inviteAcceptID, *inviteAcceptKey)
 	}
 
 	// invite ignore
 	inviteIgnoreCmd := inviteCmd.Command("ignore", "Ignores a direct account-to-account invite to a thread").Alias("remove").Alias("rm")
-	inviteIgnoreID  := inviteIgnoreCmd.Arg("id", "Invite ID that you wish to ignore").Required().String()
-	cmds[inviteIgnoreCmd.FullCommand()] = func () error {
+	inviteIgnoreID := inviteIgnoreCmd.Arg("id", "Invite ID that you wish to ignore").Required().String()
+	cmds[inviteIgnoreCmd.FullCommand()] = func() error {
 		return InviteIgnore(*inviteIgnoreID)
 	}
 
@@ -500,7 +500,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// ipfs peer
 	ipfsPeerCmd := ipfsCmd.Command("peer", "Shows the local node's IPFS peer ID").Alias("id").Default()
-	cmds[ipfsPeerCmd.FullCommand()] = func () error {
+	cmds[ipfsPeerCmd.FullCommand()] = func() error {
 		return IpfsPeer()
 	}
 
@@ -508,27 +508,27 @@ There are two types of invites, direct account-to-account and external:
 	ipfsSwarmCmd := ipfsCmd.Command("swarm", "Provides access to a limited set of IPFS swarm commands")
 
 	// ipfs swarm connect
-	ipfsSwarmConnectCmd     := ipfsSwarmCmd.Command("connect", `Opens a new direct connection to a peer address`)
+	ipfsSwarmConnectCmd := ipfsSwarmCmd.Command("connect", `Opens a new direct connection to a peer address`)
 	ipfsSwarmConnectAddress := ipfsSwarmConnectCmd.Arg("address", `An IPFS multiaddr, such as: /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`).String()
-	cmds[ipfsSwarmConnectCmd.FullCommand()] = func () error {
+	cmds[ipfsSwarmConnectCmd.FullCommand()] = func() error {
 		return IpfsSwarmConnect(*ipfsSwarmConnectAddress)
 	}
 
 	// ipfs swarm peers
-	ipfsSwarmPeersCmd       := ipfsSwarmCmd.Command("peers", "Lists the set of peers this node is connected to")
-	ipfsSwarmPeersVerbose   := ipfsSwarmPeersCmd.Flag("verbose", "Display all extra information").Short('v').Bool()
-	ipfsSwarmPeersStreams   := ipfsSwarmPeersCmd.Flag("streams", "Also list information about open streams for search peer").Short('s').Bool()
-	ipfsSwarmPeersLatency   := ipfsSwarmPeersCmd.Flag("latency", "Also list information about the latency to each peer").Short('l').Bool()
+	ipfsSwarmPeersCmd := ipfsSwarmCmd.Command("peers", "Lists the set of peers this node is connected to")
+	ipfsSwarmPeersVerbose := ipfsSwarmPeersCmd.Flag("verbose", "Display all extra information").Short('v').Bool()
+	ipfsSwarmPeersStreams := ipfsSwarmPeersCmd.Flag("streams", "Also list information about open streams for search peer").Short('s').Bool()
+	ipfsSwarmPeersLatency := ipfsSwarmPeersCmd.Flag("latency", "Also list information about the latency to each peer").Short('l').Bool()
 	ipfsSwarmPeersDirection := ipfsSwarmPeersCmd.Flag("direction", "Also list information about the direction of connection").Short('d').Bool()
-	cmds[ipfsSwarmPeersCmd.FullCommand()] = func () error {
+	cmds[ipfsSwarmPeersCmd.FullCommand()] = func() error {
 		return IpfsSwarmPeers(*ipfsSwarmPeersVerbose, *ipfsSwarmPeersStreams, *ipfsSwarmPeersLatency, *ipfsSwarmPeersDirection)
 	}
 
 	// ipfs cat
-	ipfsCatCmd  := ipfsCmd.Command("cat", "Displays the data behind an IPFS CID (hash)")
+	ipfsCatCmd := ipfsCmd.Command("cat", "Displays the data behind an IPFS CID (hash)")
 	ipfsCatHash := ipfsCatCmd.Arg("hash", "IPFS CID").Required().String()
-	ipfsCatKey  := ipfsCatCmd.Flag("key", "Encryption key").Short('k').String()
-	cmds[ipfsCatCmd.FullCommand()] = func () error {
+	ipfsCatKey := ipfsCatCmd.Flag("key", "Encryption key").Short('k').String()
+	cmds[ipfsCatCmd.FullCommand()] = func() error {
 		return IpfsCat(*ipfsCatHash, *ipfsCatKey)
 	}
 
@@ -543,41 +543,41 @@ There are two types of invites, direct account-to-account and external:
 	likeCmd := appCmd.Command("like", `Likes are added as blocks in a thread, which target another block`).Alias("likes")
 
 	// like add
-	likeAddCmd     := likeCmd.Command("add", "Attach a like to a block")
+	likeAddCmd := likeCmd.Command("add", "Attach a like to a block")
 	likeAddBlockID := likeAddCmd.Arg("block", "Block ID to like, usually a file's block").Required().String()
-	cmds[likeAddCmd.FullCommand()] = func () error {
+	cmds[likeAddCmd.FullCommand()] = func() error {
 		return LikeAdd(*likeAddBlockID)
 	}
 
 	// like list
-	likeListCmd     := likeCmd.Command("list", "Get likes that are attached to a block").Alias("ls").Default()
+	likeListCmd := likeCmd.Command("list", "Get likes that are attached to a block").Alias("ls").Default()
 	likeListBlockID := likeListCmd.Arg("block", "Block ID to like, usually a file's block").Required().String()
-	cmds[likeListCmd.FullCommand()] = func () error {
+	cmds[likeListCmd.FullCommand()] = func() error {
 		return LikeList(*likeListBlockID)
 	}
 
 	// like get
-	likeGetCmd    := likeCmd.Command("get", "Get a like by its own Block ID")
+	likeGetCmd := likeCmd.Command("get", "Get a like by its own Block ID")
 	likeGetLikeID := likeGetCmd.Arg("like-block", "Like Block ID").Required().String()
-	cmds[likeGetCmd.FullCommand()] = func () error {
+	cmds[likeGetCmd.FullCommand()] = func() error {
 		return LikeGet(*likeGetLikeID)
 	}
 
 	// like ignore
-	likeIgnoreCmd    := likeCmd.Command("ignore", "Ignore a like by its own Block ID").Alias("remove").Alias("rm")
+	likeIgnoreCmd := likeCmd.Command("ignore", "Ignore a like by its own Block ID").Alias("remove").Alias("rm")
 	likeIgnoreLikeID := likeIgnoreCmd.Arg("like-block", "Like Block ID").Required().String()
-	cmds[likeIgnoreCmd.FullCommand()] = func () error {
+	cmds[likeIgnoreCmd.FullCommand()] = func() error {
 		return LikeIgnore(*likeIgnoreLikeID)
 	}
 
 	// ================================
 
 	// log
-	logCmd         := appCmd.Command("log", `List or change the verbosity of one or all subsystems log output. Textile logs piggyback on the IPFS event logs.`).Alias("logs")
-	logSubsystem   := logCmd.Flag("subsystem", "The subsystem logging identifier, omit for all").Short('s').String()
-	logLevel       := logCmd.Flag("level", "One of: debug, info, warning, error, critical. Omit to get current level.").Short('l').String()
+	logCmd := appCmd.Command("log", `List or change the verbosity of one or all subsystems log output. Textile logs piggyback on the IPFS event logs.`).Alias("logs")
+	logSubsystem := logCmd.Flag("subsystem", "The subsystem logging identifier, omit for all").Short('s').String()
+	logLevel := logCmd.Flag("level", "One of: debug, info, warning, error, critical. Omit to get current level.").Short('l').String()
 	logTextileOnly := logCmd.Flag("textile-only", "Whether to list/change only Textile subsystems, or all available subsystems").Short('t').Bool()
-	cmds[logCmd.FullCommand()] = func () error {
+	cmds[logCmd.FullCommand()] = func() error {
 		return Logs(*logSubsystem, *logLevel, *logTextileOnly)
 	}
 
@@ -587,43 +587,43 @@ There are two types of invites, direct account-to-account and external:
 	messageCmd := appCmd.Command("message", "Manage Textile Messages").Alias("messages")
 
 	// message add
-	messageAddCmd      := messageCmd.Command("add", "Adds a message to a thread")
+	messageAddCmd := messageCmd.Command("add", "Adds a message to a thread")
 	messageAddThreadID := messageAddCmd.Arg("thread", "Thread ID").Required().String()
-	messageAddBody     := messageAddCmd.Arg("body", "The message to add the thread").Required().String()
-	cmds[messageAddCmd.FullCommand()] = func () error {
+	messageAddBody := messageAddCmd.Arg("body", "The message to add the thread").Required().String()
+	cmds[messageAddCmd.FullCommand()] = func() error {
 		return MessageAdd(*messageAddThreadID, *messageAddBody)
 	}
 
 	// message list
-	messageListCmd      := messageCmd.Command("list", "Paginates thread messages").Alias("ls").Default()
+	messageListCmd := messageCmd.Command("list", "Paginates thread messages").Alias("ls").Default()
 	messageListThreadID := messageListCmd.Arg("thread", "Thread ID, omit to paginate all messages").String()
-	messageListOffset   := messageListCmd.Flag("offset", "Offset ID to start the listing from").Short('o').String()
-	messageListLimit    := messageListCmd.Flag("limit", "List page size").Default("10").Short('l').Int()
-	cmds[messageListCmd.FullCommand()] = func () error {
+	messageListOffset := messageListCmd.Flag("offset", "Offset ID to start the listing from").Short('o').String()
+	messageListLimit := messageListCmd.Flag("limit", "List page size").Default("10").Short('l').Int()
+	cmds[messageListCmd.FullCommand()] = func() error {
 		return MessageList(*messageListThreadID, *messageListOffset, *messageListLimit)
 	}
 
 	// message get
-	messageGetCmd     := messageCmd.Command("get", "Gets a message by its own Block ID")
+	messageGetCmd := messageCmd.Command("get", "Gets a message by its own Block ID")
 	messageGetBlockID := messageGetCmd.Arg("message-block", "Message Block ID").String()
-	cmds[messageGetCmd.FullCommand()] = func () error {
+	cmds[messageGetCmd.FullCommand()] = func() error {
 		return MessageGet(*messageGetBlockID)
 	}
 
 	// message ignore
-	messageIgnoreCmd     := messageCmd.Command("ignore", "Ignores a message by its own Block ID").Alias("remove").Alias("rm")
+	messageIgnoreCmd := messageCmd.Command("ignore", "Ignores a message by its own Block ID").Alias("remove").Alias("rm")
 	messageIgnoreBlockID := messageIgnoreCmd.Arg("message-block", "Message Block ID").String()
-	cmds[messageIgnoreCmd.FullCommand()] = func () error {
+	cmds[messageIgnoreCmd.FullCommand()] = func() error {
 		return MessageIgnore(*messageIgnoreBlockID)
 	}
 
 	// ================================
 
 	// migrate
-	migrateCmd  := appCmd.Command("migrate", "Migrate the node repository and exit")
+	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
 	migrateRepo := migrateCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
-	migratePin  := migrateCmd.Flag("pin", "Specify the pin for datastore encryption, omit if no pin was used during init").Short('p').String()
-	cmds[migrateCmd.FullCommand()] = func () error {
+	migratePin := migrateCmd.Flag("pin", "Specify the pin for datastore encryption, omit if no pin was used during init").Short('p').String()
+	cmds[migrateCmd.FullCommand()] = func() error {
 		repo, err := getRepo(*migrateRepo)
 		if err != nil {
 			return err
@@ -639,14 +639,14 @@ There are two types of invites, direct account-to-account and external:
 
 	// notification list
 	notificationListCmd := notificationCmd.Command("list", "Lists all notifications").Alias("ls").Default()
-	cmds[notificationListCmd.FullCommand()] = func () error {
+	cmds[notificationListCmd.FullCommand()] = func() error {
 		return NotificationList()
 	}
 
 	// notification read
 	notificationReadCmd := notificationCmd.Command("read", "Marks a notification as read")
-	notificationReadID  := notificationReadCmd.Arg("id", "Notification ID, set to [all] to mark all notifications as read").Required().String()
-	cmds[notificationReadCmd.FullCommand()] = func () error {
+	notificationReadID := notificationReadCmd.Arg("id", "Notification ID, set to [all] to mark all notifications as read").Required().String()
+	cmds[notificationReadCmd.FullCommand()] = func() error {
 		return NotificationRead(*notificationReadID)
 	}
 
@@ -656,9 +656,9 @@ There are two types of invites, direct account-to-account and external:
 	// ================================
 
 	// ping
-	pingCmd     := appCmd.Command("ping", "Pings another peer on the network, returning [online] or [offline]")
+	pingCmd := appCmd.Command("ping", "Pings another peer on the network, returning [online] or [offline]")
 	pingAddress := pingCmd.Arg("address", "The address of the other peer on the network").Required().String()
-	cmds[pingCmd.FullCommand()] = func () error {
+	cmds[pingCmd.FullCommand()] = func() error {
 		return Ping(*pingAddress)
 	}
 
@@ -669,39 +669,39 @@ There are two types of invites, direct account-to-account and external:
 
 	// profile get
 	profileGetCmd := profileCmd.Command("get", "Gets the local peer profile").Default()
-	cmds[profileGetCmd.FullCommand()] = func () error {
+	cmds[profileGetCmd.FullCommand()] = func() error {
 		return ProfileGet()
 	}
 
 	// profile set
-	profileSetCmd    := profileCmd.Command("set", "Sets the profile name and avatar of the peer")
-	profileSetName   := profileSetCmd.Flag("name", "Set the peer's display name").Short('n').String()
+	profileSetCmd := profileCmd.Command("set", "Sets the profile name and avatar of the peer")
+	profileSetName := profileSetCmd.Flag("name", "Set the peer's display name").Short('n').String()
 	profileSetAvatar := profileSetCmd.Flag("avatar", "Set the peer's avatar from an image path (JPEG, PNG, or GIF)").Short('a').String()
-	cmds[profileSetCmd.FullCommand()] = func () error {
+	cmds[profileSetCmd.FullCommand()] = func() error {
 		return ProfileSet(*profileSetName, *profileSetAvatar)
 	}
 
 	// profile set name
-	profileSetNameCmd     := profileSetCmd.Command("name", "Sets the profile name of the peer")
-	profileSetNameValue   := profileSetNameCmd.Arg("value", "The value to set the profile name to").Required().String()
-	cmds[profileSetNameCmd.FullCommand()] = func () error {
+	profileSetNameCmd := profileSetCmd.Command("name", "Sets the profile name of the peer")
+	profileSetNameValue := profileSetNameCmd.Arg("value", "The value to set the profile name to").Required().String()
+	cmds[profileSetNameCmd.FullCommand()] = func() error {
 		return ProfileSet(*profileSetNameValue, "")
 	}
 
 	// profile set avatar
-	profileSetAvatarCmd   := profileSetCmd.Command("avatar", "Sets the profile avatar of the peer")
+	profileSetAvatarCmd := profileSetCmd.Command("avatar", "Sets the profile avatar of the peer")
 	profileSetAvatarValue := profileSetAvatarCmd.Arg("value", "The value (as an image path: JPEG, PNG, GIF) to set the profile avatar to").Required().String()
-	cmds[profileSetAvatarCmd.FullCommand()] = func () error {
+	cmds[profileSetAvatarCmd.FullCommand()] = func() error {
 		return ProfileSet("", *profileSetAvatarValue)
 	}
 
 	// ================================
 
 	// observe
-	observeCmd      := appCmd.Command("observe", "Observe updates in a thread or all threads. An update is generated when a new block is added to a thread.").Alias("subscribe").Alias("listen").Alias("stream")
+	observeCmd := appCmd.Command("observe", "Observe updates in a thread or all threads. An update is generated when a new block is added to a thread.").Alias("subscribe").Alias("listen").Alias("stream")
 	observeThreadID := observeCmd.Arg("thread", "Thread ID, omit for all").String()
-	observeType     := observeCmd.Flag("type", "Only be alerted to specific type of updates, possible values: merge, ignore, flag, join, announce, leave, text, files comment, like. Can be used multiple times, e.g., --type files --type comment").Short('k').Strings()
-	cmds[observeCmd.FullCommand()] = func () error {
+	observeType := observeCmd.Flag("type", "Only be alerted to specific type of updates, possible values: merge, ignore, flag, join, announce, leave, text, files comment, like. Can be used multiple times, e.g., --type files --type comment").Short('k').Strings()
+	cmds[observeCmd.FullCommand()] = func() error {
 		return ObserveCommand(*observeThreadID, *observeType)
 	}
 
@@ -709,7 +709,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// summary
 	summaryCmd := appCmd.Command("summary", "Get a summary of the local node's data")
-	cmds[summaryCmd.FullCommand()] = func () error {
+	cmds[summaryCmd.FullCommand()] = func() error {
 		return Summary()
 	}
 
@@ -739,53 +739,53 @@ invite_only --> initiator: Y, whitelist: N
 shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 
 	// thread add
-	threadAddCmd        := threadCmd.Command("add", "Adds and joins a new thread")
-	threadAddName       := threadAddCmd.Arg("name", "The name to use for the new thread").Required().String()
-	threadAddKey        := threadAddCmd.Flag("key", "A locally unique key used by an app to identify this thread on recovery").Short('k').String()
-	threadAddType       := threadAddCmd.Flag("type", "Set the thread type to one of: private, read_only, public, open").Short('t').Default("private").String()
-	threadAddSharing    := threadAddCmd.Flag("sharing", "Set the thread sharing style to one of: not_shared, invite_only, shared").Short('s').Default("not_shared").String()
-	threadAddWhitelist  := threadAddCmd.Flag("whitelist", "A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts").Short('w').Strings()
-	threadAddSchema     := threadAddCmd.Flag("schema", "Thread schema ID. Supersedes schema filename").String()
+	threadAddCmd := threadCmd.Command("add", "Adds and joins a new thread")
+	threadAddName := threadAddCmd.Arg("name", "The name to use for the new thread").Required().String()
+	threadAddKey := threadAddCmd.Flag("key", "A locally unique key used by an app to identify this thread on recovery").Short('k').String()
+	threadAddType := threadAddCmd.Flag("type", "Set the thread type to one of: private, read_only, public, open").Short('t').Default("private").String()
+	threadAddSharing := threadAddCmd.Flag("sharing", "Set the thread sharing style to one of: not_shared, invite_only, shared").Short('s').Default("not_shared").String()
+	threadAddWhitelist := threadAddCmd.Flag("whitelist", "A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts").Short('w').Strings()
+	threadAddSchema := threadAddCmd.Flag("schema", "Thread schema ID. Supersedes schema filename").String()
 	threadAddSchemaFile := threadAddCmd.Flag("schema-file", "Thread schema filename, supersedes the built-in schema flags").String() // @note could be swapped to .File() perhaps
-	threadAddBlob       := threadAddCmd.Flag("blob", "Use the built-in blob schema for generic data").Bool()
+	threadAddBlob := threadAddCmd.Flag("blob", "Use the built-in blob schema for generic data").Bool()
 	threadAddCameraRoll := threadAddCmd.Flag("camera-roll", "Use the built-in camera roll schema").Bool()
-	threadAddMedia      := threadAddCmd.Flag("media", "Use the built-in media schema").Bool()
-	cmds[threadAddCmd.FullCommand()] = func () error {
+	threadAddMedia := threadAddCmd.Flag("media", "Use the built-in media schema").Bool()
+	cmds[threadAddCmd.FullCommand()] = func() error {
 		return ThreadAdd(*threadAddName, *threadAddKey, *threadAddType, *threadAddSharing, *threadAddWhitelist, *threadAddSchema, *threadAddSchemaFile, *threadAddBlob, *threadAddCameraRoll, *threadAddMedia)
 	}
 
 	// thread list
 	threadListCmd := threadCmd.Command("list", "Lists info on all threads").Alias("ls").Default()
-	cmds[threadListCmd.FullCommand()] = func () error {
+	cmds[threadListCmd.FullCommand()] = func() error {
 		return ThreadList()
 	}
 
 	// thread get
-	threadGetCmd      := threadCmd.Command("get", "Gets and displays info about a thread")
+	threadGetCmd := threadCmd.Command("get", "Gets and displays info about a thread")
 	threadGetThreadID := threadGetCmd.Arg("thread", "Thread ID").Required().String()
-	cmds[threadGetCmd.FullCommand()] = func () error {
+	cmds[threadGetCmd.FullCommand()] = func() error {
 		return ThreadGet(*threadGetThreadID)
 	}
 
 	// thread peer
-	threadPeerCmd      := threadCmd.Command("peer", "Lists all peers in a thread").Alias("peers")
+	threadPeerCmd := threadCmd.Command("peer", "Lists all peers in a thread").Alias("peers")
 	threadPeerThreadID := threadPeerCmd.Arg("thread", "Thread ID").Required().String()
-	cmds[threadPeerCmd.FullCommand()] = func () error {
+	cmds[threadPeerCmd.FullCommand()] = func() error {
 		return ThreadPeer(*threadPeerThreadID)
 	}
 
 	// thread rename
-	threadRenameCmd      := threadCmd.Command("rename", "Renames a thread. Only the initiator of a thread can rename it.").Alias("mv")
+	threadRenameCmd := threadCmd.Command("rename", "Renames a thread. Only the initiator of a thread can rename it.").Alias("mv")
 	threadRenameThreadID := threadRenameCmd.Arg("thread", "Thread ID").Required().String()
-	threadRenameName     := threadRenameCmd.Arg("name", "The name to rename the thread to").Required().String()
-	cmds[threadRenameCmd.FullCommand()] = func () error {
+	threadRenameName := threadRenameCmd.Arg("name", "The name to rename the thread to").Required().String()
+	cmds[threadRenameCmd.FullCommand()] = func() error {
 		return ThreadRename(*threadRenameName, *threadRenameThreadID)
 	}
 
 	// thread abandon
-	threadAbandonCmd      := threadCmd.Command("abandon", "Abandon a thread. If no one is else remains participating, the thread dissipates.").Alias("unsubscribe").Alias("leave").Alias("remove").Alias("rm")
+	threadAbandonCmd := threadCmd.Command("abandon", "Abandon a thread. If no one is else remains participating, the thread dissipates.").Alias("unsubscribe").Alias("leave").Alias("remove").Alias("rm")
 	threadAbandonThreadID := threadAbandonCmd.Arg("thread", "Thread ID").Required().String()
-	cmds[threadAbandonCmd.FullCommand()] = func () error {
+	cmds[threadAbandonCmd.FullCommand()] = func() error {
 		return ThreadAbandon(*threadAbandonThreadID)
 	}
 
@@ -795,22 +795,22 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 
 	// thread snapshot create
 	threadSnapshotCreateCmd := threadSnapshotCmd.Command("create", "Snapshots all threads and pushes to registered cafes").Alias("make")
-	cmds[threadSnapshotCreateCmd.FullCommand()] = func () error {
+	cmds[threadSnapshotCreateCmd.FullCommand()] = func() error {
 		return ThreadSnapshotCreate()
 	}
 
 	// thread snapshot search
-	threadSnapshotSearchCmd  := threadSnapshotCmd.Command("search", "Searches the network for thread snapshots").Alias("find").Default()
+	threadSnapshotSearchCmd := threadSnapshotCmd.Command("search", "Searches the network for thread snapshots").Alias("find").Default()
 	threadSnapshotSearchWait := threadSnapshotSearchCmd.Flag("wait", "Stops searching after [wait] seconds have elapse (max 30s)").Short('w').Default("2").Int()
-	cmds[threadSnapshotSearchCmd.FullCommand()] = func () error {
+	cmds[threadSnapshotSearchCmd.FullCommand()] = func() error {
 		return ThreadSnapshotSearch(*threadSnapshotSearchWait)
 	}
 
 	// thread snapshot apply
-	threadSnapshotApplyCmd  := threadSnapshotCmd.Command("apply", "Applies a single thread snapshot")
-	threadSnapshotApplyID   := threadSnapshotApplyCmd.Arg("snapshot", "The ID of the snapshot to apply").Required().String()
+	threadSnapshotApplyCmd := threadSnapshotCmd.Command("apply", "Applies a single thread snapshot")
+	threadSnapshotApplyID := threadSnapshotApplyCmd.Arg("snapshot", "The ID of the snapshot to apply").Required().String()
 	threadSnapshotApplyWait := threadSnapshotApplyCmd.Flag("wait", "Stops searching after [wait] seconds have elapse (max 30s)").Short('w').Default("2").Int()
-	cmds[threadSnapshotApplyCmd.FullCommand()] = func () error {
+	cmds[threadSnapshotApplyCmd.FullCommand()] = func() error {
 		return ThreadSnapshotApply(*threadSnapshotApplyID, *threadSnapshotApplyWait)
 	}
 
@@ -829,28 +829,28 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 The response contains a base58 encoded version of the random bytes token.`).Alias("create").Alias("generate").Alias("init")
 	tokenCreateNoStore := tokenCreateCmd.Flag("no-store", "If used instead of token, the token is generated but not stored in the local cafe database").Short('n').Bool()
 	// @todo at some point remove --no-store, if no one is using it
-	tokenCreateToken   := tokenCreateCmd.Flag("token", "If used instead of no-store, use this existing token rather than creating a new one").Short('t').String()
-	cmds[tokenCreateCmd.FullCommand()] = func () error {
+	tokenCreateToken := tokenCreateCmd.Flag("token", "If used instead of no-store, use this existing token rather than creating a new one").Short('t').String()
+	cmds[tokenCreateCmd.FullCommand()] = func() error {
 		return TokenCreate(*tokenCreateToken, *tokenCreateNoStore)
 	}
 
 	// token list
 	tokenListCmd := tokenCmd.Command("list", "List info about all stored cafe tokens").Alias("ls").Default()
-	cmds[tokenListCmd.FullCommand()] = func () error {
+	cmds[tokenListCmd.FullCommand()] = func() error {
 		return TokenList()
 	}
 
 	// token validate
-	tokenValidateCmd   := tokenCmd.Command("validate", "Check validity of existing cafe access token").Alias("valid")
+	tokenValidateCmd := tokenCmd.Command("validate", "Check validity of existing cafe access token").Alias("valid")
 	tokenValidateToken := tokenValidateCmd.Arg("token", "The token to validate").Required().String()
-	cmds[tokenValidateCmd.FullCommand()] = func () error {
+	cmds[tokenValidateCmd.FullCommand()] = func() error {
 		return TokenValidate(*tokenValidateToken)
 	}
 
 	// token delete
-	tokenDeleteCmd   := tokenCmd.Command("delete", "Removes an existing cafe token").Alias("del").Alias("remove").Alias("rm")
+	tokenDeleteCmd := tokenCmd.Command("delete", "Removes an existing cafe token").Alias("del").Alias("remove").Alias("rm")
 	tokenDeleteToken := tokenDeleteCmd.Arg("token", "The token to delete").Required().String()
-	cmds[tokenDeleteCmd.FullCommand()] = func () error {
+	cmds[tokenDeleteCmd.FullCommand()] = func() error {
 		return TokenRemove(*tokenDeleteToken)
 	}
 
@@ -859,7 +859,7 @@ The response contains a base58 encoded version of the random bytes token.`).Alia
 	// version
 	versionCmd := appCmd.Command("version", "Print the current version and exit")
 	versionGit := versionCmd.Flag("git", "Show full git version summary").Short('g').Bool()
-	cmds[versionCmd.FullCommand()] = func () error {
+	cmds[versionCmd.FullCommand()] = func() error {
 		return Version(*versionGit)
 	}
 
@@ -869,20 +869,20 @@ The response contains a base58 encoded version of the random bytes token.`).Alia
 	walletCmd := appCmd.Command("wallet", "Create a new wallet, or list its available accounts").Alias("wallets")
 
 	// wallet init
-	walletInitCmd        := walletCmd.Command("create", "Generate a hierarchical deterministic wallet and output the first child account. A wallet is a seed that deterministically generates child accounts. Child accounts are used to interact with textile. Formula: Autogenerated Mnemonic + Optionally Specified Passphrase = Generated Seed. The seed, mnemonic, and passphrase must be kept top secret. The mnemonic and passphrase must be remembered by you.").Alias("init").Alias("generate")
+	walletInitCmd := walletCmd.Command("create", "Generate a hierarchical deterministic wallet and output the first child account. A wallet is a seed that deterministically generates child accounts. Child accounts are used to interact with textile. Formula: Autogenerated Mnemonic + Optionally Specified Passphrase = Generated Seed. The seed, mnemonic, and passphrase must be kept top secret. The mnemonic and passphrase must be remembered by you.").Alias("init").Alias("generate")
 	walletInitPassphrase := walletInitCmd.Arg("passphrase", "If provided, the resultant wallet seed will be salted with this passphrase, resulting in a different (and more unique) wallet seed than if just the mnemonic was used.").String()
-	walletInitWords      := walletInitCmd.Flag("words", "How many words to use for the autogenerated mnemonic? 12, 15, 18, 21, 24").Short('w').Default("12").Int()
-	cmds[walletInitCmd.FullCommand()] = func () error {
+	walletInitWords := walletInitCmd.Flag("words", "How many words to use for the autogenerated mnemonic? 12, 15, 18, 21, 24").Short('w').Default("12").Int()
+	cmds[walletInitCmd.FullCommand()] = func() error {
 		return WalletInit(*walletInitWords, *walletInitPassphrase)
 	}
 
 	// wallet accounts
-	walletAccountsCmd        := walletCmd.Command("accounts", "List the available accounts (within a specific range) within the wallet's deterministic bounds. Formula: Account = Account Index + Parent Private Key from Parent Seed. Parent Seed = Wallet Mnemonic + Passphrase.").Alias("account")
-	walletAccountsMnemonic  := walletAccountsCmd.Arg("mnemonic", "The autogenerated mnemonic of the wallet").Required().String()
+	walletAccountsCmd := walletCmd.Command("accounts", "List the available accounts (within a specific range) within the wallet's deterministic bounds. Formula: Account = Account Index + Parent Private Key from Parent Seed. Parent Seed = Wallet Mnemonic + Passphrase.").Alias("account")
+	walletAccountsMnemonic := walletAccountsCmd.Arg("mnemonic", "The autogenerated mnemonic of the wallet").Required().String()
 	walletAccountsPassphrase := walletAccountsCmd.Arg("passphrase", "If the wallet was generated with a passphrase, specify it here to ensure the accounts you are listing are for the same wallet").String()
-	walletAccountsDepth      := walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
-	walletAccountsOffset     := walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
-	cmds[walletAccountsCmd.FullCommand()] = func () error {
+	walletAccountsDepth := walletAccountsCmd.Flag("depth", "Number of accounts to show").Short('d').Default("1").Int()
+	walletAccountsOffset := walletAccountsCmd.Flag("offset", "Account depth to start from").Short('o').Default("0").Int()
+	cmds[walletAccountsCmd.FullCommand()] = func() error {
 		return WalletAccounts(*walletAccountsMnemonic, *walletAccountsPassphrase, *walletAccountsDepth, *walletAccountsOffset)
 	}
 

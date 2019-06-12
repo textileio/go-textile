@@ -184,7 +184,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 		count++
 	}
 
-	if ( verbose ) {
+	if verbose {
 		dur := time.Now().Sub(start)
 		msg := fmt.Sprintf("Added %d file", count)
 		if count != 1 {

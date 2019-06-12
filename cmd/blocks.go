@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/textileio/go-textile/pb"
 	"net/http"
 	"strconv"
+
+	"github.com/textileio/go-textile/pb"
 )
 
 func BlockList(threadID string, offset string, limit int, dots bool) error {
