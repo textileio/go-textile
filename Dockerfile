@@ -91,4 +91,4 @@ ENV INIT_ARGS \
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_textile"]
 
 # Execute the daemon subcommand by default
-CMD ["daemon", "--repo-dir=/data/textile", "--debug"]
+CMD ["daemon", "--repo=/data/textile", "--debug"]
