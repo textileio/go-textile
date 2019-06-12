@@ -32,7 +32,7 @@ type Callback interface {
 	Call(data []byte, err error)
 }
 
-func MarshalWalletAccount(account *keypair.Full) ([]byte, error) {
+func marshalWalletAccount(account *keypair.Full) ([]byte, error) {
 	return proto.Marshal(&pb.MobileWalletAccount{
 		Seed:    account.Seed(),
 		Address: account.Address(),
@@ -45,7 +45,7 @@ func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	return MarshalWalletAccount(account)
+	return marshalWalletAccount(account)
 }
 
 // InitConfig is used to setup a textile node
