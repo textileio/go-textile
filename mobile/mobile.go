@@ -39,6 +39,14 @@ func marshalWalletAccount(account *keypair.Full) ([]byte, error) {
 	})
 }
 
+func NewWallet(wordCount int) (string, error) {
+	w, err := wallet.WalletFromWordCount(wordCount)
+	if err != nil {
+		return "", err
+	}
+	return w.RecoveryPhrase, nil
+}
+
 func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, error) {
 	w := wallet.WalletFromMnemonic(mnemonic)
 	account, err := w.AccountAt(index, passphrase)
