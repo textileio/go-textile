@@ -28,6 +28,21 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+func threadBlocksCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
+	cmd := parent.Command(names[0], "Paginates blocks in a thread")
+	for _, name := range names[1:] {
+		cmd = cmd.Alias(name)
+	}
+
+	blockListThreadID := cmd.Arg("thread", "Thread ID").Required().String()
+	blockListOffset := cmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
+	blockListLimit := cmd.Flag("limit", "List page size").Short('l').Default("5").Int()
+	blockListDots := cmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
+	return cmd, func() error {
+		return BlockList(*blockListThreadID, *blockListOffset, *blockListLimit, *blockListDots)
+	}
+}
+
 func threadFilesCommand(parent *kingpin.CmdClause, names []string) (*kingpin.CmdClause, func() error) {
 	cmd := parent.Command(names[0], "Paginates the files of a thread, or of all threads")
 	for _, name := range names[1:] {
@@ -138,14 +153,8 @@ func Run() error {
 	blockCmd := appCmd.Command("block", "Threads are composed of an append-only log of blocks, use these commands to manage them").Alias("blocks")
 
 	// block list
-	blockListCmd := blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls").Default()
-	blockListThreadID := blockListCmd.Arg("thread", "Thread ID").Required().String()
-	blockListOffset := blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
-	blockListLimit := blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
-	blockListDots := blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
-	cmds[blockListCmd.FullCommand()] = func() error {
-		return BlockList(*blockListThreadID, *blockListOffset, *blockListLimit, *blockListDots)
-	}
+	blockListCmd, blockListCallback := threadBlocksCommand(blockCmd, []string{"list", "ls"})
+	cmds[blockListCmd.FullCommand()] = blockListCallback
 
 	// block meta
 	blockMetaCmd := blockCmd.Command("meta", "Get the metadata for a block").Alias("get")
@@ -274,7 +283,7 @@ An access token is required to register, and should be obtained separately from 
 	cmds[contactListCmd.FullCommand()] = ContactList
 
 	// contact get
-	contactGetCmd := contactCmd.Command("get", "Gets a known contact")
+	contactGetCmd := contactCmd.Command("get", "Gets a known local contact")
 	contactGetAddress := contactGetCmd.Arg("address", "Account Address").Required().String()
 	cmds[contactGetCmd.FullCommand()] = func() error {
 		return ContactGet(*contactGetAddress)
@@ -291,7 +300,6 @@ An access token is required to register, and should be obtained separately from 
 	contactSearchCmd := contactCmd.Command("search", "Searches locally and on the network for contacts").Alias("find")
 	contactSearchName := contactSearchCmd.Flag("name", "Search by display name").Short('n').String()
 	contactSearchAddress := contactSearchCmd.Flag("address", "Search by account address").Short('a').String()
-	// @todo what is the point of this, as `textile contact get <address>` can do this?
 	contactSearchLocal := contactSearchCmd.Flag("only-local", "Only search local contacts").Bool()
 	contactSearchRemote := contactSearchCmd.Flag("only-remote", "Only search remote contacts").Bool()
 	contactSearchLimit := contactSearchCmd.Flag("limit", "Stops searching after [limit] results are found").Default("5").Int()
@@ -367,9 +375,8 @@ Stacks may include:
 	cmds[fileListBlockCmd.FullCommand()] = fileListBlockCallback
 
 	// file keys
-	fileKeysCmd := fileCmd.Command("keys", "Shows file keys under the given target").Alias("key")
-	fileKeysTargetID := fileKeysCmd.Arg("target-block", "Files Block Target ID").Required().String()
-	// @todo why is this a block target
+	fileKeysCmd := fileCmd.Command("keys", "Shows the encryption keys for each content/meta pair for the given block DAG target").Alias("key")
+	fileKeysTargetID := fileKeysCmd.Arg("block-target", "Block Target ID").Required().String()
 	cmds[fileKeysCmd.FullCommand()] = func() error {
 		return FileKeys(*fileKeysTargetID)
 	}
@@ -455,7 +462,9 @@ Stacks may include:
 	}
 
 	// ================================
-	// @todo are invites blocks?
+	// Invites are blocks
+	// but they do not stay on the update chain / graph
+	// and inbound invites get indexed into the invites table
 
 	// invite
 	inviteCmd := appCmd.Command("invite", `Invites allow other users to join threads.
@@ -533,11 +542,6 @@ There are two types of invites, direct account-to-account and external:
 	}
 
 	// ================================
-	// note, so this was quite inconsistent before, sometimes an arg, sometimes a flag
-	// also a few typos in the file
-	// also, we need to get a consistent ignore/remove/rm naming convention
-	// also, why sometimes a thread block, why sometimes a file block, we need to be clear on this
-	// as right now, it says thread block, but then usually a file's block - it needs to be one or the other!
 
 	// like
 	likeCmd := appCmd.Command("like", `Likes are added as blocks in a thread, which target another block`).Alias("likes")
@@ -632,7 +636,8 @@ There are two types of invites, direct account-to-account and external:
 	}
 
 	// ================================
-	// @todo are notifications blocks?
+	// Notifications are local-only, and most block updates generate them
+	// E.g. https://github.com/textileio/go-textile/blob/72a910879b5b8135d3cf65c5348beeb5aa4226a0/core/threads_service.go#L395
 
 	// notification
 	notificationCmd := appCmd.Command("notification", "Manage notifications that have been generated by thread and account activity").Alias("notifications")
@@ -651,7 +656,8 @@ There are two types of invites, direct account-to-account and external:
 	}
 
 	// delete
-	// @todo do delete notification command at some point
+	// @todo add delete notification command
+	// https://github.com/textileio/go-textile/issues/823
 
 	// ================================
 
@@ -790,7 +796,7 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	}
 
 	// thread snapshot
-	// @todo are snapshots blocks?
+	// A snapshot is an encrypted object containing thread metadata and the latest block hash, which is enough to recover the thread.
 	threadSnapshotCmd := threadCmd.Command("snapshot", "Manage thread snapshots").Alias("snapshots")
 
 	// thread snapshot create
@@ -818,8 +824,13 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	threadFileCmd, threadFileCallback := threadFilesCommand(threadCmd, []string{"files", "file"})
 	cmds[threadFileCmd.FullCommand()] = threadFileCallback
 
+	// thread block
+	threadBlockCmd, threadBlockCallback := threadBlocksCommand(threadCmd, []string{"blocks", "block"})
+	cmds[threadBlockCmd.FullCommand()] = threadBlockCallback
+
 	// ================================
-	// @todo are tokens blocks?
+	// Tokens are local-only,
+	// essentially passwords to get a session token (JWT) to a cafe.
 
 	// token
 	tokenCmd := appCmd.Command("token", "Tokens allow other peers to register with a cafe peer").Alias("tokens")
