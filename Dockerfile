@@ -10,28 +10,28 @@ ENV SRC_DIR /go-textile
 # Download packages first so they can be cached.
 COPY go.mod go.sum $SRC_DIR/
 RUN cd $SRC_DIR \
-  && go mod download
+	&& go mod download
 
 COPY . $SRC_DIR
 
 # build source
 RUN cd $SRC_DIR \
-  && go get github.com/ahmetb/govvv \
-  && make build
+	&& go get github.com/ahmetb/govvv \
+	&& make build
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
 ENV TINI_VERSION v0.16.1
 RUN set -x \
-  && cd /tmp \
-  && git clone https://github.com/ncopa/su-exec.git \
-  && cd su-exec \
-  && git checkout -q $SUEXEC_VERSION \
-  && make \
-  && cd /tmp \
-  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
-  && chmod +x tini
+	&& cd /tmp \
+	&& git clone https://github.com/ncopa/su-exec.git \
+	&& cd su-exec \
+	&& git checkout -q $SUEXEC_VERSION \
+	&& make \
+	&& cd /tmp \
+	&& wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
+	&& chmod +x tini
 
 # Get the TLS CA certificates, they're not provided by busybox.
 RUN apt-get update && apt-get install -y ca-certificates
@@ -65,8 +65,8 @@ EXPOSE 6060
 # Create the fs-repo directory
 ENV TEXTILE_PATH /data/textile
 RUN mkdir -p $TEXTILE_PATH \
-  && adduser -D -h $TEXTILE_PATH -u 1000 -G users textile \
-  && chown textile:users $TEXTILE_PATH
+	&& adduser -D -h $TEXTILE_PATH -u 1000 -G users textile \
+	&& chown textile:users $TEXTILE_PATH
 
 # Switch to a non-privileged user
 USER textile
@@ -78,12 +78,12 @@ VOLUME $TEXTILE_PATH
 
 # Init opts
 ENV INIT_ARGS \
-  --repo-dir=$TEXTILE_PATH \
-  --swarm-ports=4001,8081 \
-  --api-bind-addr=0.0.0.0:40600 \
-  --gateway-bind-addr=0.0.0.0:5050 \
-  --profile-bind-addr=0.0.0.0:6060 \
-  --debug
+	--repo=$TEXTILE_PATH \
+	--swarm-ports=4001,8081 \
+	--api-bind-addr=0.0.0.0:40600 \
+	--gateway-bind-addr=0.0.0.0:5050 \
+	--profile-bind-addr=0.0.0.0:6060 \
+	--debug
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.
