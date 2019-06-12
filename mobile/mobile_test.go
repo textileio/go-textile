@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/textileio/go-textile/wallet"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
@@ -103,11 +105,11 @@ func (tm *testMessenger) Notify(event *Event) {
 }
 
 func TestNewWallet(t *testing.T) {
-	var err error
-	testVars.recovery, err = NewWallet(12)
+	wallet, err := wallet.WalletFromWordCount(12)
 	if err != nil {
 		t.Fatalf("new mobile wallet failed: %s", err)
 	}
+	testVars.recovery = wallet.RecoveryPhrase
 }
 
 func TestWalletAccountAt(t *testing.T) {

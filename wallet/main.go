@@ -62,9 +62,16 @@ type Wallet struct {
 	RecoveryPhrase string
 }
 
-// NewWallet creates a new wallet with the given entropy size
-// @todo rename to WalletFromEntropy
-func NewWallet(entropySize int) (*Wallet, error) {
+func WalletFromWordCount(wordCount int) (*Wallet, error) {
+	wcount, err := NewWordCount(wordCount)
+	if err != nil {
+		return nil, err
+	}
+
+	return WalletFromEntropy(wcount.EntropySize())
+}
+
+func WalletFromEntropy(entropySize int) (*Wallet, error) {
 	entropy, err := bip39.NewEntropy(entropySize)
 	if err != nil {
 		return nil, err
@@ -76,8 +83,7 @@ func NewWallet(entropySize int) (*Wallet, error) {
 	return &Wallet{RecoveryPhrase: mnemonic}, nil
 }
 
-// @todo rename to WalletFromMnemonic
-func NewWalletFromRecoveryPhrase(mnemonic string) *Wallet {
+func WalletFromMnemonic(mnemonic string) *Wallet {
 	return &Wallet{RecoveryPhrase: mnemonic}
 }
 

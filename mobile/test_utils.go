@@ -3,6 +3,8 @@ package mobile
 import (
 	"os"
 
+	"github.com/textileio/go-textile/wallet"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
@@ -11,15 +13,16 @@ import (
 func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandler, messenger Messenger) (*Mobile, error) {
 	_ = os.RemoveAll(conf.RepoPath)
 
-	recovery, err := NewWallet(12)
+	w, err := wallet.WalletFromWordCount(12)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := WalletAccountAt(recovery, 0, "")
+	res, err := WalletAccountAt(w.RecoveryPhrase, 0, "")
 	if err != nil {
 		return nil, err
 	}
+
 	accnt := new(pb.MobileWalletAccount)
 	err = proto.Unmarshal(res, accnt)
 	if err != nil {

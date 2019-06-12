@@ -25,7 +25,7 @@ func setup() {
 	testDB, _ = Create("", "letmein")
 	testDB.config.Init("letmein")
 
-	w, err := wallet.NewWallet(128)
+	w, err := wallet.WalletFromEntropy(128)
 	if err != nil {
 		panic(err)
 	}

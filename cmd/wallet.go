@@ -13,7 +13,7 @@ func WalletInit(words int, passphrase string) error {
 		return err
 	}
 
-	w, err := wallet.NewWallet(wordCount.EntropySize())
+	w, err := wallet.WalletFromEntropy(wordCount.EntropySize())
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func WalletAccounts(mnemonic string, passphrase string, depth int, offset int) e
 		return fmt.Errorf("offset must be greater than 0 and less than depth")
 	}
 
-	wall := wallet.NewWalletFromRecoveryPhrase(mnemonic)
+	wall := wallet.WalletFromMnemonic(mnemonic)
 
 	for i := offset; i < offset+depth; i++ {
 		kp, err := wall.AccountAt(i, passphrase)
