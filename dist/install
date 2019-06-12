@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# From https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/dist/install.sh
+# From https://github.com/ipfs/go-ipfs/blob/ccef991a194beaedf009b1d0702b1150db3da0a6/cmd/ipfs/dist/install.sh
 #
 # Installation script for textile. It tries to move $bin in one of the
 # directories stored in $binpaths.

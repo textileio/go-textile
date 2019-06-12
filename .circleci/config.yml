@@ -77,7 +77,7 @@ jobs:
             mkdir -p tmp
             cp LICENSE tmp/
             cp dist/README.md tmp/
-            cp dist/install.sh tmp/
+            cp dist/install tmp/
             cd tmp
             declare -a arr=("linux-amd64" "linux-386" "linux-arm")
             for i in "${arr[@]}"
@@ -86,10 +86,10 @@ jobs:
                 EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
                 cp ../${i} textile${EXT}
                 if [ "${EXT}" == ".exe" ]; then
-                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
+                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install textile${EXT}
                     mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
                 else
-                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
+                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install textile${EXT}
                     mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
                 fi
             done
@@ -159,7 +159,7 @@ jobs:
             mkdir -p tmp
             cp LICENSE tmp/
             cp dist/README.md tmp/
-            cp dist/install.sh tmp/
+            cp dist/install tmp/
             cd tmp
             declare -a arr=("darwin-amd64" "windows-amd64.exe")
             for i in "${arr[@]}"
@@ -168,10 +168,10 @@ jobs:
                 EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
                 cp ../${i} textile${EXT}
                 if [ "${EXT}" == ".exe" ]; then
-                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
+                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install textile${EXT}
                     mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
                 else
-                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
+                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install textile${EXT}
                     mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
                 fi
             done

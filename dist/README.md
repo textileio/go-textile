@@ -10,7 +10,7 @@ To install it, move the binary somewhere in your `$PATH`:
 sudo mv textile /usr/local/bin/textile
 ```
 
-Or run `sudo ./install.sh` which does this for you.
+Or run `sudo ./install` which does this for you.
 
 ## Usage
 
