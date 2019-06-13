@@ -32,13 +32,7 @@ type Callback interface {
 	Call(data []byte, err error)
 }
 
-func marshalWalletAccount(account *keypair.Full) ([]byte, error) {
-	return proto.Marshal(&pb.MobileWalletAccount{
-		Seed:    account.Seed(),
-		Address: account.Address(),
-	})
-}
-
+// NewWallet creates a brand new wallet and returns its recovery phrase
 func NewWallet(wordCount int) (string, error) {
 	w, err := wallet.WalletFromWordCount(wordCount)
 	if err != nil {
@@ -47,13 +41,17 @@ func NewWallet(wordCount int) (string, error) {
 	return w.RecoveryPhrase, nil
 }
 
+// WalletAccountAt derives the account at the given index
 func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, error) {
 	w := wallet.WalletFromMnemonic(mnemonic)
 	account, err := w.AccountAt(index, passphrase)
 	if err != nil {
 		return nil, err
 	}
-	return marshalWalletAccount(account)
+	return proto.Marshal(&pb.MobileWalletAccount{
+		Seed:    account.Seed(),
+		Address: account.Address(),
+	})
 }
 
 // InitConfig is used to setup a textile node
