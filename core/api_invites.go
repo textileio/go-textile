@@ -27,9 +27,6 @@ func (a *api) createInvites(g *gin.Context) {
 	}
 
 	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 
 	if opts["address"] != "" {
 		if err := a.node.AddInvite(threadId, opts["address"]); err != nil {

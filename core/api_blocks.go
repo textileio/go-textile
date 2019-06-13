@@ -44,16 +44,36 @@ func getFiles(node *Textile, id string) (*pb.Files, error, int) {
 }
 
 func getFile(files *pb.Files, indexStr string, path string) (*pb.FileIndex, error, int) {
-	// file
+	var f *pb.File
+	var fi *pb.FileIndex
+
+	// index conversion
 	index, err := strconv.Atoi(indexStr)
 	if err != nil {
-		return nil, err, http.StatusBadRequest
+		return nil, fmt.Errorf("invalid file index %s with error %s", indexStr, err), http.StatusBadRequest
 	}
-	file, ok := files.Files[index].Links[path]
-	if !ok {
-		return nil, err, http.StatusNotFound
+
+	// index
+	f = files.Files[index]
+	if f == nil {
+		return nil, fmt.Errorf("failed to get the file at index %d, did not exist", index), http.StatusNotFound
 	}
-	return file, nil, http.StatusOK
+
+	// path
+	if path == "" || path == "." {
+		fi = f.File
+		if fi == nil {
+			return nil, fmt.Errorf("failed to get the file at index %d, no file content", index), http.StatusNotFound
+		}
+	} else {
+		fi := f.Links[path]
+		if fi == nil {
+			return nil, fmt.Errorf("failed to get the file at index %d path %s, did not exist", index, path), http.StatusNotFound
+		}
+	}
+
+	// return
+	return fi, nil, http.StatusOK
 }
 
 func getFilesFile(node *Textile, id string, indexStr string, path string) (*pb.FileIndex, error, int) {
@@ -72,7 +92,7 @@ func getFilesFile(node *Textile, id string, indexStr string, path string) (*pb.F
 // @Description traversing the hash tree.
 // @Tags blocks
 // @Produce application/json
-// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
+// @Param X-Textile-Opts header string false "thread: Thread ID, offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
 // @Success 200 {object} pb.BlockList "blocks"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
@@ -86,9 +106,6 @@ func (a *api) lsBlocks(g *gin.Context) {
 	}
 
 	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
 	if threadId == "" {
 		g.String(http.StatusBadRequest, "missing thread id")
 		return

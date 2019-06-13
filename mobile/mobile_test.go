@@ -103,11 +103,11 @@ func (tm *testMessenger) Notify(event *Event) {
 }
 
 func TestNewWallet(t *testing.T) {
-	var err error
-	testVars.recovery, err = NewWallet(12)
+	mnemonic, err := NewWallet(12)
 	if err != nil {
 		t.Fatalf("new mobile wallet failed: %s", err)
 	}
+	testVars.recovery = mnemonic
 }
 
 func TestWalletAccountAt(t *testing.T) {

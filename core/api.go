@@ -255,10 +255,20 @@ func (a *api) Start() {
 			keys.GET("/:target", a.lsThreadFileTargetKeys)
 		}
 
+		observe := v0.Group("/observe")
+		{
+			observe.GET("", a.getThreadsObserve)
+			observe.GET("/:thread", a.getThreadsObserve)
+		}
+		// alias
 		subscribe := v0.Group("/subscribe")
 		{
-			subscribe.GET("", a.getThreadsSubscribe)
-			subscribe.GET("/:id", a.getThreadsSubscribe)
+			subscribe.GET("", func(g *gin.Context) {
+				g.Redirect(http.StatusPermanentRedirect, "/api/v0/observe")
+			})
+			subscribe.GET("/:thread", func(g *gin.Context) {
+				g.Redirect(http.StatusPermanentRedirect, "/api/v0/observe/"+g.Param("thread"))
+			})
 		}
 
 		invites := v0.Group("/invites")

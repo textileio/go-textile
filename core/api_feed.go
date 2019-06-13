@@ -48,9 +48,6 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		Mode:   pb.FeedRequest_Mode(pb.FeedRequest_Mode_value[mode]),
 		Limit:  5,
 	}
-	if req.Thread == "default" {
-		req.Thread = a.node.config.Threads.Defaults.ID
-	}
 	if req.Thread != "" {
 		thrd := a.node.Thread(req.Thread)
 		if thrd == nil {

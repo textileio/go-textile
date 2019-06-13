@@ -220,7 +220,7 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, ErrFileNotFound
+		return nil, fmt.Errorf("failed to get the file meta content for hash %s with error: %s", file.Hash, ErrFileNotFound)
 	}
 	return file, nil
 }
@@ -240,7 +240,7 @@ func (t *Textile) FileContent(hash string) (io.ReadSeeker, *pb.FileIndex, error)
 func (t *Textile) FileIndexContent(file *pb.FileIndex) (io.ReadSeeker, error) {
 	fd, err := ipfs.DataAtPath(t.node, file.Hash)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get file index content for hash %s with error: %s", file.Hash, err)
 	}
 
 	var plaintext []byte

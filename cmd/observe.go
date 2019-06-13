@@ -10,8 +10,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-func SubscribeCommand(threadID string, types []string) error {
-	updates, err := Subscribe(threadID, types)
+func ObserveCommand(threadID string, types []string) error {
+	updates, err := Observe(threadID, types)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func SubscribeCommand(threadID string, types []string) error {
 	}
 }
 
-func Subscribe(threadID string, types []string) (<-chan *pb.FeedItem, error) {
+func Observe(threadID string, types []string) (<-chan *pb.FeedItem, error) {
 	if threadID != "" {
 		threadID = "/" + threadID
 	}
@@ -43,7 +43,7 @@ func Subscribe(threadID string, types []string) (<-chan *pb.FeedItem, error) {
 	go func() {
 		defer close(updates)
 
-		res, cancel, err := request(http.MethodGet, "subscribe"+threadID, params{
+		res, cancel, err := request(http.MethodGet, "observe"+threadID, params{
 			opts: map[string]string{"type": strings.Join(types, "|")},
 		})
 		if err != nil {

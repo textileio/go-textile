@@ -17,7 +17,6 @@ type Config struct {
 	API       API       // local node's API settings
 	Gateway   Gateway   // local node's Gateway settings
 	Logs      Logs      // local node's log settings
-	Threads   Threads   // local node's thread settings
 	IsMobile  bool      // local node is setup for mobile
 	IsServer  bool      // local node is setup for a server w/ a public IP
 	Cafe      Cafe      // local node cafe settings
@@ -59,16 +58,6 @@ type Gateway struct {
 // Logs settings
 type Logs struct {
 	LogToDisk bool // when true, sends all logs to rolling files on disk
-}
-
-// Thread settings
-type Threads struct {
-	Defaults ThreadDefaults // default settings
-}
-
-// ThreadDefaults settings
-type ThreadDefaults struct {
-	ID string // default thread ID for reads/writes
 }
 
 // Cafe settings
@@ -171,11 +160,6 @@ func Init() (*Config, error) {
 		},
 		Logs: Logs{
 			LogToDisk: true,
-		},
-		Threads: Threads{
-			Defaults: ThreadDefaults{
-				ID: "",
-			},
 		},
 		Cafe: Cafe{
 			Host: CafeHost{

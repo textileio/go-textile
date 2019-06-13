@@ -22,7 +22,7 @@ func Chat(threadID string) error {
 	}
 	defer rl.Close()
 
-	updates, err := Subscribe(threadID, []string{"text"})
+	updates, err := Observe(threadID, []string{"text"})
 	if err != nil {
 		return err
 	}

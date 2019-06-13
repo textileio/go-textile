@@ -184,9 +184,6 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Router /threads/{id} [get]
 func (a *api) getThreads(g *gin.Context) {
 	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
 
 	view, err := a.node.ThreadView(id)
 	if err != nil {
@@ -199,7 +196,7 @@ func (a *api) getThreads(g *gin.Context) {
 
 // peersThreads godoc
 // @Summary List all thread peers
-// @Description Lists all peers in a thread, optionally listing peers in the default thread
+// @Description Lists all peers in a thread
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id"
@@ -208,9 +205,6 @@ func (a *api) getThreads(g *gin.Context) {
 // @Router /threads/{id}/peers [get]
 func (a *api) peersThreads(g *gin.Context) {
 	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
 
 	peers, err := a.node.ThreadPeers(id)
 	if err != nil {
@@ -222,8 +216,8 @@ func (a *api) peersThreads(g *gin.Context) {
 }
 
 // rmThreads godoc
-// @Summary Leave and remove a thread
-// @Description Leaves and removes a thread
+// @Summary Abandons a thread.
+// @Description Abandons a thread, and if no one else is participating, then the thread dissipates.
 // @Tags threads
 // @Param id path string true "thread id"
 // @Success 204 {string} string "ok"

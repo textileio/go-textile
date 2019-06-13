@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"bufio"
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
@@ -30,9 +27,7 @@ func Feed(threadID string, offset string, limit int, mode string) error {
 		return nil
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("next page...")
-	if _, err := reader.ReadString('\n'); err != nil {
+	if err := nextPage(); err != nil {
 		return err
 	}
 

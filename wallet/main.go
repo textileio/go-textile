@@ -62,8 +62,16 @@ type Wallet struct {
 	RecoveryPhrase string
 }
 
-// NewWallet creates a new wallet with the given entropy size
-func NewWallet(entropySize int) (*Wallet, error) {
+func WalletFromWordCount(wordCount int) (*Wallet, error) {
+	wcount, err := NewWordCount(wordCount)
+	if err != nil {
+		return nil, err
+	}
+
+	return WalletFromEntropy(wcount.EntropySize())
+}
+
+func WalletFromEntropy(entropySize int) (*Wallet, error) {
 	entropy, err := bip39.NewEntropy(entropySize)
 	if err != nil {
 		return nil, err
@@ -75,12 +83,14 @@ func NewWallet(entropySize int) (*Wallet, error) {
 	return &Wallet{RecoveryPhrase: mnemonic}, nil
 }
 
-func NewWalletFromRecoveryPhrase(mnemonic string) *Wallet {
+func WalletFromMnemonic(mnemonic string) *Wallet {
 	return &Wallet{RecoveryPhrase: mnemonic}
 }
 
-func (w *Wallet) AccountAt(index int, password string) (*keypair.Full, error) {
-	seed, err := bip39.NewSeedWithErrorChecking(w.RecoveryPhrase, password)
+// To understand how this works, refer to the living document:
+// https://paper.dropbox.com/doc/Hierarchical-Deterministic-Wallets--Ae0TOjGObNq_zlyYFh7Ea0jNAQ-t7betWDTvXtK6qqD8HXKf
+func (w *Wallet) AccountAt(index int, passphrase string) (*keypair.Full, error) {
+	seed, err := bip39.NewSeedWithErrorChecking(w.RecoveryPhrase, passphrase)
 	if err != nil {
 		if err == bip39.ErrInvalidMnemonic {
 			return nil, fmt.Errorf("invalid mnemonic phrase")

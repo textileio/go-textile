@@ -88,15 +88,6 @@ func ThreadGet(threadID string) error {
 	return nil
 }
 
-func ThreadDefault() error {
-	res, err := executeJsonCmd(http.MethodGet, "threads/default", params{}, nil)
-	if err != nil {
-		return err
-	}
-	output(res)
-	return nil
-}
-
 func ThreadPeer(threadID string) error {
 	res, err := executeJsonCmd(http.MethodGet, "threads/"+threadID+"/peers", params{}, nil)
 	if err != nil {
@@ -115,7 +106,7 @@ func ThreadRename(name string, threadID string) error {
 	return nil
 }
 
-func ThreadUnsubscribe(threadID string) error {
+func ThreadAbandon(threadID string) error {
 	res, err := executeStringCmd(http.MethodDelete, "threads/"+threadID, params{})
 	if err != nil {
 		return err
