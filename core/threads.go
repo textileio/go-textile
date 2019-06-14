@@ -227,6 +227,7 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		}
 	}
 
+	// handle the thread tail in the background
 	go func() {
 		leaves := nthread.followParents(heads)
 		err = nthread.handleHead(heads, leaves)

@@ -570,17 +570,17 @@ func (t *Textile) FlushBlocks() {
 				continue
 			}
 
-			err := thread.post(block, thread.Peers(), true)
+			err := thread.post(block)
 			if err != nil {
 				log.Errorf("error posting block %s: %s", block.Id, err)
-				return
+				continue
 			}
 			posted = true
 
 			err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
 			if err != nil {
 				log.Error(err)
-				return
+				continue
 			}
 			log.Debugf("deleted sync group: %s", block.Id)
 		}

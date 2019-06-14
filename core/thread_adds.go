@@ -40,6 +40,21 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// add directly, no need for an update event which happens w/ indexBlock
+	// Note: this will be deleted after posting
+	err = t.datastore.Blocks().Add(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_ADD,
+		Date:   res.header.Date,
+		Body:   msg.Invitee, // ugly and tmp way to retain invitee address when posting
+		Status: pb.Block_QUEUED,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debugf("added ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
@@ -69,6 +84,22 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 	nhash, err := t.commitNode(&pb.Block{Id: res.hash.B58String()}, nil, false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// add directly, no need for an update event which happens w/ indexBlock
+	// Note: this will be deleted after posting (technically not needed at all because their won't
+	// be any recipients, but since this logic is tied to sync group management, creating a dummy
+	// block here is the cleanest solution at this point).
+	err = t.datastore.Blocks().Add(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_ADD,
+		Date:   res.header.Date,
+		Status: pb.Block_QUEUED,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

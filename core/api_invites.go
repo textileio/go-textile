@@ -34,6 +34,8 @@ func (a *api) createInvites(g *gin.Context) {
 			return
 		}
 		g.Status(http.StatusCreated)
+
+		go a.node.cafeOutbox.Flush()
 		return
 	}
 

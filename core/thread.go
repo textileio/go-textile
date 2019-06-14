@@ -628,12 +628,19 @@ func (t *Thread) handleHead(inbound []string, leaves []string) error {
 	if err != nil {
 		return err
 	}
-	unique := make(map[string]struct{})
-	for _, i := range inbound {
-		unique[i] = struct{}{}
-	}
-	var next []string
 
+	var next []string
+	unique := make(map[string]struct{})
+	add := func(v string) {
+		if _, ok := unique[v]; !ok {
+			unique[v] = struct{}{}
+			next = append(next, v)
+		}
+	}
+
+	for _, i := range inbound {
+		add(i)
+	}
 outer:
 	for _, h := range heads {
 		for _, l := range leaves {
@@ -642,10 +649,7 @@ outer:
 			}
 		}
 		// this head was not found, keep it
-		if _, ok := unique[h]; !ok {
-			unique[h] = struct{}{}
-			next = append(next, h)
-		}
+		add(h)
 	}
 
 	return t.updateHead(next, true)
@@ -722,8 +726,8 @@ func (t *Thread) sendWelcome() error {
 }
 
 // post publishes an encrypted message to thread peers
-func (t *Thread) post(index *pb.Block, peers []pb.ThreadPeer, updateHead bool) error {
-	nhash, err := t.commitNode(index, nil, updateHead)
+func (t *Thread) post(index *pb.Block) error {
+	nhash, err := t.commitNode(index, nil, index.Type != pb.Block_ADD)
 	if err != nil {
 		return err
 	}
@@ -731,11 +735,11 @@ func (t *Thread) post(index *pb.Block, peers []pb.ThreadPeer, updateHead bool) e
 	if err != nil {
 		return err
 	}
-
 	ciphertext, err := ipfs.DataAtPath(t.node(), index.Id)
 	if err != nil {
 		return err
 	}
+
 	sig, err := t.account.Sign(ciphertext)
 	if err != nil {
 		return err
@@ -745,21 +749,12 @@ func (t *Thread) post(index *pb.Block, peers []pb.ThreadPeer, updateHead bool) e
 		return err
 	}
 
-	tblock, err := t.unmarshalBlock(ciphertext)
-	if err != nil {
-		return err
-	}
-	if tblock.Type == pb.Block_ADD {
-		msg := new(pb.ThreadAdd)
-		err = ptypes.UnmarshalAny(tblock.Payload, msg)
-		if err != nil {
-			return err
+	var peers []pb.ThreadPeer
+	if index.Type == pb.Block_ADD {
+		if index.Body != "" {
+			peers = []pb.ThreadPeer{{Id: index.Body}}
 		}
-		peers = append(peers, pb.ThreadPeer{Id: msg.Invitee})
-		if len(peers) == 0 { // external invite
-			return nil
-		}
-	} else if len(peers) == 0 {
+	} else {
 		peers = t.Peers()
 	}
 
@@ -768,6 +763,11 @@ func (t *Thread) post(index *pb.Block, peers []pb.ThreadPeer, updateHead bool) e
 		if err != nil {
 			return err
 		}
+	}
+
+	// delete add blocks as they are no longer needed
+	if index.Type == pb.Block_ADD {
+		return t.datastore.Blocks().Delete(index.Id)
 	}
 
 	return nil
