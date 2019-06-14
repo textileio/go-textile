@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	inet "github.com/libp2p/go-libp2p-net"
+	inet "github.com/libp2p/go-libp2p-core/network"
 )
 
 // SwarmConnect opens a direct connection to a list of peer multi addresses

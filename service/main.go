@@ -20,7 +20,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	ctxio "github.com/jbenet/go-context/io"
-	inet "github.com/libp2p/go-libp2p-net"
+	inet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	"github.com/textileio/go-textile/crypto"

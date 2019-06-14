@@ -7,7 +7,8 @@ import (
 	"time"
 
 	ggio "github.com/gogo/protobuf/io"
-	inet "github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-core/helpers"
+	inet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/pb"
 )
@@ -133,7 +134,7 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Envelope) err
 		}
 
 		if ms.singleMes > streamReuseTries {
-			go inet.FullClose(ms.s)
+			go helpers.FullClose(ms.s)
 			ms.s = nil
 		} else if retry {
 			ms.singleMes++
@@ -181,7 +182,7 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 		}
 
 		if ms.singleMes > streamReuseTries {
-			go inet.FullClose(ms.s)
+			go helpers.FullClose(ms.s)
 			ms.s = nil
 		} else if retry {
 			ms.singleMes++
