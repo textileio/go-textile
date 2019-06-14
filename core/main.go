@@ -589,6 +589,8 @@ func (t *Textile) FlushBlocks() {
 	go t.blockOutbox.Flush()
 	if posted {
 		go t.cafeOutbox.Flush()
+	} else if t.cafeOutbox.handler != nil {
+		go t.cafeOutbox.handler.Flush()
 	}
 }
 
