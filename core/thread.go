@@ -199,20 +199,25 @@ func (t *Thread) followParents(parents []string) []string {
 	}
 	final := make(map[string]struct{})
 
+	wg := sync.WaitGroup{}
 	for _, parent := range parents {
 		if parent == "" {
 			continue // some old blocks may contain empty string parents
 		}
 
-		ends, err := t.followParent(parent)
-		if err != nil {
-			log.Warningf("failed to follow parent %s: %s", parent, err)
-			continue
-		}
-		for _, p := range ends {
-			final[p] = struct{}{}
-		}
+		wg.Add(1)
+		go func(p string) {
+			ends, err := t.followParent(p)
+			if err != nil {
+				log.Warningf("failed to follow parent %s: %s", p, err)
+			}
+			for _, p := range ends {
+				final[p] = struct{}{}
+			}
+			wg.Done()
+		}(parent)
 	}
+	wg.Wait()
 
 	var list []string
 	for p := range final {

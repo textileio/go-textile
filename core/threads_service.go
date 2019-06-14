@@ -128,7 +128,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 
 	index := h.datastore.Blocks().Get(bnode.hash)
 	if index != nil {
-		log.Debugf("%s exists, aborting")
+		log.Debugf("%s exists, aborting", bnode.hash)
 		return nil, nil
 	}
 	index, err = thread.handle(bnode, false)
