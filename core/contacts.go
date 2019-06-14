@@ -34,7 +34,7 @@ func (t *Textile) Contacts() *pb.ContactList {
 }
 
 // RemoveContact removes all contacts that share the given address
-// TODO: Add ignore to account thread targeted at the join
+// @todo Add ignore to account thread targeted at the join
 func (t *Textile) RemoveContact(address string) error {
 	if address == t.account.Address() {
 		return fmt.Errorf("cannot remove own contact")

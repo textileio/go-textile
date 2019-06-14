@@ -97,7 +97,7 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 	// get username
 	username := config.Identity.PeerID[len(config.Identity.PeerID)-7:]
 	row1 := db.QueryRow("select value from profile where key='username';")
-	row1.Scan(&username)
+	_ = row1.Scan(&username)
 
 	// get avatar
 	var avatar string
@@ -158,7 +158,7 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	// delete profile table
-	db.Exec("drop table profile;")
+	_, _ = db.Exec("drop table profile;")
 
 	// update version
 	f7, err := os.Create(path.Join(repoPath, "repover"))

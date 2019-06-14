@@ -39,7 +39,7 @@ func (Minor004) Up(repoPath string, pinCode string, testnet bool) error {
 	defer stmt1.Close()
 	_, err = stmt1.Exec()
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -58,10 +58,10 @@ func (Minor004) Up(repoPath string, pinCode string, testnet bool) error {
 	defer stmt2.Close()
 	_, err = stmt2.Exec()
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 
 	// update version
 	f5, err := os.Create(path.Join(repoPath, "repover"))

@@ -97,9 +97,6 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 		return nil, ErrBlockWrongType
 	}
 
-	threads := make([]string, 0)
-	threads = t.fileThreads(block.Data)
-
 	files, err := t.fileAtData(block.Data)
 	if err != nil {
 		return nil, err
@@ -112,7 +109,7 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 		User:    t.PeerUser(block.Author),
 		Caption: block.Body,
 		Files:   files,
-		Threads: threads,
+		Threads: t.fileThreads(block.Data),
 	}
 
 	if opts.annotations {
@@ -136,19 +133,16 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 }
 
 // fileThreads lists threads that have blocks which link a file
+// @todo This should be a distinct db query, if it's even needed?
 func (t *Textile) fileThreads(data string) []string {
-	var unique []string
+	unique := make([]string, 0)
+	threads := make(map[string]struct{})
 
-	blocks := t.datastore.Blocks().List("", -1, "data='"+data+"'")
-outer:
-	for _, b := range blocks.Items {
-		for _, f := range unique {
-			if f == b.Thread {
-				break outer
-			}
+	for _, b := range t.datastore.Blocks().List("", -1, "data='"+data+"'").Items {
+		if _, ok := threads[b.Thread]; !ok {
+			threads[b.Thread] = struct{}{}
+			unique = append(unique, b.Thread)
 		}
-		unique = append(unique, b.Thread)
 	}
-
 	return unique
 }

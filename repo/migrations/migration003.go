@@ -39,7 +39,7 @@ func (Minor003) Up(repoPath string, pinCode string, testnet bool) error {
 	defer stmt1.Close()
 	_, err = stmt1.Exec()
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 	stmt2, err := tx.Prepare("alter table notifications add column category text not null default '';")
@@ -49,10 +49,10 @@ func (Minor003) Up(repoPath string, pinCode string, testnet bool) error {
 	defer stmt2.Close()
 	_, err = stmt2.Exec()
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	_ = tx.Commit()
 
 	// update version
 	f4, err := os.Create(path.Join(repoPath, "repover"))

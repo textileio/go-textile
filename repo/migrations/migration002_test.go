@@ -46,6 +46,6 @@ func Test002(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	os.RemoveAll("./datastore")
-	os.RemoveAll("./repover")
+	_ = os.RemoveAll("./datastore")
+	_ = os.RemoveAll("./repover")
 }

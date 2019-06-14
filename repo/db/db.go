@@ -238,9 +238,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);
 
-    create table block_downloads (id text primary key not null, threadId text not null, parents text not null, target text not null, date integer not null, attempts integer not null);
-    create index block_download_date on block_downloads (date);
-
     create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null, parents text not null);
     create index invite_date on invites (date);
 

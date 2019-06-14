@@ -35,7 +35,7 @@ func initAt007(db *sql.DB, pin string) error {
 
 func Test008(t *testing.T) {
 	var dbPath string
-	os.Mkdir("./datastore", os.ModePerm)
+	_ = os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -69,7 +69,7 @@ func Test008(t *testing.T) {
 	}
 	row := db.QueryRow("select Count(*) from threads where sharing=1;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	if count != 1 {
 		fmt.Println(count)
 		t.Error("wrong number of threads")
@@ -91,6 +91,6 @@ func Test008(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	os.RemoveAll("./datastore")
-	os.RemoveAll("./repover")
+	_ = os.RemoveAll("./datastore")
+	_ = os.RemoveAll("./repover")
 }
