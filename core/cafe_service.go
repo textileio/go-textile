@@ -1086,7 +1086,7 @@ func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.E
 	if msg.Env != nil {
 		// pin inner node
 		nenv := new(pb.Envelope)
-		err = proto.Unmarshal(msg.Env, env)
+		err = proto.Unmarshal(msg.Env, nenv)
 		if err != nil {
 			log.Warningf("error unmarshaling envelope: %s", err)
 			return nil, err
