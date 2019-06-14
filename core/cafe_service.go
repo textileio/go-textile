@@ -1088,29 +1088,35 @@ func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.E
 		nenv := new(pb.Envelope)
 		err = proto.Unmarshal(msg.Env, env)
 		if err != nil {
+			log.Warningf("error unmarshaling envelope: %s", err)
 			return nil, err
 		}
 		tenv := new(pb.ThreadEnvelope)
 		err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
 		if err != nil {
+			log.Warningf("error unmarshaling payload: %s", err)
 			return nil, err
 		}
 		oid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), true)
 		if err != nil {
+			log.Warningf("error adding object: %s", err)
 			return nil, err
 		}
 		node, err := ipfs.NodeAtCid(h.service.Node(), *oid)
 		if err != nil {
+			log.Warningf("error getting node: %s", err)
 			return nil, err
 		}
 		_, err = extractNode(h.service.Node(), node, true)
 		if err != nil {
+			log.Warningf("error extracting node: %s", err)
 			return nil, err
 		}
 
 		// pin envelope
 		id, err := ipfs.AddData(h.service.Node(), bytes.NewReader(msg.Env), true, false)
 		if err != nil {
+			log.Warningf("error pinning envelope: %s", err)
 			return nil, err
 		}
 		msg.Id = id.Hash().B58String()
@@ -1126,6 +1132,7 @@ func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.E
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
 	}
+	log.Debugf("added message for %s: %s", client.Id, msg.Id)
 
 	go func() {
 		err = h.notifyClient(client.Id)
