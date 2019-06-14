@@ -53,7 +53,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 }
 
 // handleIgnoreBlock handles an incoming ignore block
-func (t *Thread) handleIgnoreBlock(block *pb.ThreadBlock) (handleResult, error) {
+func (t *Thread) handleIgnoreBlock(bnode *blockNode, block *pb.ThreadBlock) (handleResult, error) {
 	var res handleResult
 
 	msg := new(pb.ThreadIgnore)
@@ -69,8 +69,15 @@ func (t *Thread) handleIgnoreBlock(block *pb.ThreadBlock) (handleResult, error) 
 		return res, ErrNotAnnotatable
 	}
 
+	var target string
+	if msg.Target != "" {
+		target = msg.Target
+	} else {
+		target = bnode.target
+	}
+
 	// cleanup
-	target := strings.Replace(msg.Target, "ignore-", "", 1)
+	target = strings.Replace(target, "ignore-", "", 1)
 	err = t.datastore.Notifications().DeleteByBlock(target)
 	if err != nil {
 		return res, err
@@ -85,15 +92,19 @@ func (t *Thread) handleIgnoreBlock(block *pb.ThreadBlock) (handleResult, error) 
 	return res, err
 }
 
-// ignoreBlockTarget conditionally removes block target and files
+// ignoreBlockTarget conditionally ignore the given block
 func (t *Thread) ignoreBlockTarget(block *pb.Block) error {
-	if block == nil || block.Target == "" {
+	if block == nil {
 		return nil
 	}
 
 	switch block.Type {
 	case pb.Block_FILES:
-		node, err := ipfs.NodeAtPath(t.node(), block.Target)
+		if block.Data == "" {
+			return nil
+		}
+
+		node, err := ipfs.NodeAtPath(t.node(), block.Data)
 		if err != nil {
 			return err
 		}

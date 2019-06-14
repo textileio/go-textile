@@ -24,10 +24,11 @@ type BlockDownloads struct {
 }
 
 // NewBlockDownloads creates a new download queue
-func NewBlockDownloads(node func() *core.IpfsNode, datastore repo.Datastore) *BlockDownloads {
+func NewBlockDownloads(node func() *core.IpfsNode, datastore repo.Datastore, getThread func(id string) *Thread) *BlockDownloads {
 	return &BlockDownloads{
 		node:      node,
 		datastore: datastore,
+		getThread: getThread,
 	}
 }
 
@@ -35,7 +36,7 @@ func NewBlockDownloads(node func() *core.IpfsNode, datastore repo.Datastore) *Bl
 func (q *BlockDownloads) Add(download *pb.Block) error {
 	err := q.datastore.Blocks().Add(download)
 	if err == nil {
-		q.Flush()
+		go q.Flush()
 	}
 	return err
 }
@@ -100,7 +101,8 @@ func (q *BlockDownloads) handle(dl *pb.Block) error {
 		ciphertext: ciphertext,
 		parents:    dl.Parents,
 		target:     dl.Target,
-		data:       dl.Data}, true)
+		data:       dl.Data,
+	}, true)
 	if err != nil {
 		return fail(err.Error())
 	}

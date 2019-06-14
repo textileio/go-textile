@@ -117,11 +117,11 @@ func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (hand
 	}
 
 	var node ipld.Node
-	var target string
+	var data string
 	if msg.Target != "" {
-		target = msg.Target
+		data = msg.Target
 	} else {
-		target = bnode.target
+		data = bnode.data
 	}
 
 	var ignore bool
@@ -134,7 +134,7 @@ func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (hand
 		}
 	}
 	if !ignore {
-		tcid, err := icid.Parse(target)
+		tcid, err := icid.Parse(data)
 		if err != nil {
 			return res, err
 		}
@@ -155,7 +155,7 @@ func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (hand
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			fd, err := ipfs.DataAtPath(t.node(), target+pth+MetaLinkName)
+			fd, err := ipfs.DataAtPath(t.node(), data+pth+MetaLinkName)
 			if err != nil {
 				return res, err
 			}
@@ -193,7 +193,7 @@ func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (hand
 	}
 
 	if !ignore {
-		err = t.indexFileData(node, target)
+		err = t.indexFileData(node, data)
 		if err != nil {
 			return res, err
 		}

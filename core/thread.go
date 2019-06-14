@@ -318,7 +318,7 @@ func (t *Thread) handle(bnode *blockNode, replace bool) (*pb.Block, error) {
 	case pb.Block_MERGE:
 		res, err = t.handleMergeBlock(block)
 	case pb.Block_IGNORE:
-		res, err = t.handleIgnoreBlock(block)
+		res, err = t.handleIgnoreBlock(bnode, block)
 	case pb.Block_FLAG:
 		res, err = t.handleFlagBlock(block)
 	case pb.Block_JOIN:

@@ -56,11 +56,11 @@ func (t *Textile) SetAvatar() error {
 		return fmt.Errorf("account thread contains no files")
 	}
 
-	if latest.Target == t.Avatar() {
+	if latest.Data == t.Avatar() {
 		return nil
 	}
 
-	err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), latest.Target)
+	err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), latest.Data)
 	if err != nil {
 		return err
 	}

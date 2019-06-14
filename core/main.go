@@ -304,7 +304,8 @@ func (t *Textile) Start() error {
 	// create queues
 	t.blockDownloads = NewBlockDownloads(
 		t.Ipfs,
-		t.datastore)
+		t.datastore,
+		t.Thread)
 	t.cafeInbox = NewCafeInbox(
 		t.cafeService,
 		t.threadsService,

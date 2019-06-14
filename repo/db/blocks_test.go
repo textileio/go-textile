@@ -106,7 +106,9 @@ func TestBlockDB_List(t *testing.T) {
 		Date:    ptypes.TimestampNow(),
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
+		Status:  pb.Block_READY,
 	})
 	if err != nil {
 		t.Error(err)
@@ -121,7 +123,9 @@ func TestBlockDB_List(t *testing.T) {
 		Date:    util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
 		Parents: []string{"Qm456"},
 		Target:  "Qm789",
+		Data:    "data",
 		Body:    "body",
+		Status:  pb.Block_READY,
 	})
 	if err != nil {
 		t.Error(err)
@@ -162,7 +166,9 @@ func TestBlockDB_Count(t *testing.T) {
 		Date:    ptypes.TimestampNow(),
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
+		Status:  pb.Block_READY,
 	})
 	if err != nil {
 		t.Error(err)
@@ -177,7 +183,9 @@ func TestBlockDB_Count(t *testing.T) {
 		Type:    pb.Block_FILES,
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
+		Status:  pb.Block_READY,
 	})
 	if err != nil {
 		t.Error(err)

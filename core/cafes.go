@@ -120,7 +120,7 @@ func (t *Textile) cafeRequestThreadsContent(cafe string) error {
 
 			// store the files DAGs
 			if b.Type == pb.Block_FILES {
-				dec, err := cid.Decode(b.Target)
+				dec, err := cid.Decode(b.Data)
 				if err != nil {
 					return err
 				}
