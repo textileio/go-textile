@@ -40,7 +40,7 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("created ADD to %s for %s", p.Id, t.Id)
+	log.Debugf("added ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -73,26 +73,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	log.Debugf("created external ADD for %s", t.Id)
+	log.Debugf("added external ADD for %s", t.Id)
 
 	return nhash, key, nil
-}
-
-// handleAddBlock handles an incoming add.
-// This happens right before a join. The invite is not kept on-chain,
-// so we only need to follow parents and update HEAD.
-func (t *Thread) handleAddBlock(parents []string) error {
-	_, err := t.followParents(parents)
-	if err != nil {
-		return err
-	}
-
-	// update HEAD if parents of the invite are actual updates
-	if len(parents) > 0 {
-		err = t.updateHead(parents)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

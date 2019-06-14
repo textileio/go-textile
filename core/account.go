@@ -63,7 +63,8 @@ func (t *Textile) SyncAccount(options *pb.QueryOptions) (*broadcast.Broadcaster,
 				if !ok {
 					return
 				}
-				if err := t.applySnapshot(res); err != nil {
+				err := t.applySnapshot(res)
+				if err != nil {
 					log.Errorf("error applying snap %s: %s", res.Id, err)
 				}
 
@@ -99,7 +100,8 @@ func (t *Textile) maybeSyncAccount() {
 			return
 		}
 
-		if err := t.datastore.Config().SetLastDaily(); err != nil {
+		err = t.datastore.Config().SetLastDaily()
+		if err != nil {
 			log.Errorf("error set last daily: %s", err)
 		}
 	}

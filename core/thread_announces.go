@@ -91,7 +91,7 @@ func (t *Thread) handleAnnounceBlock(block *pb.ThreadBlock) (handleResult, error
 		if t.Id == t.config.Account.Thread && msg.Peer.Id != block.Header.Author {
 			err = t.addPeer(msg.Peer)
 		} else {
-			err = t.addOrUpdatePeer(msg.Peer)
+			err = t.addOrUpdatePeer(msg.Peer, false)
 		}
 		if err != nil {
 			return res, err

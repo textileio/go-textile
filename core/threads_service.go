@@ -85,10 +85,12 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 	}
 
 	bnode := &blockNode{}
+	var nhash string
 	if tenv.Ciphertext != nil {
 		// old block
 		bnode.hash = tenv.Hash
 		bnode.ciphertext = tenv.Ciphertext
+		nhash = bnode.hash
 	} else {
 		id, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(tenv.Node), false)
 		if err != nil {
@@ -102,6 +104,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		if err != nil {
 			return nil, err
 		}
+		nhash = node.Cid().Hash().B58String()
 	}
 
 	// check for an account signature
@@ -129,6 +132,13 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		return nil, nil
 	}
 	index, err = thread.handle(bnode, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// naively add the inbound head, it will be cleaned up later after following parents,
+	// but we don't want to lose it in the meantime
+	err = thread.addHead(nhash)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +186,6 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 	default:
 		send = false
 	}
-
 	if send {
 		err = h.sendNotification(note)
 		if err != nil {
@@ -184,32 +193,32 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		}
 	}
 
-	// handle tail in the background
-	go func() {
-		parents, err := thread.followParents(bnode.parents)
+	// we may be auto-leaving
+	if index.Type == pb.Block_LEAVE && accountPeer {
+		_, err = h.removeThread(thread.Id)
 		if err != nil {
-			return
+			log.Warningf("failed to remove thread %s: %s", thread.Id, err)
+			return nil, err
 		}
-		err = thread.handleHead(bnode.hash, parents)
+
+		go thread.cafeOutbox.Flush()
+		return nil, nil
+	}
+
+	// handle the thread tail in the background
+	go func() {
+		leaves := thread.followParents(bnode.parents)
+		err = thread.handleHead([]string{nhash}, leaves)
 		if err != nil {
-			log.Warningf("failed to handle head %s: %s", bnode.hash, err)
+			log.Warningf("failed to handle head %s: %s", nhash, err)
 			return
 		}
 
 		// handle newly discovered peers during back prop
 		err = thread.sendWelcome()
 		if err != nil {
-			log.Warningf("failed to send welcome: %s", err)
+			log.Warningf("error sending welcome: %s", err)
 			return
-		}
-
-		// we may be auto-leaving
-		if index.Type == pb.Block_LEAVE && accountPeer {
-			_, err = h.removeThread(thread.Id)
-			if err != nil {
-				log.Warningf("failed to remove thread %s: %s", thread.Id, err)
-				return
-			}
 		}
 
 		// flush cafe queue _at the very end_

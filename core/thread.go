@@ -190,12 +190,12 @@ func (t *Thread) UpdateSchema(hash string) error {
 	return t.loadSchema()
 }
 
-// followParents follows a list of node links, processing along the way
+// followParents follows a list of node links, queueing block downloads along the way
 // Note: Returns a final list of existing parent hashes that were reached during the tree traversal
-func (t *Thread) followParents(parents []string) ([]string, error) {
+func (t *Thread) followParents(parents []string) []string {
 	if len(parents) == 0 {
 		log.Debugf("found genesis block, aborting")
-		return nil, nil
+		return nil
 	}
 	final := make(map[string]struct{})
 
@@ -218,7 +218,7 @@ func (t *Thread) followParents(parents []string) ([]string, error) {
 	for p := range final {
 		list = append(list, p)
 	}
-	return list, nil
+	return list
 }
 
 // followParent tries to follow a tree of blocks, processing along the way
@@ -277,7 +277,7 @@ func (t *Thread) followParent(parent string) ([]string, error) {
 	}
 
 	// old block, handle it now
-	return t.followParents(bnode.parents)
+	return t.followParents(bnode.parents), nil
 }
 
 // blockNode represents the components of a block wrapped by an ipld node
@@ -374,7 +374,7 @@ func (t *Thread) handle(bnode *blockNode, replace bool) (*pb.Block, error) {
 }
 
 // addOrUpdatePeer collects and saves thread peers
-func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
+func (t *Thread) addOrUpdatePeer(peer *pb.Peer, welcomed bool) error {
 	if peer.Id == t.node().Identity.Pretty() {
 		return nil
 	}
@@ -382,7 +382,7 @@ func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
 	err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
 		Id:       peer.Id,
 		Thread:   t.Id,
-		Welcomed: false,
+		Welcomed: welcomed,
 	})
 	if err != nil {
 		if !db.ConflictError(err) {
@@ -580,7 +580,7 @@ func (t *Thread) commitNode(index *pb.Block, additionalParents []string, addInde
 			return nil, err
 		}
 
-		err = t.updateHead([]string{nhash.B58String()})
+		err = t.updateHead([]string{nhash.B58String()}, true)
 		if err != nil {
 			return nil, err
 		}
@@ -618,39 +618,57 @@ func (t *Thread) indexBlock(index *pb.Block, replace bool) error {
 	return nil
 }
 
-// handleHead determines what the next set of HEADs will be.
+// handleHead determines what the next set of HEADs will be
 // One of three situations will occur:
-// 1) fast-forward: the inbound parents are identical to current heads (heads -> [inbound])
-// 2) partial-split: at least one inbound parent matches a current head (heads -> [inbound, unmatched...])
-// 3) full-split: zero inbound parents match a current head (heads -> [inbound, current...])
-func (t *Thread) handleHead(inbound string, inboundParents []string) error {
+// 1) fast-forward: the inbound leaves are identical to current heads (heads -> inbound)
+// 2) partial-split: at least one inbound leaf matches a current head (heads -> [inbound..., unmatched...])
+// 3) full-split: zero inbound leaves match a current head (heads -> [inbound..., current...])
+func (t *Thread) handleHead(inbound []string, leaves []string) error {
 	heads, err := t.Heads()
 	if err != nil {
 		return err
 	}
-	next := []string{inbound}
+	unique := make(map[string]struct{})
+	for _, i := range inbound {
+		unique[i] = struct{}{}
+	}
+	var next []string
 
 outer:
-	for _, head := range heads {
-		for _, ip := range inboundParents {
-			if head == ip {
+	for _, h := range heads {
+		for _, l := range leaves {
+			if h == l {
 				continue outer
 			}
 		}
 		// this head was not found, keep it
-		next = append(next, head)
+		if _, ok := unique[h]; !ok {
+			unique[h] = struct{}{}
+			next = append(next, h)
+		}
 	}
 
-	return t.updateHead(next)
+	return t.updateHead(next, true)
+}
+
+// addHead adds an additional (usually temporary) head
+func (t *Thread) addHead(head string) error {
+	heads, err := t.Heads()
+	if err != nil {
+		return err
+	}
+	return t.updateHead(append(heads, head), false)
 }
 
 // updateHead updates the ref to the content id of the latest update
-func (t *Thread) updateHead(heads []string) error {
+func (t *Thread) updateHead(heads []string, store bool) error {
 	err := t.datastore.Threads().UpdateHead(t.Id, heads)
 	if err != nil {
 		return err
 	}
-
+	if !store {
+		return nil
+	}
 	return t.store()
 }
 
