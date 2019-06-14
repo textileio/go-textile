@@ -214,7 +214,7 @@ func addTestData(n *Textile) error {
 	if err != nil {
 		return err
 	}
-	_, err = thrd.AddMessage("hi")
+	_, err = thrd.AddMessage("", "hi")
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func addTestData(n *Textile) error {
 	if err != nil {
 		return err
 	}
-	_, err = thrd.AddMessage("bye")
+	_, err = thrd.AddMessage("", "bye")
 	if err != nil {
 		return err
 	}

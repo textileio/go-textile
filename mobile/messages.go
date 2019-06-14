@@ -16,7 +16,7 @@ func (m *Mobile) AddMessage(threadId string, body string) (string, error) {
 		return "", core.ErrThreadNotFound
 	}
 
-	hash, err := thrd.AddMessage(body)
+	hash, err := thrd.AddMessage("", body)
 	if err != nil {
 		return "", err
 	}

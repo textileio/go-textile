@@ -166,6 +166,7 @@ message File {
 message Files {
     string block                   = 1;
     string target                  = 2;
+	string data                    = 10;
     google.protobuf.Timestamp date = 3;
     User user                      = 4;
     string caption                 = 5;

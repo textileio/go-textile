@@ -42,8 +42,8 @@ func (t *Textile) File(blockId string) (*pb.Files, error) {
 	return t.file(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
-	links, err := ipfs.LinksAtPath(t.node, target)
+func (t *Textile) fileAtData(data string) ([]*pb.File, error) {
+	links, err := ipfs.LinksAtPath(t.node, data)
 	if err != nil {
 		return nil, err
 	}
@@ -98,16 +98,16 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 	}
 
 	threads := make([]string, 0)
-	threads = t.fileThreads(block.Target)
+	threads = t.fileThreads(block.Data)
 
-	files, err := t.fileAtTarget(block.Target)
+	files, err := t.fileAtData(block.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	item := &pb.Files{
 		Block:   block.Id,
-		Target:  block.Target,
+		Data:    block.Data,
 		Date:    block.Date,
 		User:    t.PeerUser(block.Author),
 		Caption: block.Body,
@@ -135,11 +135,11 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 	return item, nil
 }
 
-// fileThreads lists threads that have blocks which target a file
-func (t *Textile) fileThreads(target string) []string {
+// fileThreads lists threads that have blocks which link a file
+func (t *Textile) fileThreads(data string) []string {
 	var unique []string
 
-	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
+	blocks := t.datastore.Blocks().List("", -1, "data='"+data+"'")
 outer:
 	for _, b := range blocks.Items {
 		for _, f := range unique {

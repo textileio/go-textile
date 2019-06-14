@@ -330,7 +330,7 @@ func (t *Thread) handle(bnode *blockNode, replace bool) (*pb.Block, error) {
 	case pb.Block_TEXT:
 		res, err = t.handleMessageBlock(block)
 	case pb.Block_FILES:
-		res, err = t.handleFilesBlock(bnode.hash, block)
+		res, err = t.handleFilesBlock(bnode, block)
 	case pb.Block_COMMENT:
 		res, err = t.handleCommentBlock(block)
 	case pb.Block_LIKE:

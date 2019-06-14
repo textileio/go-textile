@@ -262,7 +262,7 @@ func (m *Mobile) shareFiles(target string, threadId string, caption string) (mh.
 		return nil, err
 	}
 
-	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	hash, err := thrd.AddFiles(node, "", caption, keys.Files)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,7 @@ func (m *Mobile) writeFiles(dirs *pb.DirectoryList, threadId string, caption str
 		return nil, fmt.Errorf("no files found")
 	}
 
-	hash, err := thrd.AddFiles(node, caption, keys.Files)
+	hash, err := thrd.AddFiles(node, "", caption, keys.Files)
 	if err != nil {
 		return nil, err
 	}

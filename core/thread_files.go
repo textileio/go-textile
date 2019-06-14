@@ -96,7 +96,7 @@ func (t *Thread) AddFiles(node ipld.Node, target string, caption string, keys ma
 }
 
 // handleFilesBlock handles an incoming files block
-func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleResult, error) {
+func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (handleResult, error) {
 	var res handleResult
 
 	msg := new(pb.ThreadFiles)
@@ -117,9 +117,15 @@ func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleRes
 	}
 
 	var node ipld.Node
+	var target string
+	if msg.Target != "" {
+		target = msg.Target
+	} else {
+		target = bnode.target
+	}
 
 	var ignore bool
-	query := "target='ignore-" + hash + "'"
+	query := "target='ignore-" + bnode.hash + "'"
 	ignored := t.datastore.Blocks().List("", -1, query).Items
 	if len(ignored) > 0 {
 		// ignore if the first (latest) ignore came after (could happen during back prop)
@@ -128,11 +134,11 @@ func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleRes
 		}
 	}
 	if !ignore {
-		target, err := icid.Parse(msg.Target)
+		tcid, err := icid.Parse(target)
 		if err != nil {
 			return res, err
 		}
-		node, err = ipfs.NodeAtCid(t.node(), target)
+		node, err = ipfs.NodeAtCid(t.node(), tcid)
 		if err != nil {
 			return res, err
 		}
@@ -149,7 +155,7 @@ func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleRes
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+MetaLinkName)
+			fd, err := ipfs.DataAtPath(t.node(), target+pth+MetaLinkName)
 			if err != nil {
 				return res, err
 			}
@@ -187,7 +193,7 @@ func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleRes
 	}
 
 	if !ignore {
-		err = t.indexFileData(node, msg.Target)
+		err = t.indexFileData(node, target)
 		if err != nil {
 			return res, err
 		}
@@ -198,34 +204,33 @@ func (t *Thread) handleFilesBlock(hash string, block *pb.ThreadBlock) (handleRes
 	return res, nil
 }
 
-// removeFiles unpins and removes target files unless they are used by another target,
-// and unpins the target itself if not used by another block.
+// removeFiles unpins and removes linked files unless they are used by another block
 func (t *Thread) removeFiles(node ipld.Node) error {
 	if node == nil {
 		return ErrInvalidFileNode
 	}
 
-	target := node.Cid().Hash().B58String()
-	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'").Items
-	if len(blocks) == 1 { // safe to unpin target node
+	data := node.Cid().Hash().B58String()
+	blocks := t.datastore.Blocks().List("", -1, "data='"+data+"'").Items
+	if len(blocks) == 1 { // safe to unpin data node
 		err := ipfs.UnpinNode(t.node(), node, false)
 		if err != nil {
 			return err
 		}
 
 		// unstore on cafes
-		err = t.cafeOutbox.Add(target, pb.CafeRequest_UNSTORE)
+		err = t.cafeOutbox.Add(data, pb.CafeRequest_UNSTORE)
 		if err != nil {
 			return err
 		}
 
-		// safe to dig deeper, check for other targets which contain the files
+		// safe to dig deeper, check for other blocks which contain the files
 		for _, link := range node.Links() {
 			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return err
 			}
-			err = t.deIndexFileNode(nd, target)
+			err = t.deIndexFileNode(nd, data)
 			if err != nil {
 				return err
 			}
@@ -418,11 +423,11 @@ func (t *Thread) indexFileLink(inode ipld.Node, data string) error {
 }
 
 // deIndexFileNode walks a file node, de-indexing file links
-func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
+func (t *Thread) deIndexFileNode(inode ipld.Node, data string) error {
 	links := inode.Links()
 
 	if looksLikeFileNode(inode) {
-		return t.deIndexFileLink(inode, target)
+		return t.deIndexFileLink(inode, data)
 	}
 
 	for _, link := range links {
@@ -431,7 +436,7 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 			return err
 		}
 
-		err = t.deIndexFileLink(n, target)
+		err = t.deIndexFileLink(n, data)
 		if err != nil {
 			return err
 		}
@@ -473,7 +478,7 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, data string) error {
 	return nil
 }
 
-// cafeReqFileData adds a cafe requests for the target node and all children
+// cafeReqFileData adds a cafe requests for the linked node and all children
 func (t *Thread) cafeReqFileData(inode ipld.Node, syncGroup string, cafe string) error {
 	data := inode.Cid().Hash().B58String()
 	ng := cafeReqOpt.Group(ksuid.New().String())

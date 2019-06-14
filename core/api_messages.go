@@ -36,7 +36,8 @@ func (a *api) addThreadMessages(g *gin.Context) {
 		return
 	}
 
-	hash, err := thrd.AddMessage(args[0])
+	// @todo Allow the setting of the target in 0.5.0, which is the new way to comment
+	hash, err := thrd.AddMessage("", args[0])
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
