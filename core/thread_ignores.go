@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
@@ -19,14 +18,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, ErrNotAnnotatable
 	}
 
-	// adding an ignore specific prefix here to ensure future flexibility
-	target := fmt.Sprintf("ignore-%s", block)
-
-	msg := &pb.ThreadIgnore{
-		Target: target,
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_IGNORE, true, nil)
+	res, err := t.commitBlock(nil, pb.Block_IGNORE, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +29,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		Author: res.header.Author,
 		Type:   pb.Block_IGNORE,
 		Date:   res.header.Date,
-		Target: target,
+		Target: block,
 		Status: pb.Block_QUEUED,
 	}, false)
 	if err != nil {
@@ -89,7 +81,7 @@ func (t *Thread) handleIgnoreBlock(block *pb.ThreadBlock) (handleResult, error) 
 		return res, err
 	}
 
-	res.oldTarget = msg.Target
+	res.oldTarget = target
 	return res, err
 }
 

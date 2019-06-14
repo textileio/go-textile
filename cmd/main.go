@@ -387,10 +387,10 @@ Stacks may include:
 	blockFilesCommand(cmds, fileListCmd, []string{"block"})
 
 	// file keys
-	fileKeysCmd := fileCmd.Command("keys", "Shows the encryption keys for each content/meta pair for the given block DAG target").Alias("key")
-	fileKeysTargetID := fileKeysCmd.Arg("block-target", "Block Target ID").Required().String()
+	fileKeysCmd := fileCmd.Command("keys", "Shows the encryption keys for each content/meta pair for the given block DAG").Alias("key")
+	fileKeysDataID := fileKeysCmd.Arg("block-data", "Block Data ID").Required().String()
 	cmds[fileKeysCmd.FullCommand()] = func() error {
-		return FileKeys(*fileKeysTargetID)
+		return FileKeys(*fileKeysDataID)
 	}
 
 	// file add

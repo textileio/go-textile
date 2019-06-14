@@ -1,8 +1,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/ptypes"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/pb"
@@ -17,14 +15,7 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		return nil, ErrNotAnnotatable
 	}
 
-	// adding a flag specific prefix here to ensure future flexibility
-	target := fmt.Sprintf("flag-%s", block)
-
-	msg := &pb.ThreadFlag{
-		Target: target,
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_FLAG, true, nil)
+	res, err := t.commitBlock(nil, pb.Block_FLAG, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +26,7 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		Author: res.header.Author,
 		Type:   pb.Block_FLAG,
 		Date:   res.header.Date,
-		Target: target,
+		Target: block,
 		Status: pb.Block_QUEUED,
 	}, false)
 	if err != nil {

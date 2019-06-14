@@ -254,7 +254,7 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 }
 
 func (t *Textile) blockIgnored(blockId string) bool {
-	query := "target='ignore-" + blockId + "'"
+	query := fmt.Sprintf("target='%s' and type=%d", blockId, pb.Block_IGNORE)
 	return len(t.datastore.Blocks().List("", -1, query).Items) > 0
 }
 

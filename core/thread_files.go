@@ -125,7 +125,7 @@ func (t *Thread) handleFilesBlock(bnode *blockNode, block *pb.ThreadBlock) (hand
 	}
 
 	var ignore bool
-	query := "target='ignore-" + bnode.hash + "'"
+	query := fmt.Sprintf("target='%s' and type=%d", bnode.hash, pb.Block_IGNORE)
 	ignored := t.datastore.Blocks().List("", -1, query).Items
 	if len(ignored) > 0 {
 		// ignore if the first (latest) ignore came after (could happen during back prop)

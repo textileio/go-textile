@@ -253,7 +253,7 @@ func (t *Thread) followParent(parent string) ([]string, error) {
 
 	if bnode.ciphertext == nil {
 		// content is not yet known, download it later
-		err = t.datastore.Blocks().Add(&pb.Block{
+		err = t.blockDownloads.Add(&pb.Block{
 			Id:      bnode.hash,
 			Thread:  t.Id,
 			Parents: bnode.parents,
@@ -490,11 +490,6 @@ func (t *Thread) unmarshalBlock(ciphertext []byte) (*pb.ThreadBlock, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// nil payload only allowed for some types
-	if block.Payload == nil && block.Type != pb.Block_MERGE && block.Type != pb.Block_LEAVE {
-		return nil, fmt.Errorf("nil message payload")
 	}
 
 	return block, nil
@@ -891,9 +886,6 @@ func (t *Thread) loadSchema() error {
 func validateNode(node ipld.Node) error {
 	links := node.Links()
 	if schema.LinkByName(links, []string{blockLinkName}) == nil {
-		return ErrInvalidNode
-	}
-	if schema.LinkByName(links, []string{parentsLinkName}) == nil {
 		return ErrInvalidNode
 	}
 	return nil

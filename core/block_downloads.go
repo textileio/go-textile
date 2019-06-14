@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -21,7 +20,7 @@ type BlockDownloads struct {
 	node      func() *core.IpfsNode
 	datastore repo.Datastore
 	getThread func(id string) *Thread
-	mux       sync.Mutex
+	flushing  bool
 }
 
 // NewBlockDownloads creates a new download queue
@@ -32,10 +31,24 @@ func NewBlockDownloads(node func() *core.IpfsNode, datastore repo.Datastore) *Bl
 	}
 }
 
+// Add queues a download, starting it if flush is not active
+func (q *BlockDownloads) Add(download *pb.Block) error {
+	err := q.datastore.Blocks().Add(download)
+	if err == nil {
+		q.Flush()
+	}
+	return err
+}
+
 // Flush processes pending messages
 func (q *BlockDownloads) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+	if q.flushing {
+		return
+	}
+	q.flushing = true
+	defer func() {
+		q.flushing = false
+	}()
 	log.Debug("flushing downloads")
 
 	query := fmt.Sprintf("status=%d", pb.Block_PENDING)

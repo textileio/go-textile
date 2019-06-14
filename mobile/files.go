@@ -92,9 +92,9 @@ func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Call
 	}()
 }
 
-func (m *Mobile) ShareFiles(target string, threadId string, caption string, cb Callback) {
+func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb Callback) {
 	go func() {
-		hash, err := m.shareFiles(target, threadId, caption)
+		hash, err := m.shareFiles(data, threadId, caption)
 		if err != nil {
 			cb.Call(nil, err)
 			return
@@ -150,7 +150,7 @@ type img struct {
 // or the next best option.
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
-// Note: pth is <target>/<index>, e.g., "Qm.../0"
+// Note: pth is <data>/<index>, e.g., "Qm.../0"
 func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
@@ -242,7 +242,7 @@ func (m *Mobile) addFiles(paths []string, threadId string, caption string) (mh.M
 	return m.writeFiles(dirs, threadId, caption)
 }
 
-func (m *Mobile) shareFiles(target string, threadId string, caption string) (mh.Multihash, error) {
+func (m *Mobile) shareFiles(data string, threadId string, caption string) (mh.Multihash, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -252,7 +252,7 @@ func (m *Mobile) shareFiles(target string, threadId string, caption string) (mh.
 		return nil, core.ErrThreadNotFound
 	}
 
-	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), data)
 	if err != nil {
 		return nil, err
 	}
