@@ -191,6 +191,7 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		return err
 	}
 
+	heads := util.SplitString(thread.Head, ",")
 	nthread := t.Thread(id.Pretty())
 	if nthread == nil {
 		config := pb.AddThreadConfig{
@@ -210,41 +211,41 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	index := t.datastore.Blocks().Get(thread.Head)
-	if index != nil {
-		// old block exists, abort
-		log.Debugf("%s exists, aborting", thread.Head)
-		return nil
-	}
-
-	parents, err := nthread.followParents([]string{thread.Head})
-	if err != nil {
-		return err
-	}
-
-	err = nthread.handleHead(thread.Head, parents)
-	if err != nil {
-		return err
+		err = nthread.updateHead(heads, false)
+		if err != nil {
+			return err
+		}
 	}
 
 	// have we joined?
-	query := fmt.Sprintf("threadId='%s' and type=%d and authorId='%s'",
-		nthread.Id, pb.Block_JOIN, t.node.Identity.Pretty())
+	query := fmt.Sprintf("threadId='%s' and type=%d and authorId='%s'", nthread.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself
-		_, err = nthread.join(t.node.Identity)
-		if err != nil {
-			return err
-		}
-	} else {
-		// handle newly discovered peers during back prop
-		err = nthread.sendWelcome()
+		_, err = nthread.join(t.node.Identity.Pretty())
 		if err != nil {
 			return err
 		}
 	}
+
+	// handle the thread tail in the background
+	go func() {
+		leaves := nthread.followParents(heads)
+		err = nthread.handleHead(heads, leaves)
+		if err != nil {
+			log.Warningf("failed to handle head %s: %s", thread.Head, err)
+			return
+		}
+
+		// handle newly discovered peers during back prop
+		err = nthread.sendWelcome()
+		if err != nil {
+			log.Warningf("error sending welcome: %s", err)
+			return
+		}
+
+		// flush cafe queue _at the very end_
+		t.cafeOutbox.Flush()
+	}()
 
 	return nil
 }

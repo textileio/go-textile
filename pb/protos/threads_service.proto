@@ -12,7 +12,7 @@ message ThreadEnvelope {
     string hash      = 2 [deprecated = true]; // hash of encrypted block
     bytes ciphertext = 3 [deprecated = true]; // encrypted ThreadBlock, also stored on ipfs for recovery
     bytes sig        = 4; // account signature
-	bytes node       = 5; // block node (v2)
+    bytes node       = 5; // block node (v2)
 }
 
 message ThreadBlock {
@@ -31,14 +31,16 @@ message ThreadBlockHeader {
 message ThreadAdd { // not kept on-chain
     Peer inviter   = 1;
     Thread thread  = 2;
-	string invitee = 3;
+    string invitee = 3;
 }
 
 message ThreadIgnore {
+	option deprecated = true;
     string target = 1;
 }
 
 message ThreadFlag {
+	option deprecated = true;
     string target = 1;
 }
 
@@ -57,16 +59,18 @@ message ThreadMessage {
 }
 
 message ThreadFiles {
-    string target            = 1; // top-level file hash
+    string target            = 1 [deprecated = true]; // top-level file hash
     string body              = 2;
     map<string, string> keys = 3; // hash: key
 }
 
 message ThreadComment {
+    option deprecated = true;
     string target = 1;
     string body   = 2;
 }
 
 message ThreadLike {
+    option deprecated = true;
     string target = 1;
 }

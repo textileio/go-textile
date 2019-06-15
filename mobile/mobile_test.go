@@ -400,7 +400,7 @@ func TestMobile_AddFiles(t *testing.T) {
 }
 
 func TestMobile_ShareFiles(t *testing.T) {
-	_, err := testVars.mobile1.shareFiles(testVars.filesBlock.Target, testVars.thrdId, "hello")
+	_, err := testVars.mobile1.shareFiles(testVars.filesBlock.Data, testVars.thrdId, "hello")
 	if err != nil {
 		t.Fatalf("share files failed: %s", err)
 	}
@@ -515,7 +515,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pth := testVars.files[0].Target + "/0"
+	pth := testVars.files[0].Data + "/0"
 
 	d1, err := testVars.mobile1.ImageFileContentForMinWidth(pth, 2000)
 	if err != nil {

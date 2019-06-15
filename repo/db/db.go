@@ -227,11 +227,13 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index thread_peer_threadId on thread_peers (threadId);
     create index thread_peer_welcomed on thread_peers (welcomed);
 
-    create table blocks (id text primary key not null, threadId text not null, authorId text not null, type integer not null, date integer not null, parents text not null, target text not null, body text not null);
+    create table blocks (id text primary key not null, threadId text not null, authorId text not null, type integer not null, date integer not null, parents text not null, target text not null, body text not null, data text not null, status integer not null, attempts integer not null);
     create index block_threadId on blocks (threadId);
     create index block_type on blocks (type);
     create index block_date on blocks (date);
     create index block_target on blocks (target);
+    create index block_data on blocks (data);
+    create index block_status on blocks (status);
 
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);

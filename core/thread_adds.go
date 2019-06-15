@@ -40,7 +40,22 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("created ADD to %s for %s", p.Id, t.Id)
+	// add directly, no need for an update event which happens w/ indexBlock
+	// Note: this will be deleted after posting
+	err = t.datastore.Blocks().Add(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_ADD,
+		Date:   res.header.Date,
+		Body:   msg.Invitee, // ugly and tmp way to retain invitee address when posting
+		Status: pb.Block_QUEUED,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("added ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -68,31 +83,28 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	nhash, err := t.commitNode(res.hash.B58String(), nil, false)
+	nhash, err := t.commitNode(&pb.Block{Id: res.hash.B58String()}, nil, false)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Debugf("created external ADD for %s", t.Id)
+	// add directly, no need for an update event which happens w/ indexBlock
+	// Note: this will be deleted after posting (technically not needed at all because their won't
+	// be any recipients, but since this logic is tied to sync group management, creating a dummy
+	// block here is the cleanest solution at this point).
+	err = t.datastore.Blocks().Add(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_ADD,
+		Date:   res.header.Date,
+		Status: pb.Block_QUEUED,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debugf("added external ADD for %s", t.Id)
 
 	return nhash, key, nil
-}
-
-// handleAddBlock handles an incoming add.
-// This happens right before a join. The invite is not kept on-chain,
-// so we only need to follow parents and update HEAD.
-func (t *Thread) handleAddBlock(parents []string) error {
-	_, err := t.followParents(parents)
-	if err != nil {
-		return err
-	}
-
-	// update HEAD if parents of the invite are actual updates
-	if len(parents) > 0 {
-		err = t.updateHead(parents)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

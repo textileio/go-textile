@@ -91,7 +91,7 @@ func initAt005(db *sql.DB, pin string) error {
 
 func Test006(t *testing.T) {
 	var dbPath string
-	os.Mkdir("./datastore", os.ModePerm)
+	_ = os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -162,7 +162,7 @@ func Test006(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	os.RemoveAll("./datastore")
-	os.RemoveAll("./repover")
-	os.RemoveAll("./config")
+	_ = os.RemoveAll("./datastore")
+	_ = os.RemoveAll("./repover")
+	_ = os.RemoveAll("./config")
 }

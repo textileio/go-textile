@@ -127,7 +127,7 @@ func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, err
 	if err != nil {
 		return nil, err
 	}
-	bnode, err := extractNode(t.node, node)
+	bnode, err := extractNode(t.node, node, true)
 	if err != nil {
 		return nil, err
 	}
@@ -211,40 +211,46 @@ func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multih
 		Whitelist: msg.Thread.Whitelist,
 		Force:     true,
 	}
-	thrd, err := t.AddThread(config, sk, msg.Thread.Initiator, false, !t.isAccountPeer(msg.Inviter.Id))
+	thread, err := t.AddThread(config, sk, msg.Thread.Initiator, false, !t.isAccountPeer(msg.Inviter.Id))
 	if err != nil {
 		return nil, err
 	}
 
-	err = thrd.addOrUpdatePeer(msg.Inviter)
+	// mark welcomed, sending a join soon
+	err = thread.addOrUpdatePeer(msg.Inviter, true)
 	if err != nil {
 		return nil, err
 	}
 
-	// follow parents, update head
+	// handle old-style parents
 	if len(block.Header.Parents) > 0 {
 		parents = block.Header.Parents
 	}
-	err = thrd.handleAddBlock(parents)
-	if err != nil {
-		return nil, err
-	}
 
-	// mark any discovered peers as welcomed
-	// there's no need to send a welcome because we're about to send a join message
-	err = t.datastore.ThreadPeers().WelcomeByThread(thrd.Id)
+	// no need to store thread here, sending a join soon
+	err = thread.updateHead(parents, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// join the thread
-	author, err := peer.IDB58Decode(block.Header.Author)
+	hash, err := thread.join(block.Header.Author)
 	if err != nil {
 		return nil, err
 	}
-	hash, err := thrd.join(author)
-	if err != nil {
-		return nil, err
-	}
+
+	// handle the thread tail in the background
+	go func() {
+		// follow parents, we don't care about the thread leaves because this is
+		// the first update
+		_ = thread.followParents(parents)
+
+		// notify discovered peers
+		err = thread.sendWelcome()
+		if err != nil {
+			log.Warningf("error sending welcome: %s", err)
+		}
+	}()
+
 	return hash, nil
 }

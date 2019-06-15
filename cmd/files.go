@@ -142,7 +142,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 							break loop
 						}
 
-						output(fmt.Sprintf("File %d target=%s block=%s", count+1, files.Target, files.Block))
+						output(fmt.Sprintf("File %d data=%s block=%s", count+1, files.Data, files.Block))
 					} else {
 						dirs = append(dirs, dir)
 					}
@@ -162,7 +162,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 			if err != nil {
 				return err
 			}
-			output(fmt.Sprintf("Group target=%s block=%s", files.Target, files.Block))
+			output(fmt.Sprintf("Group data=%s block=%s", files.Data, files.Block))
 		}
 
 		if count == 0 {
@@ -536,8 +536,8 @@ func FileIgnore(blockID string) error {
 // ------------------------------------
 // > files key
 
-func FileKeys(targetID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "keys/"+targetID, params{}, nil)
+func FileKeys(dataID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "keys/"+dataID, params{}, nil)
 	if err != nil {
 		return err
 	}

@@ -33,7 +33,7 @@ func TestInitRepo(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  accnt,
 		RepoPath: vars.repoPath,
-		ApiAddr:  fmt.Sprintf("127.0.0.1:%s", GetRandomPort()),
+		ApiAddr:  fmt.Sprintf("127.0.0.1:9999"),
 		Debug:    true,
 	}); err != nil {
 		t.Fatalf("init node failed: %s", err)

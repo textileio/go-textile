@@ -1,8 +1,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/ptypes"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/pb"
@@ -17,19 +15,20 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		return nil, ErrNotAnnotatable
 	}
 
-	// adding a flag specific prefix here to ensure future flexibility
-	target := fmt.Sprintf("flag-%s", block)
-
-	msg := &pb.ThreadFlag{
-		Target: target,
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_FLAG, true, nil)
+	res, err := t.commitBlock(nil, pb.Block_FLAG, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_FLAG, target, "")
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_FLAG,
+		Date:   res.header.Date,
+		Target: block,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -40,30 +39,22 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 }
 
 // handleFlagBlock handles an incoming flag block
-func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadFlag, error) {
+func (t *Thread) handleFlagBlock(block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadFlag)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return res, ErrNotAnnotatable
 	}
 
-	// TODO: how do we want to handle flags? making visible to UIs would be a good start
-
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_FLAG, msg.Target, "")
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
+	res.oldTarget = msg.Target
+	return res, nil
 }

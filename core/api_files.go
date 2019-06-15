@@ -78,7 +78,8 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	hash, err := thrd.AddFiles(node, opts["caption"], keys.Files)
+	// @todo Allow the setting of the target in 0.5.0
+	hash, err := thrd.AddFiles(node, "", opts["caption"], keys.Files)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

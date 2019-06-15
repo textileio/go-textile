@@ -21,7 +21,14 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_LEAVE, "", "")
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_LEAVE,
+		Date:   res.header.Date,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -53,26 +60,24 @@ func (t *Thread) leave() (mh.Multihash, error) {
 }
 
 // handleLeaveBlock handles an incoming leave block
-func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) error {
+func (t *Thread) handleLeaveBlock(block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	if !t.readable(t.config.Account.Address) {
-		return ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.readable(block.Header.Address) {
-		return ErrNotReadable
+		return res, ErrNotReadable
 	}
 
 	err := t.datastore.ThreadPeers().Delete(block.Header.Author, t.Id)
 	if err != nil {
-		return err
+		return res, err
 	}
 	err = t.datastore.Notifications().DeleteByActor(block.Header.Author)
 	if err != nil {
-		return err
+		return res, err
 	}
 
-	return t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_LEAVE, "", "")
+	return res, nil
 }

@@ -62,29 +62,15 @@ type Logs struct {
 
 // Cafe settings
 type Cafe struct {
-	Host   CafeHost
-	Client CafeClient
+	Host CafeHost
 }
 
-// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
+// CafeHost settings
 type CafeHost struct {
 	Open        bool   // When true, other peers can register with this node for cafe services.
 	URL         string // Override the resolved URL of this cafe, useful for load HTTPS and/or load balancers
 	NeighborURL string // Specifies the URL of a secondary cafe. Must return cafe info.
 	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes.
-}
-
-// CafeClient settings
-type CafeClient struct {
-	Mobile MobileCafeClient
-}
-
-// MobileCafeClient settings
-type MobileCafeClient struct {
-	// messages w/ size less than limit will be handled by the p2p cafe service,
-	// messages w/ size greater than limit will be handled by the mobile OS's background
-	// upload service and the cafe HTTP API
-	P2PWireLimit int // deprecated
 }
 
 // Init returns the default textile config
@@ -167,11 +153,6 @@ func Init() (*Config, error) {
 				URL:         "",
 				NeighborURL: "",
 				SizeLimit:   0,
-			},
-			Client: CafeClient{
-				Mobile: MobileCafeClient{
-					P2PWireLimit: 0,
-				},
 			},
 		},
 		IsMobile: false,

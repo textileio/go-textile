@@ -105,10 +105,11 @@ type ThreadPeerStore interface {
 type BlockStore interface {
 	Queryable
 	Add(block *pb.Block) error
+	Replace(block *pb.Block) error
 	Get(id string) *pb.Block
 	List(offset string, limit int, query string) *pb.BlockList
 	Count(query string) int
-	UpdateParents(id string, parents []string) error
+	AddAttempt(id string) error
 	Delete(id string) error
 	DeleteByThread(threadId string) error
 }

@@ -14,7 +14,8 @@ func (t *Textile) Blocks(offset string, limit int, query string) *pb.BlockList {
 	filtered := &pb.BlockList{Items: make([]*pb.Block, 0)}
 
 	for _, block := range t.datastore.Blocks().List(offset, limit, query).Items {
-		ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+block.Id+"'")
+		q := fmt.Sprintf("target='%s' and type=%d", block.Id, pb.Block_IGNORE)
+		ignored := t.datastore.Blocks().List("", -1, q)
 		if len(ignored.Items) == 0 {
 			filtered.Items = append(filtered.Items, block)
 		}

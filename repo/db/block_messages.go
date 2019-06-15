@@ -46,11 +46,11 @@ func (c *BlockMessageDB) Add(msg *pb.BlockMessage) error {
 		util.ProtoNanos(msg.Date),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+
+	return tx.Commit()
 }
 
 func (c *BlockMessageDB) List(offset string, limit int) []pb.BlockMessage {

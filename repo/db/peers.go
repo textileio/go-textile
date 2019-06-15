@@ -64,8 +64,7 @@ func (c *PeerDB) Add(peer *pb.Peer) error {
 		_ = tx.Rollback()
 		return err
 	}
-	_ = tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *PeerDB) AddOrUpdate(peer *pb.Peer) error {

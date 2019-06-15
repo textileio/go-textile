@@ -28,7 +28,16 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_COMMENT, target, body)
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_COMMENT,
+		Date:   res.header.Date,
+		Target: target,
+		Body:   body,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -39,27 +48,23 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 }
 
 // handleCommentBlock handles an incoming comment block
-func (t *Thread) handleCommentBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadComment, error) {
+func (t *Thread) handleCommentBlock(block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadComment)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return res, ErrNotAnnotatable
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_COMMENT, msg.Target, msg.Body)
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
+	res.oldTarget = msg.Target
+	res.body = msg.Body
+	return res, nil
 }

@@ -46,11 +46,10 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		[]byte(cafe),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeSessionDB) Get(cafeId string) *pb.CafeSession {

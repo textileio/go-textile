@@ -37,11 +37,10 @@ func (c *CafeClientNonceDB) Add(nonce *pb.CafeClientNonce) error {
 		util.ProtoNanos(nonce.Date),
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeClientNonceDB) Get(value string) *pb.CafeClientNonce {

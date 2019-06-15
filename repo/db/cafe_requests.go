@@ -94,6 +94,7 @@ func (c *CafeRequestDB) GetSyncGroup(group string) string {
 		log.Errorf("error in db query: %s", err)
 		return ""
 	}
+
 	for total.Next() {
 		var syncGroupId string
 		if err := total.Scan(&syncGroupId); err != nil {
@@ -102,6 +103,7 @@ func (c *CafeRequestDB) GetSyncGroup(group string) string {
 		}
 		return syncGroupId
 	}
+
 	return ""
 }
 
@@ -118,6 +120,7 @@ func (c *CafeRequestDB) Count(status pb.CafeRequest_Status) int {
 	row := c.db.QueryRow(stm)
 	var count int
 	_ = row.Scan(&count)
+
 	return count
 }
 
@@ -337,7 +340,7 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 		var dateInt, size int64
 		var cafe []byte
 
-		err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &groupId, &syncGroupId, &typeInt, &dateInt, &size, &statusInt, &attempts)
+		err = rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &groupId, &syncGroupId, &typeInt, &dateInt, &size, &statusInt, &attempts)
 		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue

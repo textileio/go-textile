@@ -49,8 +49,7 @@ func (c *ThreadDB) Add(thread *pb.Thread) error {
 		_ = tx.Rollback()
 		return err
 	}
-	_ = tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *ThreadDB) Get(id string) *pb.Thread {

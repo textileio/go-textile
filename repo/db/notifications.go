@@ -45,11 +45,10 @@ func (c *NotificationDB) Add(notification *pb.Notification) error {
 		false,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *NotificationDB) Get(id string) *pb.Notification {
@@ -93,7 +92,7 @@ func (c *NotificationDB) CountUnread() int {
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from notifications where read=0;")
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count
 }
 

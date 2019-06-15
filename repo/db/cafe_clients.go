@@ -43,8 +43,7 @@ func (c *CafeClientDB) Add(client *pb.CafeClient) error {
 		_ = tx.Rollback()
 		return err
 	}
-	_ = tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeClientDB) Get(id string) *pb.CafeClient {

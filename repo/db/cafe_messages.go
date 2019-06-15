@@ -39,11 +39,10 @@ func (c *CafeMessageDB) Add(req *pb.CafeMessage) error {
 		req.Attempts,
 	)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (c *CafeMessageDB) List(offset string, limit int) []pb.CafeMessage {

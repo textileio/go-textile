@@ -42,8 +42,8 @@ func (t *Textile) File(blockId string) (*pb.Files, error) {
 	return t.file(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
-	links, err := ipfs.LinksAtPath(t.node, target)
+func (t *Textile) fileAtData(data string) ([]*pb.File, error) {
+	links, err := ipfs.LinksAtPath(t.node, data)
 	if err != nil {
 		return nil, err
 	}
@@ -97,22 +97,19 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 		return nil, ErrBlockWrongType
 	}
 
-	threads := make([]string, 0)
-	threads = t.fileThreads(block.Target)
-
-	files, err := t.fileAtTarget(block.Target)
+	files, err := t.fileAtData(block.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	item := &pb.Files{
 		Block:   block.Id,
-		Target:  block.Target,
+		Data:    block.Data,
 		Date:    block.Date,
 		User:    t.PeerUser(block.Author),
 		Caption: block.Body,
 		Files:   files,
-		Threads: threads,
+		Threads: t.fileThreads(block.Data),
 	}
 
 	if opts.annotations {
@@ -135,20 +132,17 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 	return item, nil
 }
 
-// fileThreads lists threads that have blocks which target a file
-func (t *Textile) fileThreads(target string) []string {
-	var unique []string
+// fileThreads lists threads that have blocks which link a file
+// @todo This should be a distinct db query, if it's even needed?
+func (t *Textile) fileThreads(data string) []string {
+	unique := make([]string, 0)
+	threads := make(map[string]struct{})
 
-	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
-outer:
-	for _, b := range blocks.Items {
-		for _, f := range unique {
-			if f == b.Thread {
-				break outer
-			}
+	for _, b := range t.datastore.Blocks().List("", -1, "data='"+data+"'").Items {
+		if _, ok := threads[b.Thread]; !ok {
+			threads[b.Thread] = struct{}{}
+			unique = append(unique, b.Thread)
 		}
-		unique = append(unique, b.Thread)
 	}
-
 	return unique
 }

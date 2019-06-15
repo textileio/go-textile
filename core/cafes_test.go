@@ -136,12 +136,12 @@ func TestCore_HandleCafeRequests(t *testing.T) {
 
 	// check if blocks are pinned
 	var blocks []string
-	var targets []string
+	var datas []string
 	list := n.Blocks("", -1, "")
 	for _, b := range list.Items {
 		blocks = append(blocks, b.Id)
 		if b.Type == pb.Block_FILES {
-			targets = append(targets, b.Target)
+			datas = append(datas, b.Data)
 		}
 	}
 	missingBlockPins, err := ipfs.NotPinned(c.Ipfs(), blocks)
@@ -156,22 +156,22 @@ func TestCore_HandleCafeRequests(t *testing.T) {
 		t.Fatalf("blocks not pinned: %s", strings.Join(strs, ", "))
 	}
 
-	// check if targets are pinned
-	missingTargetPins, err := ipfs.NotPinned(c.Ipfs(), targets)
+	// check if datas are pinned
+	missingDataPins, err := ipfs.NotPinned(c.Ipfs(), datas)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(missingTargetPins) != 0 {
+	if len(missingDataPins) != 0 {
 		var strs []string
-		for _, id := range missingTargetPins {
+		for _, id := range missingDataPins {
 			strs = append(strs, id.Hash().B58String())
 		}
-		t.Fatalf("targets not pinned: %s", strings.Join(strs, ", "))
+		t.Fatalf("datas not pinned: %s", strings.Join(strs, ", "))
 	}
 
-	// try unpinning a target
-	if len(targets) > 0 {
-		dec, err := icid.Decode(targets[0])
+	// try unpinning data
+	if len(datas) > 0 {
+		dec, err := icid.Decode(datas[0])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -179,12 +179,12 @@ func TestCore_HandleCafeRequests(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		not, err := ipfs.NotPinned(c.Ipfs(), []string{targets[0]})
+		not, err := ipfs.NotPinned(c.Ipfs(), []string{datas[0]})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(not) == 0 || not[0].Hash().B58String() != targets[0] {
-			t.Fatal("target was not recursively unpinned")
+		if len(not) == 0 || not[0].Hash().B58String() != datas[0] {
+			t.Fatal("data was not recursively unpinned")
 		}
 	}
 }
@@ -214,7 +214,7 @@ func addTestData(n *Textile) error {
 	if err != nil {
 		return err
 	}
-	_, err = thrd.AddMessage("hi")
+	_, err = thrd.AddMessage("", "hi")
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func addTestData(n *Textile) error {
 	if err != nil {
 		return err
 	}
-	_, err = thrd.AddMessage("bye")
+	_, err = thrd.AddMessage("", "bye")
 	if err != nil {
 		return err
 	}

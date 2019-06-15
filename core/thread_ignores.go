@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
@@ -19,25 +18,25 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, ErrNotAnnotatable
 	}
 
-	// adding an ignore specific prefix here to ensure future flexibility
-	target := fmt.Sprintf("ignore-%s", block)
-
-	msg := &pb.ThreadIgnore{
-		Target: target,
-	}
-
-	res, err := t.commitBlock(msg, pb.Block_IGNORE, true, nil)
+	res, err := t.commitBlock(nil, pb.Block_IGNORE, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.indexBlock(res, pb.Block_IGNORE, target, "")
+	err = t.indexBlock(&pb.Block{
+		Id:     res.hash.B58String(),
+		Thread: t.Id,
+		Author: res.header.Author,
+		Type:   pb.Block_IGNORE,
+		Date:   res.header.Date,
+		Target: block,
+		Status: pb.Block_QUEUED,
+	}, false)
 	if err != nil {
 		return nil, err
 	}
 
-	rblock := t.datastore.Blocks().Get(block)
-	err = t.ignoreBlockTarget(rblock)
+	err = t.ignoreBlockTarget(t.datastore.Blocks().Get(block))
 	if err != nil {
 		return nil, err
 	}
@@ -54,54 +53,58 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 }
 
 // handleIgnoreBlock handles an incoming ignore block
-func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock, parents []string) (*pb.ThreadIgnore, error) {
+func (t *Thread) handleIgnoreBlock(bnode *blockNode, block *pb.ThreadBlock) (handleResult, error) {
+	var res handleResult
+
 	msg := new(pb.ThreadIgnore)
 	err := ptypes.UnmarshalAny(block.Payload, msg)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	if !t.readable(t.config.Account.Address) {
-		return nil, ErrNotReadable
+		return res, ErrNotReadable
 	}
 	if !t.annotatable(block.Header.Address) {
-		return nil, ErrNotAnnotatable
+		return res, ErrNotAnnotatable
+	}
+
+	var target string
+	if msg.Target != "" {
+		target = msg.Target
+	} else {
+		target = bnode.target
 	}
 
 	// cleanup
-	blockId := strings.Replace(msg.Target, "ignore-", "", 1)
-	err = t.datastore.Notifications().DeleteByBlock(blockId)
+	target = strings.Replace(target, "ignore-", "", 1)
+	err = t.datastore.Notifications().DeleteByBlock(target)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	err = t.indexBlock(&commitResult{
-		hash:    hash,
-		header:  block.Header,
-		parents: parents,
-	}, pb.Block_IGNORE, msg.Target, "")
+	err = t.ignoreBlockTarget(t.datastore.Blocks().Get(target))
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	rblock := t.datastore.Blocks().Get(blockId)
-	err = t.ignoreBlockTarget(rblock)
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
+	res.oldTarget = target
+	return res, err
 }
 
-// ignoreBlockTarget conditionally removes block target and files
+// ignoreBlockTarget conditionally ignore the given block
 func (t *Thread) ignoreBlockTarget(block *pb.Block) error {
-	if block == nil || block.Target == "" {
+	if block == nil {
 		return nil
 	}
 
 	switch block.Type {
 	case pb.Block_FILES:
-		node, err := ipfs.NodeAtPath(t.node(), block.Target)
+		if block.Data == "" {
+			return nil
+		}
+
+		node, err := ipfs.NodeAtPath(t.node(), block.Data)
 		if err != nil {
 			return err
 		}

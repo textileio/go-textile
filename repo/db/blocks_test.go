@@ -20,21 +20,20 @@ func init() {
 
 func setupBlockDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
+	_ = initDatabaseTables(conn, "")
 	blockStore = NewBlockStore(conn, new(sync.Mutex))
 }
 
 func TestBlockDB_Add(t *testing.T) {
-	if err := blockStore.Add(&pb.Block{
+	err := blockStore.Add(&pb.Block{
 		Id:      "abcde",
 		Thread:  "thread_id",
-		Author:  "author_id",
-		Type:    pb.Block_FILES,
-		Date:    ptypes.TimestampNow(),
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
-		Body:    "body",
-	}); err != nil {
+		Data:    "data",
+		Status:  pb.Block_PENDING,
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -46,12 +45,48 @@ func TestBlockDB_Add(t *testing.T) {
 	defer stmt.Close()
 
 	var id string
-	if err := stmt.QueryRow("abcde").Scan(&id); err != nil {
+	err = stmt.QueryRow("abcde").Scan(&id)
+	if err != nil {
 		t.Error(err)
 		return
 	}
 	if id != "abcde" {
 		t.Errorf(`expected "abcde" got %s`, id)
+	}
+}
+
+func TestBlockDB_Replace(t *testing.T) {
+	err := blockStore.Replace(&pb.Block{
+		Id:      "abcde",
+		Thread:  "thread_id",
+		Author:  "author_id",
+		Type:    pb.Block_FILES,
+		Date:    ptypes.TimestampNow(),
+		Parents: []string{"Qm123"},
+		Target:  "Qm456",
+		Data:    "data",
+		Body:    "body",
+		Status:  pb.Block_READY,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	stmt, err := blockStore.PrepareQuery("select body from blocks where id=?")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer stmt.Close()
+
+	var body string
+	err = stmt.QueryRow("abcde").Scan(&body)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if body != "body" {
+		t.Errorf(`expected "abcde" got %s`, body)
 	}
 }
 
@@ -63,7 +98,7 @@ func TestBlockDB_Get(t *testing.T) {
 
 func TestBlockDB_List(t *testing.T) {
 	setupBlockDB()
-	if err := blockStore.Add(&pb.Block{
+	err := blockStore.Add(&pb.Block{
 		Id:      "abcde",
 		Thread:  "thread_id",
 		Author:  "author_id",
@@ -71,13 +106,16 @@ func TestBlockDB_List(t *testing.T) {
 		Date:    ptypes.TimestampNow(),
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
-	}); err != nil {
+		Status:  pb.Block_READY,
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if err := blockStore.Add(&pb.Block{
+	err = blockStore.Add(&pb.Block{
 		Id:      "fghijk",
 		Thread:  "thread_id",
 		Author:  "author_id",
@@ -85,8 +123,11 @@ func TestBlockDB_List(t *testing.T) {
 		Date:    util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
 		Parents: []string{"Qm456"},
 		Target:  "Qm789",
+		Data:    "data",
 		Body:    "body",
-	}); err != nil {
+		Status:  pb.Block_READY,
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -117,7 +158,7 @@ func TestBlockDB_List(t *testing.T) {
 
 func TestBlockDB_Count(t *testing.T) {
 	setupBlockDB()
-	if err := blockStore.Add(&pb.Block{
+	err := blockStore.Add(&pb.Block{
 		Id:      "abcde",
 		Thread:  "thread_id",
 		Author:  "author_id",
@@ -125,13 +166,16 @@ func TestBlockDB_Count(t *testing.T) {
 		Date:    ptypes.TimestampNow(),
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
-	}); err != nil {
+		Status:  pb.Block_READY,
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	if err := blockStore.Add(&pb.Block{
+	err = blockStore.Add(&pb.Block{
 		Id:      "abcde2",
 		Thread:  "thread_id",
 		Author:  "author_id",
@@ -139,8 +183,11 @@ func TestBlockDB_Count(t *testing.T) {
 		Type:    pb.Block_FILES,
 		Parents: []string{"Qm123"},
 		Target:  "Qm456",
+		Data:    "data",
 		Body:    "body",
-	}); err != nil {
+		Status:  pb.Block_READY,
+	})
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -151,7 +198,8 @@ func TestBlockDB_Count(t *testing.T) {
 }
 
 func TestBlockDB_Delete(t *testing.T) {
-	if err := blockStore.Delete("abcde"); err != nil {
+	err := blockStore.Delete("abcde")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -164,13 +212,15 @@ func TestBlockDB_Delete(t *testing.T) {
 	defer stmt.Close()
 
 	var id string
-	if err := stmt.QueryRow("abcde").Scan(&id); err == nil {
+	err = stmt.QueryRow("abcde").Scan(&id)
+	if err == nil {
 		t.Error("delete failed")
 	}
 }
 
 func TestBlockDB_DeleteByThread(t *testing.T) {
-	if err := blockStore.DeleteByThread("thread_id"); err != nil {
+	err := blockStore.DeleteByThread("thread_id")
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -182,7 +232,8 @@ func TestBlockDB_DeleteByThread(t *testing.T) {
 	defer stmt.Close()
 
 	var id string
-	if err := stmt.QueryRow("abcde2").Scan(&id); err == nil {
+	err = stmt.QueryRow("abcde2").Scan(&id)
+	if err == nil {
 		t.Error("delete by thread id failed")
 	}
 }
