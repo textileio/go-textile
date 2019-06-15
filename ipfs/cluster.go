@@ -23,11 +23,12 @@ func (c *ClusterConnector) ID(context.Context) (*api.IPFSID, error) {
 }
 
 func (c *ClusterConnector) SetClient(*rpc.Client) {
-	panic("implement me")
+	// noop
 }
 
 func (c *ClusterConnector) Shutdown(context.Context) error {
-	panic("implement me")
+	// noop
+	return nil
 }
 
 func (c *ClusterConnector) Pin(context.Context, icid.Cid, int) error {

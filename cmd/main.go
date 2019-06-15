@@ -3,6 +3,8 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	_ "expvar"
 	"fmt"
@@ -436,6 +438,9 @@ Stacks may include:
 	initCafeOpen := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Bool()
 	initCafeURL := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
+	initIpfsCluster := initCmd.Flag("cluster", "Attach an IPFS Cluster service").Bool()
+	initIpfsClusterSecret := initCmd.Flag("cluster-secret", "IPFS Cluster secret, omit to auto-generate").String()
+	initIpfsClusterPeers := initCmd.Flag("cluster-peers", "IPFS Cluster peers to sync with").Strings()
 	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
 		if err != nil {
@@ -450,6 +455,18 @@ Stacks may include:
 		repo, err := getRepo(*initRepo)
 		if err != nil {
 			return err
+		}
+
+		var secret string
+		if *initIpfsCluster {
+			if *initIpfsClusterSecret == "" {
+				secret, err = generateClusterSecret()
+				if err != nil {
+					return err
+				}
+			} else {
+				secret = *initIpfsClusterSecret
+			}
 		}
 
 		config := core.InitConfig{
@@ -468,6 +485,8 @@ Stacks may include:
 			CafeOpen:        *initCafeOpen,
 			CafeURL:         *initCafeURL,
 			CafeNeighborURL: *initCafeNeighborURL,
+			ClusterSecret:   secret,
+			ClusterPeers:    *initIpfsClusterPeers,
 		}
 
 		return InitCommand(config)
@@ -1193,4 +1212,13 @@ func getRepo(repo string) (string, error) {
 		repo = filepath.Join(appDir, "repo")
 	}
 	return repo, nil
+}
+
+func generateClusterSecret() (string, error) {
+	secret := make([]byte, 32)
+	_, err := rand.Read(secret)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(secret), nil
 }
