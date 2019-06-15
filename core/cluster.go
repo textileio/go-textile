@@ -3,9 +3,11 @@ package core
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	ds "github.com/ipfs/go-datastore"
+	util "github.com/ipfs/go-ipfs-util"
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	"github.com/ipfs/ipfs-cluster/allocator/ascendalloc"
 	"github.com/ipfs/ipfs-cluster/allocator/descendalloc"
@@ -64,18 +66,51 @@ func makeConfigs() (*config.Manager, *cfgs) {
 
 func makeAndLoadConfigs(repoPath string) (*config.Manager, *cfgs, error) {
 	cfgMgr, cfgs := makeConfigs()
-	err := cfgMgr.LoadJSONFileAndEnv(repoPath)
+	err := cfgMgr.LoadJSONFromFile(repoPath)
 	if err != nil {
 		return nil, nil, err
 	}
 	return cfgMgr, cfgs, nil
 }
 
-// createCluster creates all the necessary things to produce the cluster object
-func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) (*ipfscluster.Cluster, error) {
+func parseBootstraps(addrs []string) ([]ma.Multiaddr, error) {
+	var parsed []ma.Multiaddr
+	for _, a := range addrs {
+		p, err := ma.NewMultiaddr(a)
+		if err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, p)
+	}
+	return parsed, nil
+}
+
+func initCluster(repoPath, secret string) error {
+	decoded, err := ipfscluster.DecodeClusterSecret(secret)
+	if err != nil {
+		return err
+	}
+
+	cfgMgr, cfgs := makeConfigs()
+	err = cfgMgr.Default()
+	if err != nil {
+		return err
+	}
+	cfgs.clusterCfg.Secret = decoded
+
+	return cfgMgr.SaveJSON(repoPath)
+}
+
+func (t *Textile) clusterExists() bool {
+	cpath := filepath.Join(t.repoPath, "service.json")
+	return util.FileExists(cpath)
+}
+
+// startCluster creates all the necessary things to produce the cluster object
+func (t *Textile) startCluster() error {
 	cfgMgr, cfgs, err := makeAndLoadConfigs(t.repoPath)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	defer cfgMgr.Shutdown()
 
@@ -89,7 +124,7 @@ func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) 
 		cfgs.clusterCfg.Peername,
 	)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	informer, alloc, err := setupAllocation(
@@ -98,7 +133,7 @@ func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) 
 		cfgs.numpinInfCfg,
 	)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	ipfscluster.ReadyTimeout = raft.DefaultWaitForLeaderTimeout + 5*time.Second
@@ -111,17 +146,17 @@ func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) 
 		t.node.Repo.Datastore(),
 	)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	var peersF func(context.Context) ([]peer.ID, error)
-	mon, err := pubsubmon.New(ctx, cfgs.pubsubmonCfg, t.node.PubSub, peersF)
+	mon, err := pubsubmon.New(t.node.Context(), cfgs.pubsubmonCfg, t.node.PubSub, peersF)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	cluster, err := ipfscluster.NewCluster(
-		ctx,
+	t.cluster, err = ipfscluster.NewCluster(
+		t.node.Context(),
 		t.node.PeerHost,
 		t.node.DHT,
 		cfgs.clusterCfg,
@@ -136,7 +171,12 @@ func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) 
 		nil,
 	)
 	if err != nil {
-		return nil, err
+		return nil
+	}
+
+	bootstraps, err := parseBootstraps(t.config.Cluster.Bootstraps)
+	if err != nil {
+		return nil
 	}
 
 	// noop if no bootstraps
@@ -144,9 +184,9 @@ func (t *Textile) createCluster(ctx context.Context, bootstraps []ma.Multiaddr) 
 	// and timeout. So this can happen in background and we
 	// avoid worrying about error handling here (since Cluster
 	// will realize).
-	go bootstrap(ctx, cluster, bootstraps)
+	go bootstrap(t.node.Context(), t.cluster, bootstraps)
 
-	return cluster, nil
+	return nil
 }
 
 // bootstrap will bootstrap this peer to one of the bootstrap addresses

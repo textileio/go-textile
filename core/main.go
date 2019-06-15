@@ -19,6 +19,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	ipfscluster "github.com/ipfs/ipfs-cluster"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
@@ -60,7 +61,9 @@ type InitConfig struct {
 	Debug           bool
 	CafeOpen        bool
 	CafeURL         string
-	CafeNeighborURL string
+	CafeNeighborURL string // Deprecated
+	ClusterSecret   string
+	ClusterPeers    []string
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -86,6 +89,7 @@ type Textile struct {
 	cancel            context.CancelFunc
 	node              *core.IpfsNode
 	datastore         repo.Datastore
+	cluster           *ipfscluster.Cluster
 	started           bool
 	loadedThreads     []*Thread
 	online            chan struct{}
@@ -138,21 +142,19 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
+	// init cluster
+	if conf.ClusterSecret != "" {
+		err = initCluster(conf.RepoPath, conf.ClusterSecret)
+		if err != nil {
+			return err
+		}
+	}
+
 	rep, err := fsrepo.Open(conf.RepoPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := rep.Close(); err != nil {
-			log.Error(err.Error())
-		}
-	}()
-
-	// apply ipfs config opts
-	err = applySwarmPortConfigOption(rep, conf.SwarmPorts)
-	if err != nil {
-		return err
-	}
+	defer rep.Close()
 
 	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
 	if err != nil {
@@ -177,6 +179,11 @@ func InitRepo(conf InitConfig) error {
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
 	})
+	if err != nil {
+		return err
+	}
+
+	err = applyIPFSSwarmPorts(rep, conf.SwarmPorts)
 	if err != nil {
 		return err
 	}
@@ -383,6 +390,14 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		go t.cafeOutbox.Flush()
+
+		// start cluster
+		if t.clusterExists() {
+			err = t.startCluster()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
@@ -430,6 +445,14 @@ func (t *Textile) Stop() error {
 	err := t.stopCafeApi()
 	if err != nil {
 		return err
+	}
+
+	// shutdown cluster
+	if t.cluster != nil {
+		err = t.cluster.Shutdown(t.node.Context())
+		if err != nil {
+			return err
+		}
 	}
 
 	// close ipfs node

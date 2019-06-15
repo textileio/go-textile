@@ -21,6 +21,28 @@ func (t *Textile) Config() *config.Config {
 	return t.config
 }
 
+// ConvertHeadersToCorsOptions converts http headers into the format that cors options accepts
+func ConvertHeadersToCorsOptions(headers config.HTTPHeaders) cors.Options {
+	options := cors.Options{}
+
+	control, ok := headers["Access-Control-Allow-Origin"]
+	if ok && len(control) > 0 {
+		options.AllowedOrigins = control
+	}
+
+	control, ok = headers["Access-Control-Allow-Methods"]
+	if ok && len(control) > 0 {
+		options.AllowedMethods = control
+	}
+
+	control, ok = headers["Access-Control-Allow-Headers"]
+	if ok && len(control) > 0 {
+		options.AllowedHeaders = control
+	}
+
+	return options
+}
+
 // GetRandomPort returns a port within the acceptable range
 func GetRandomPort() string {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -70,12 +92,15 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.Cafe.Host.URL = init.CafeURL
 	conf.Cafe.Host.NeighborURL = init.CafeNeighborURL
 
+	// cluster settings
+	conf.Cluster.Bootstraps = init.ClusterPeers
+
 	// write to disk
 	return config.Write(init.RepoPath, conf)
 }
 
-// applySwarmPortConfigOption sets custom swarm ports (tcp and ws)
-func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
+// applyIPFSSwarmPorts writes swarm ports (tcp and ws) to the IPFS config
+func applyIPFSSwarmPorts(rep repo.Repo, ports string) error {
 	var parts []string
 	if ports != "" {
 		parts = strings.Split(ports, ",")
@@ -176,26 +201,4 @@ func ensureProfile(profile profile, repoPath string) error {
 	conf.Swarm.DisableRelay = false
 
 	return rep.SetConfig(conf)
-}
-
-// ConvertHeadersToCorsOptions converts http headers into the format that cors options accepts
-func ConvertHeadersToCorsOptions(headers config.HTTPHeaders) cors.Options {
-	options := cors.Options{}
-
-	control, ok := headers["Access-Control-Allow-Origin"]
-	if ok && len(control) > 0 {
-		options.AllowedOrigins = control
-	}
-
-	control, ok = headers["Access-Control-Allow-Methods"]
-	if ok && len(control) > 0 {
-		options.AllowedMethods = control
-	}
-
-	control, ok = headers["Access-Control-Allow-Headers"]
-	if ok && len(control) > 0 {
-		options.AllowedHeaders = control
-	}
-
-	return options
 }
