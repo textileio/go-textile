@@ -18,7 +18,7 @@ func ThreadAdd(name string, key string, tipe string, sharing string, whitelist [
 	var body []byte
 	if schema == "" {
 		if schemaFile != "" {
-			path, err := homedir.Expand(string(schemaFile))
+			path, err := homedir.Expand(schemaFile)
 			if err != nil {
 				return err
 			}

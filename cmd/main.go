@@ -440,7 +440,7 @@ Stacks may include:
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
 	initIpfsCluster := initCmd.Flag("cluster", "Attach an IPFS Cluster service").Bool()
 	initIpfsClusterSecret := initCmd.Flag("cluster-secret", "IPFS Cluster secret, omit to auto-generate").String()
-	initIpfsClusterPeers := initCmd.Flag("cluster-peers", "IPFS Cluster peers to sync with").Strings()
+	initIpfsClusterPeers := initCmd.Flag("cluster-peer", "IPFS Cluster peers to sync with").Strings()
 	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
 		if err != nil {
@@ -1211,7 +1211,11 @@ func getRepo(repo string) (string, error) {
 		}
 		repo = filepath.Join(appDir, "repo")
 	}
-	return repo, nil
+	expanded, err := homedir.Expand(repo)
+	if err != nil {
+		return "", err
+	}
+	return expanded, nil
 }
 
 func generateClusterSecret() (string, error) {

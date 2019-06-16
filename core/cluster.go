@@ -27,7 +27,7 @@ import (
 	"github.com/textileio/go-textile/ipfs"
 )
 
-type cfgs struct {
+type clusterCfgs struct {
 	clusterCfg          *ipfscluster.Config
 	crdtCfg             *crdt.Config
 	maptrackerCfg       *maptracker.Config
@@ -37,7 +37,7 @@ type cfgs struct {
 	numpinInfCfg        *numpin.Config
 }
 
-func makeConfigs() (*config.Manager, *cfgs) {
+func makeClusterConfigs() (*config.Manager, *clusterCfgs) {
 	cfg := config.NewManager()
 	clusterCfg := &ipfscluster.Config{}
 	crdtCfg := &crdt.Config{}
@@ -53,7 +53,7 @@ func makeConfigs() (*config.Manager, *cfgs) {
 	cfg.RegisterComponent(config.Monitor, pubsubmonCfg)
 	cfg.RegisterComponent(config.Informer, diskInfCfg)
 	cfg.RegisterComponent(config.Informer, numpinInfCfg)
-	return cfg, &cfgs{
+	return cfg, &clusterCfgs{
 		clusterCfg,
 		crdtCfg,
 		maptrackerCfg,
@@ -64,16 +64,20 @@ func makeConfigs() (*config.Manager, *cfgs) {
 	}
 }
 
-func makeAndLoadConfigs(repoPath string) (*config.Manager, *cfgs, error) {
-	cfgMgr, cfgs := makeConfigs()
-	err := cfgMgr.LoadJSONFromFile(repoPath)
+func clusterConfigPath(repoPath string) string {
+	return filepath.Join(repoPath, "service.json")
+}
+
+func makeAndLoadClusterConfigs(repoPath string) (*config.Manager, *clusterCfgs, error) {
+	cfgMgr, cfgs := makeClusterConfigs()
+	err := cfgMgr.LoadJSONFromFile(clusterConfigPath(repoPath))
 	if err != nil {
 		return nil, nil, err
 	}
 	return cfgMgr, cfgs, nil
 }
 
-func parseBootstraps(addrs []string) ([]ma.Multiaddr, error) {
+func parseClusterBootstraps(addrs []string) ([]ma.Multiaddr, error) {
 	var parsed []ma.Multiaddr
 	for _, a := range addrs {
 		p, err := ma.NewMultiaddr(a)
@@ -91,24 +95,23 @@ func initCluster(repoPath, secret string) error {
 		return err
 	}
 
-	cfgMgr, cfgs := makeConfigs()
+	cfgMgr, cfgs := makeClusterConfigs()
 	err = cfgMgr.Default()
 	if err != nil {
 		return err
 	}
 	cfgs.clusterCfg.Secret = decoded
 
-	return cfgMgr.SaveJSON(repoPath)
+	return cfgMgr.SaveJSON(clusterConfigPath(repoPath))
 }
 
 func (t *Textile) clusterExists() bool {
-	cpath := filepath.Join(t.repoPath, "service.json")
-	return util.FileExists(cpath)
+	return util.FileExists(clusterConfigPath(t.repoPath))
 }
 
 // startCluster creates all the necessary things to produce the cluster object
 func (t *Textile) startCluster() error {
-	cfgMgr, cfgs, err := makeAndLoadConfigs(t.repoPath)
+	cfgMgr, cfgs, err := makeAndLoadClusterConfigs(t.repoPath)
 	if err != nil {
 		return nil
 	}
@@ -116,7 +119,7 @@ func (t *Textile) startCluster() error {
 
 	cfgs.clusterCfg.LeaveOnShutdown = true
 
-	tracker, err := setupPinTracker(
+	tracker, err := setupClusterPinTracker(
 		"map",
 		t.node.PeerHost,
 		cfgs.maptrackerCfg,
@@ -127,7 +130,7 @@ func (t *Textile) startCluster() error {
 		return nil
 	}
 
-	informer, alloc, err := setupAllocation(
+	informer, alloc, err := setupClusterAllocation(
 		"disk-freespace",
 		cfgs.diskInfCfg,
 		cfgs.numpinInfCfg,
@@ -138,7 +141,7 @@ func (t *Textile) startCluster() error {
 
 	ipfscluster.ReadyTimeout = raft.DefaultWaitForLeaderTimeout + 5*time.Second
 
-	cons, err := setupConsensus(
+	cons, err := setupClusterConsensus(
 		t.node.PeerHost,
 		t.node.DHT,
 		t.node.PubSub,
@@ -174,7 +177,7 @@ func (t *Textile) startCluster() error {
 		return nil
 	}
 
-	bootstraps, err := parseBootstraps(t.config.Cluster.Bootstraps)
+	bootstraps, err := parseClusterBootstraps(t.config.Cluster.Bootstraps)
 	if err != nil {
 		return nil
 	}
@@ -184,14 +187,14 @@ func (t *Textile) startCluster() error {
 	// and timeout. So this can happen in background and we
 	// avoid worrying about error handling here (since Cluster
 	// will realize).
-	go bootstrap(t.node.Context(), t.cluster, bootstraps)
+	go bootstrapCluster(t.node.Context(), t.cluster, bootstraps)
 
 	return nil
 }
 
 // bootstrap will bootstrap this peer to one of the bootstrap addresses
 // if there are any.
-func bootstrap(ctx context.Context, cluster *ipfscluster.Cluster, bootstraps []ma.Multiaddr) {
+func bootstrapCluster(ctx context.Context, cluster *ipfscluster.Cluster, bootstraps []ma.Multiaddr) {
 	for _, bstrap := range bootstraps {
 		log.Infof("Bootstrapping to %s", bstrap)
 		err := cluster.Join(ctx, bstrap)
@@ -201,7 +204,7 @@ func bootstrap(ctx context.Context, cluster *ipfscluster.Cluster, bootstraps []m
 	}
 }
 
-func setupAllocation(
+func setupClusterAllocation(
 	name string,
 	diskInfCfg *disk.Config,
 	numpinInfCfg *numpin.Config,
@@ -230,7 +233,7 @@ func setupAllocation(
 	}
 }
 
-func setupPinTracker(
+func setupClusterPinTracker(
 	name string,
 	h host.Host,
 	mapCfg *maptracker.Config,
@@ -251,7 +254,7 @@ func setupPinTracker(
 	}
 }
 
-func setupConsensus(
+func setupClusterConsensus(
 	h host.Host,
 	dht *dht.IpfsDHT,
 	pubsub *pubsub.PubSub,
