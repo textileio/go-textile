@@ -11,6 +11,7 @@ import (
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	"github.com/ipfs/ipfs-cluster/allocator/ascendalloc"
 	"github.com/ipfs/ipfs-cluster/allocator/descendalloc"
+	capi "github.com/ipfs/ipfs-cluster/api"
 	"github.com/ipfs/ipfs-cluster/config"
 	"github.com/ipfs/ipfs-cluster/consensus/crdt"
 	"github.com/ipfs/ipfs-cluster/consensus/raft"
@@ -113,7 +114,7 @@ func (t *Textile) clusterExists() bool {
 func (t *Textile) startCluster() error {
 	cfgMgr, cfgs, err := makeAndLoadClusterConfigs(t.repoPath)
 	if err != nil {
-		return nil
+		return err
 	}
 	defer cfgMgr.Shutdown()
 
@@ -127,7 +128,7 @@ func (t *Textile) startCluster() error {
 		cfgs.clusterCfg.Peername,
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	informer, alloc, err := setupClusterAllocation(
@@ -136,7 +137,7 @@ func (t *Textile) startCluster() error {
 		cfgs.numpinInfCfg,
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	ipfscluster.ReadyTimeout = raft.DefaultWaitForLeaderTimeout + 5*time.Second
@@ -149,13 +150,20 @@ func (t *Textile) startCluster() error {
 		t.node.Repo.Datastore(),
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	var peersF func(context.Context) ([]peer.ID, error)
 	mon, err := pubsubmon.New(t.node.Context(), cfgs.pubsubmonCfg, t.node.PubSub, peersF)
 	if err != nil {
-		return nil
+		return err
+	}
+
+	connector, err := ipfs.NewClusterConnector(t.node, func(ctx context.Context) []*capi.ID {
+		return t.cluster.Peers(ctx)
+	})
+	if err != nil {
+		return err
 	}
 
 	t.cluster, err = ipfscluster.NewCluster(
@@ -166,7 +174,7 @@ func (t *Textile) startCluster() error {
 		t.node.Repo.Datastore(),
 		cons,
 		nil,
-		ipfs.NewClusterConnector(t.node),
+		connector,
 		tracker,
 		mon,
 		alloc,
@@ -174,12 +182,12 @@ func (t *Textile) startCluster() error {
 		nil,
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	bootstraps, err := parseClusterBootstraps(t.config.Cluster.Bootstraps)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// noop if no bootstraps
