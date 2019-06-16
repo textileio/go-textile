@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/ipfs/ipfs-cluster/observations"
+
 	util "github.com/ipfs/go-ipfs-util"
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	capi "github.com/ipfs/ipfs-cluster/api"
@@ -61,6 +63,11 @@ func (t *Textile) startCluster() error {
 		return err
 	}
 
+	tracer, err := observations.SetupTracing(cfgs.TracingCfg)
+	if err != nil {
+		return err
+	}
+
 	var peersF func(context.Context) ([]peer.ID, error)
 	mon, err := pubsubmon.New(t.node.Context(), cfgs.PubsubmonCfg, t.node.PubSub, peersF)
 	if err != nil {
@@ -87,7 +94,7 @@ func (t *Textile) startCluster() error {
 		mon,
 		alloc,
 		informer,
-		nil,
+		tracer,
 	)
 	if err != nil {
 		return err

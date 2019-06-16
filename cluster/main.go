@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ipfs/ipfs-cluster/observations"
+
 	ds "github.com/ipfs/go-datastore"
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	"github.com/ipfs/ipfs-cluster/allocator/ascendalloc"
@@ -157,6 +159,7 @@ type cfgs struct {
 	PubsubmonCfg        *pubsubmon.Config
 	DiskInfCfg          *disk.Config
 	NumpinInfCfg        *numpin.Config
+	TracingCfg          *observations.TracingConfig
 }
 
 func makeClusterConfigs() (*config.Manager, *cfgs) {
@@ -168,6 +171,7 @@ func makeClusterConfigs() (*config.Manager, *cfgs) {
 	pubsubmonCfg := &pubsubmon.Config{}
 	diskInfCfg := &disk.Config{}
 	numpinInfCfg := &numpin.Config{}
+	tracingCfg := &observations.TracingConfig{}
 	cfg.RegisterComponent(config.Cluster, clusterCfg)
 	cfg.RegisterComponent(config.Consensus, crdtCfg)
 	cfg.RegisterComponent(config.PinTracker, maptrackerCfg)
@@ -175,6 +179,7 @@ func makeClusterConfigs() (*config.Manager, *cfgs) {
 	cfg.RegisterComponent(config.Monitor, pubsubmonCfg)
 	cfg.RegisterComponent(config.Informer, diskInfCfg)
 	cfg.RegisterComponent(config.Informer, numpinInfCfg)
+	cfg.RegisterComponent(config.Observations, tracingCfg)
 	return cfg, &cfgs{
 		clusterCfg,
 		crdtCfg,
@@ -183,5 +188,6 @@ func makeClusterConfigs() (*config.Manager, *cfgs) {
 		pubsubmonCfg,
 		diskInfCfg,
 		numpinInfCfg,
+		tracingCfg,
 	}
 }
