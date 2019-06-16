@@ -60,6 +60,7 @@ require (
 	github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	github.com/prometheus/common v0.4.1
 	github.com/rs/cors v1.6.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/segmentio/ksuid v1.0.2

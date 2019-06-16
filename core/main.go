@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/textileio/go-textile/cluster"
+
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -144,7 +146,7 @@ func InitRepo(conf InitConfig) error {
 
 	// init cluster
 	if conf.ClusterSecret != "" {
-		err = initCluster(conf.RepoPath, conf.ClusterSecret)
+		err = cluster.InitCluster(conf.RepoPath, conf.ClusterSecret)
 		if err != nil {
 			return err
 		}
@@ -517,6 +519,11 @@ func (t *Textile) Writer() io.Writer {
 // Ipfs returns the underlying ipfs node
 func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.node
+}
+
+// Cluster returns the underlying ipfs cluster
+func (t *Textile) Cluster() *ipfscluster.Cluster {
+	return t.cluster
 }
 
 // OnlineCh returns the online channel

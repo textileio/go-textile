@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/go-textile/cluster"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -458,7 +459,7 @@ Stacks may include:
 		var secret string
 		if *initIpfsCluster {
 			if *initIpfsClusterSecret == "" {
-				secret, err = core.NewClusterSecret()
+				secret, err = cluster.NewClusterSecret()
 				if err != nil {
 					return err
 				}
