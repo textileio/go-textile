@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -27,6 +29,15 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/textileio/go-textile/ipfs"
 )
+
+func NewClusterSecret() (string, error) {
+	secret := make([]byte, 32)
+	_, err := rand.Read(secret)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(secret), nil
+}
 
 type clusterCfgs struct {
 	clusterCfg          *ipfscluster.Config

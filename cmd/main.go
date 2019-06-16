@@ -3,8 +3,6 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	_ "expvar"
 	"fmt"
@@ -460,7 +458,7 @@ Stacks may include:
 		var secret string
 		if *initIpfsCluster {
 			if *initIpfsClusterSecret == "" {
-				secret, err = generateClusterSecret()
+				secret, err = core.NewClusterSecret()
 				if err != nil {
 					return err
 				}
@@ -1216,13 +1214,4 @@ func getRepo(repo string) (string, error) {
 		return "", err
 	}
 	return expanded, nil
-}
-
-func generateClusterSecret() (string, error) {
-	secret := make([]byte, 32)
-	_, err := rand.Read(secret)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(secret), nil
 }
