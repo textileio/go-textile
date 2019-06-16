@@ -78,4 +78,4 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
 
-replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190320090025-2dc34c0b8780
+replace github.com/ugorji/go/codec => github.com/ugorji/go v1.1.2
