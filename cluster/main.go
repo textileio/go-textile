@@ -2,14 +2,11 @@ package cluster
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"path/filepath"
 
-	"github.com/ipfs/ipfs-cluster/observations"
-
 	ds "github.com/ipfs/go-datastore"
+	logging "github.com/ipfs/go-log"
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	"github.com/ipfs/ipfs-cluster/allocator/ascendalloc"
 	"github.com/ipfs/ipfs-cluster/allocator/descendalloc"
@@ -18,23 +15,16 @@ import (
 	"github.com/ipfs/ipfs-cluster/informer/disk"
 	"github.com/ipfs/ipfs-cluster/informer/numpin"
 	"github.com/ipfs/ipfs-cluster/monitor/pubsubmon"
+	"github.com/ipfs/ipfs-cluster/observations"
 	"github.com/ipfs/ipfs-cluster/pintracker/maptracker"
 	"github.com/ipfs/ipfs-cluster/pintracker/stateless"
 	host "github.com/libp2p/go-libp2p-host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/prometheus/common/log"
 )
 
-func NewClusterSecret() (string, error) {
-	secret := make([]byte, 32)
-	_, err := rand.Read(secret)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(secret), nil
-}
+var log = logging.Logger("tex-cluster")
 
 func InitCluster(repoPath, listenAddr string) error {
 	cfgMgr, cfgs := makeClusterConfigs()

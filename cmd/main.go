@@ -436,7 +436,7 @@ Stacks may include:
 	initCafeOpen := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Bool()
 	initCafeURL := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
-	initIpfsCluster := initCmd.Flag("cluster", "Attach an IPFS Cluster service").Bool()
+	initIpfsCluster := initCmd.Flag("cluster", "Treat the node as an IPFS Cluster peer").Bool()
 	initIpfsClusterBindMultiaddr := initCmd.Flag("cluster-bind-maddr", "Set the IPFS Cluster multiaddrs").Default("/ip4/0.0.0.0/tcp/9096").String()
 	initIpfsClusterPeers := initCmd.Flag("cluster-peer", "IPFS Cluster peers to sync with").Strings()
 	cmds[initCmd.FullCommand()] = func() error {

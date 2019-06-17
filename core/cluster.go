@@ -4,16 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ipfs/ipfs-cluster/observations"
-
 	util "github.com/ipfs/go-ipfs-util"
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	capi "github.com/ipfs/ipfs-cluster/api"
 	"github.com/ipfs/ipfs-cluster/consensus/raft"
 	"github.com/ipfs/ipfs-cluster/monitor/pubsubmon"
+	"github.com/ipfs/ipfs-cluster/observations"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/cluster"
-	"github.com/textileio/go-textile/ipfs"
 )
 
 func (t *Textile) clusterExists() bool {
@@ -74,7 +72,7 @@ func (t *Textile) startCluster() error {
 		return err
 	}
 
-	connector, err := ipfs.NewClusterConnector(t.node, func(ctx context.Context) []*capi.ID {
+	connector, err := cluster.NewConnector(t.node, func(ctx context.Context) []*capi.ID {
 		return t.cluster.Peers(ctx)
 	})
 	if err != nil {

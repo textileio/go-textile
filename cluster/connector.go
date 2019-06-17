@@ -1,4 +1,4 @@
-package ipfs
+package cluster
 
 import (
 	"bytes"
@@ -21,25 +21,25 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-type ClusterConnector struct {
+type Connector struct {
 	node  *core.IpfsNode
 	api   iface.CoreAPI
 	peers func(ctx context.Context) []*api.ID
 }
 
-func NewClusterConnector(node *core.IpfsNode, peers func(ctx context.Context) []*api.ID) (*ClusterConnector, error) {
+func NewConnector(node *core.IpfsNode, peers func(ctx context.Context) []*api.ID) (*Connector, error) {
 	capi, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
 	}
-	return &ClusterConnector{
+	return &Connector{
 		node:  node,
 		api:   capi,
 		peers: peers,
 	}, nil
 }
 
-func (c *ClusterConnector) ID(context.Context) (*api.IPFSID, error) {
+func (c *Connector) ID(context.Context) (*api.IPFSID, error) {
 	var addrs []api.Multiaddr
 	for _, addr := range c.node.PeerHost.Addrs() {
 		addrs = append(addrs, api.Multiaddr{Multiaddr: addr})
@@ -50,25 +50,25 @@ func (c *ClusterConnector) ID(context.Context) (*api.IPFSID, error) {
 	}, nil
 }
 
-func (c *ClusterConnector) SetClient(client *rpc.Client) {
+func (c *Connector) SetClient(client *rpc.Client) {
 	// noop
 }
 
-func (c *ClusterConnector) Shutdown(ctx context.Context) error {
+func (c *Connector) Shutdown(ctx context.Context) error {
 	// noop
 	return nil
 }
 
 // @todo handle maxDepth
-func (c *ClusterConnector) Pin(ctx context.Context, cid icid.Cid, maxDepth int) error {
+func (c *Connector) Pin(ctx context.Context, cid icid.Cid, maxDepth int) error {
 	return c.api.Pin().Add(ctx, path.New(cid.String()))
 }
 
-func (c *ClusterConnector) Unpin(ctx context.Context, cid icid.Cid) error {
+func (c *Connector) Unpin(ctx context.Context, cid icid.Cid) error {
 	return c.api.Pin().Rm(ctx, path.New(cid.String()))
 }
 
-func (c *ClusterConnector) PinLsCid(ctx context.Context, cid icid.Cid) (api.IPFSPinStatus, error) {
+func (c *Connector) PinLsCid(ctx context.Context, cid icid.Cid) (api.IPFSPinStatus, error) {
 	pins, err := c.node.Pinning.CheckIfPinned(cid)
 	if err != nil {
 		return api.IPFSPinStatusError, err
@@ -79,7 +79,7 @@ func (c *ClusterConnector) PinLsCid(ctx context.Context, cid icid.Cid) (api.IPFS
 	return c.pinModeToStatus(pins[0].Mode), nil
 }
 
-func (c *ClusterConnector) PinLs(ctx context.Context, typeFilter string) (map[string]api.IPFSPinStatus, error) {
+func (c *Connector) PinLs(ctx context.Context, typeFilter string) (map[string]api.IPFSPinStatus, error) {
 	pins, err := c.api.Pin().Ls(ctx, c.pinFilterToOption(typeFilter))
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (c *ClusterConnector) PinLs(ctx context.Context, typeFilter string) (map[st
 	return statusMap, nil
 }
 
-func (c *ClusterConnector) ConnectSwarms(ctx context.Context) error {
+func (c *Connector) ConnectSwarms(ctx context.Context) error {
 	for _, p := range c.peers(ctx) {
 		log.Debugf("cluster dialing %s", p.ID.Pretty())
 		var addrs []ma.Multiaddr
@@ -114,7 +114,7 @@ func (c *ClusterConnector) ConnectSwarms(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClusterConnector) SwarmPeers(ctx context.Context) ([]peer.ID, error) {
+func (c *Connector) SwarmPeers(ctx context.Context) ([]peer.ID, error) {
 	conns, err := c.api.Swarm().Peers(ctx)
 	if err != nil {
 		return nil, err
@@ -126,11 +126,11 @@ func (c *ClusterConnector) SwarmPeers(ctx context.Context) ([]peer.ID, error) {
 	return peers, nil
 }
 
-func (c *ClusterConnector) ConfigKey(keypath string) (interface{}, error) {
+func (c *Connector) ConfigKey(keypath string) (interface{}, error) {
 	return c.node.Repo.GetConfigKey(keypath)
 }
 
-func (c *ClusterConnector) RepoStat(ctx context.Context) (*api.IPFSRepoStat, error) {
+func (c *Connector) RepoStat(ctx context.Context) (*api.IPFSRepoStat, error) {
 	stat, err := corerepo.RepoStat(ctx, c.node)
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func (c *ClusterConnector) RepoStat(ctx context.Context) (*api.IPFSRepoStat, err
 	}, nil
 }
 
-func (c *ClusterConnector) Resolve(ctx context.Context, pth string) (icid.Cid, error) {
+func (c *Connector) Resolve(ctx context.Context, pth string) (icid.Cid, error) {
 	res, err := c.api.ResolvePath(ctx, path.New(pth))
 	if err != nil {
 		return icid.Undef, err
@@ -149,12 +149,12 @@ func (c *ClusterConnector) Resolve(ctx context.Context, pth string) (icid.Cid, e
 	return res.Cid(), nil
 }
 
-func (c *ClusterConnector) BlockPut(ctx context.Context, b *api.NodeWithMeta) error {
+func (c *Connector) BlockPut(ctx context.Context, b *api.NodeWithMeta) error {
 	_, err := c.api.Block().Put(ctx, bytes.NewReader(b.Data), options.Block.Format(b.Format))
 	return err
 }
 
-func (c *ClusterConnector) BlockGet(ctx context.Context, cid icid.Cid) ([]byte, error) {
+func (c *Connector) BlockGet(ctx context.Context, cid icid.Cid) ([]byte, error) {
 	r, err := c.api.Block().Get(ctx, path.New(cid.String()))
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func (c *ClusterConnector) BlockGet(ctx context.Context, cid icid.Cid) ([]byte, 
 	return ioutil.ReadAll(r)
 }
 
-func (c *ClusterConnector) pinModeToStatus(mode pin.Mode) api.IPFSPinStatus {
+func (c *Connector) pinModeToStatus(mode pin.Mode) api.IPFSPinStatus {
 	switch mode {
 	case pin.Recursive:
 		return api.IPFSPinStatusRecursive
@@ -179,7 +179,7 @@ func (c *ClusterConnector) pinModeToStatus(mode pin.Mode) api.IPFSPinStatus {
 	}
 }
 
-func (c *ClusterConnector) pinFilterToOption(typeFilter string) options.PinLsOption {
+func (c *Connector) pinFilterToOption(typeFilter string) options.PinLsOption {
 	return func(settings *options.PinLsSettings) error {
 		settings.Type = typeFilter
 		return nil
