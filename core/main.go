@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/textileio/go-textile/cluster"
-
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -24,6 +22,7 @@ import (
 	ipfscluster "github.com/ipfs/ipfs-cluster"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/cluster"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -64,7 +63,7 @@ type InitConfig struct {
 	CafeOpen             bool
 	CafeURL              string
 	CafeNeighborURL      string // Deprecated
-	ClusterSecret        string
+	Cluster              bool
 	ClusterBindMultiaddr string
 	ClusterPeers         []string
 }
@@ -146,8 +145,8 @@ func InitRepo(conf InitConfig) error {
 	}
 
 	// init cluster
-	if conf.ClusterSecret != "" {
-		err = cluster.InitCluster(conf.RepoPath, conf.ClusterSecret, conf.ClusterBindMultiaddr)
+	if conf.Cluster {
+		err = cluster.InitCluster(conf.RepoPath, conf.ClusterBindMultiaddr)
 		if err != nil {
 			return err
 		}

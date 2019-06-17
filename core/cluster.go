@@ -28,7 +28,7 @@ func (t *Textile) startCluster() error {
 	}
 	defer cfgMgr.Shutdown()
 
-	cfgs.ClusterCfg.LeaveOnShutdown = true
+	cfgs.ClusterCfg.LeaveOnShutdown = false
 
 	tracker, err := cluster.SetupPinTracker(
 		"map",
@@ -110,7 +110,7 @@ func (t *Textile) startCluster() error {
 	// and timeout. So this can happen in background and we
 	// avoid worrying about error handling here (since Cluster
 	// will realize).
-	go cluster.Bootstrap(t.node.Context(), t.cluster, bootstraps)
+	go cluster.Bootstrap(t.node.Context(), t.cluster, cons, bootstraps)
 
 	return nil
 }

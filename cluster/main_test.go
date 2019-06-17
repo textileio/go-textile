@@ -10,8 +10,6 @@ import (
 	icid "github.com/ipfs/go-cid"
 	icore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/ipfs-cluster/api"
-	"github.com/textileio/go-textile/cluster"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -44,18 +42,14 @@ func TestInitCluster(t *testing.T) {
 	swarmPort1 := core.GetRandomPort()
 	swarmPort2 := core.GetRandomPort()
 
-	secret, err := cluster.NewClusterSecret()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = core.InitRepo(core.InitConfig{
-		Account:       accnt1,
-		RepoPath:      vars.repoPath1,
-		ApiAddr:       fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
-		SwarmPorts:    swarmPort1,
-		ClusterSecret: secret,
-		Debug:         true,
+	err := core.InitRepo(core.InitConfig{
+		Account:              accnt1,
+		RepoPath:             vars.repoPath1,
+		ApiAddr:              fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
+		SwarmPorts:           swarmPort1,
+		Cluster:              true,
+		ClusterBindMultiaddr: "/ip4/0.0.0.0/tcp/9096",
+		Debug:                true,
 	})
 	if err != nil {
 		t.Fatalf("init node1 failed: %s", err)
@@ -65,7 +59,7 @@ func TestInitCluster(t *testing.T) {
 		RepoPath:             vars.repoPath2,
 		ApiAddr:              fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
 		SwarmPorts:           swarmPort2,
-		ClusterSecret:        secret,
+		Cluster:              true,
 		ClusterBindMultiaddr: "/ip4/0.0.0.0/tcp/9097",
 		Debug:                true,
 	})
@@ -190,10 +184,16 @@ func TestTextileClusterSync(t *testing.T) {
 		t.Fatalf("sync all failed: %s", err)
 	}
 
-	info := vars.node2.Cluster().StatusLocal(ctx, vars.cid)
-	if !info.Status.Match(api.TrackerStatusPinned) {
-		t.Fatalf("node1 cid not pinned on node2: %s", vars.cid.String())
+	err = vars.node1.Cluster().StateSync(ctx)
+	if err != nil {
+		t.Fatalf("state sync failed: %s", err)
 	}
+
+	info, err := vars.node1.Cluster().Status(ctx, vars.cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(info.String())
 }
 
 func TestTextileCluster_Stop(t *testing.T) {

@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/go-textile/cluster"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -438,7 +437,6 @@ Stacks may include:
 	initCafeURL := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
 	initIpfsCluster := initCmd.Flag("cluster", "Attach an IPFS Cluster service").Bool()
-	initIpfsClusterSecret := initCmd.Flag("cluster-secret", "IPFS Cluster secret, omit to auto-generate").String()
 	initIpfsClusterBindMultiaddr := initCmd.Flag("cluster-bind-maddr", "Set the IPFS Cluster multiaddrs").Default("/ip4/0.0.0.0/tcp/9096").String()
 	initIpfsClusterPeers := initCmd.Flag("cluster-peer", "IPFS Cluster peers to sync with").Strings()
 	cmds[initCmd.FullCommand()] = func() error {
@@ -457,18 +455,6 @@ Stacks may include:
 			return err
 		}
 
-		var secret string
-		if *initIpfsCluster {
-			if *initIpfsClusterSecret == "" {
-				secret, err = cluster.NewClusterSecret()
-				if err != nil {
-					return err
-				}
-			} else {
-				secret = *initIpfsClusterSecret
-			}
-		}
-
 		config := core.InitConfig{
 			Account:              account,
 			PinCode:              *initPin, // @todo rename to pin
@@ -485,7 +471,7 @@ Stacks may include:
 			CafeOpen:             *initCafeOpen,
 			CafeURL:              *initCafeURL,
 			CafeNeighborURL:      *initCafeNeighborURL,
-			ClusterSecret:        secret,
+			Cluster:              *initIpfsCluster,
 			ClusterBindMultiaddr: *initIpfsClusterBindMultiaddr,
 			ClusterPeers:         *initIpfsClusterPeers,
 		}

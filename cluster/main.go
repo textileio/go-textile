@@ -36,18 +36,12 @@ func NewClusterSecret() (string, error) {
 	return hex.EncodeToString(secret), nil
 }
 
-func InitCluster(repoPath, secret string, listenAddr string) error {
+func InitCluster(repoPath, listenAddr string) error {
 	cfgMgr, cfgs := makeClusterConfigs()
 	err := cfgMgr.Default()
 	if err != nil {
 		return err
 	}
-
-	decoded, err := ipfscluster.DecodeClusterSecret(secret)
-	if err != nil {
-		return err
-	}
-	cfgs.ClusterCfg.Secret = decoded
 
 	if listenAddr != "" {
 		addr, err := ma.NewMultiaddr(listenAddr)
@@ -85,12 +79,19 @@ func ParseBootstraps(addrs []string) ([]ma.Multiaddr, error) {
 	return parsed, nil
 }
 
-func Bootstrap(ctx context.Context, cluster *ipfscluster.Cluster, bootstraps []ma.Multiaddr) {
+func Bootstrap(ctx context.Context, cluster *ipfscluster.Cluster, cons ipfscluster.Consensus, bootstraps []ma.Multiaddr) {
 	for _, bstrap := range bootstraps {
 		log.Infof("Bootstrapping to %s", bstrap)
 		err := cluster.Join(ctx, bstrap)
 		if err != nil {
 			log.Errorf("bootstrap to %s failed: %s", bstrap, err)
+		} else {
+			for _, p := range cluster.Peers(ctx) {
+				err = cons.Trust(ctx, p.ID)
+				if err != nil {
+					log.Errorf("failed to trust %s: %s", p.ID.Pretty(), err)
+				}
+			}
 		}
 	}
 }
