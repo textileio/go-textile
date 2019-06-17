@@ -439,6 +439,7 @@ Stacks may include:
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
 	initIpfsCluster := initCmd.Flag("cluster", "Attach an IPFS Cluster service").Bool()
 	initIpfsClusterSecret := initCmd.Flag("cluster-secret", "IPFS Cluster secret, omit to auto-generate").String()
+	initIpfsClusterBindMultiaddr := initCmd.Flag("cluster-bind-maddr", "Set the IPFS Cluster multiaddrs").Default("/ip4/0.0.0.0/tcp/9096").String()
 	initIpfsClusterPeers := initCmd.Flag("cluster-peer", "IPFS Cluster peers to sync with").Strings()
 	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
@@ -469,23 +470,24 @@ Stacks may include:
 		}
 
 		config := core.InitConfig{
-			Account:         account,
-			PinCode:         *initPin, // @todo rename to pin
-			RepoPath:        repo,     // @todo rename to repo
-			SwarmPorts:      *initIpfsSwarmPorts,
-			ApiAddr:         *initApiBindAddr,
-			CafeApiAddr:     *initCafeApiBindAddr,
-			GatewayAddr:     *initGatewayBindAddr,
-			ProfilingAddr:   *initProfilingBindAddr,
-			IsMobile:        false,
-			IsServer:        *initIpfsServerMode,
-			LogToDisk:       *initLogFiles,
-			Debug:           *logDebug,
-			CafeOpen:        *initCafeOpen,
-			CafeURL:         *initCafeURL,
-			CafeNeighborURL: *initCafeNeighborURL,
-			ClusterSecret:   secret,
-			ClusterPeers:    *initIpfsClusterPeers,
+			Account:              account,
+			PinCode:              *initPin, // @todo rename to pin
+			RepoPath:             repo,     // @todo rename to repo
+			SwarmPorts:           *initIpfsSwarmPorts,
+			ApiAddr:              *initApiBindAddr,
+			CafeApiAddr:          *initCafeApiBindAddr,
+			GatewayAddr:          *initGatewayBindAddr,
+			ProfilingAddr:        *initProfilingBindAddr,
+			IsMobile:             false,
+			IsServer:             *initIpfsServerMode,
+			LogToDisk:            *initLogFiles,
+			Debug:                *logDebug,
+			CafeOpen:             *initCafeOpen,
+			CafeURL:              *initCafeURL,
+			CafeNeighborURL:      *initCafeNeighborURL,
+			ClusterSecret:        secret,
+			ClusterBindMultiaddr: *initIpfsClusterBindMultiaddr,
+			ClusterPeers:         *initIpfsClusterPeers,
 		}
 
 		return InitCommand(config)

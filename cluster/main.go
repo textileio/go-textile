@@ -36,18 +36,26 @@ func NewClusterSecret() (string, error) {
 	return hex.EncodeToString(secret), nil
 }
 
-func InitCluster(repoPath, secret string) error {
-	decoded, err := ipfscluster.DecodeClusterSecret(secret)
+func InitCluster(repoPath, secret string, listenAddr string) error {
+	cfgMgr, cfgs := makeClusterConfigs()
+	err := cfgMgr.Default()
 	if err != nil {
 		return err
 	}
 
-	cfgMgr, cfgs := makeClusterConfigs()
-	err = cfgMgr.Default()
+	decoded, err := ipfscluster.DecodeClusterSecret(secret)
 	if err != nil {
 		return err
 	}
 	cfgs.ClusterCfg.Secret = decoded
+
+	if listenAddr != "" {
+		addr, err := ma.NewMultiaddr(listenAddr)
+		if err != nil {
+			return err
+		}
+		cfgs.ClusterCfg.ListenAddr = addr
+	}
 
 	return cfgMgr.SaveJSON(ConfigPath(repoPath))
 }

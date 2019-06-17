@@ -49,23 +49,24 @@ const kSyncAccountFreq = time.Hour
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account         *keypair.Full
-	PinCode         string
-	RepoPath        string
-	SwarmPorts      string
-	ApiAddr         string
-	CafeApiAddr     string
-	GatewayAddr     string
-	ProfilingAddr   string
-	IsMobile        bool
-	IsServer        bool
-	LogToDisk       bool
-	Debug           bool
-	CafeOpen        bool
-	CafeURL         string
-	CafeNeighborURL string // Deprecated
-	ClusterSecret   string
-	ClusterPeers    []string
+	Account              *keypair.Full
+	PinCode              string
+	RepoPath             string
+	SwarmPorts           string
+	ApiAddr              string
+	CafeApiAddr          string
+	GatewayAddr          string
+	ProfilingAddr        string
+	IsMobile             bool
+	IsServer             bool
+	LogToDisk            bool
+	Debug                bool
+	CafeOpen             bool
+	CafeURL              string
+	CafeNeighborURL      string // Deprecated
+	ClusterSecret        string
+	ClusterBindMultiaddr string
+	ClusterPeers         []string
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -146,7 +147,7 @@ func InitRepo(conf InitConfig) error {
 
 	// init cluster
 	if conf.ClusterSecret != "" {
-		err = cluster.InitCluster(conf.RepoPath, conf.ClusterSecret)
+		err = cluster.InitCluster(conf.RepoPath, conf.ClusterSecret, conf.ClusterBindMultiaddr)
 		if err != nil {
 			return err
 		}
