@@ -563,7 +563,7 @@ func TestMobile_Summary(t *testing.T) {
 }
 
 func TestMobile_SetUsername(t *testing.T) {
-	<-testVars.mobile1.OnlineCh()
+	<-testVars.mobile1.onlineCh()
 	err := testVars.mobile1.SetName("boomer")
 	if err != nil {
 		t.Fatalf("set username failed: %s", err)

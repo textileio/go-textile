@@ -200,9 +200,9 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// OnlineCh returns core OnlineCh
-func (m *Mobile) OnlineCh() <-chan struct{} {
-	return m.node.OnlineCh()
+// Online returns core Online
+func (m *Mobile) Online() bool {
+	return m.node.Online()
 }
 
 // Version returns common Version
@@ -222,6 +222,11 @@ func (m *Mobile) Summary() ([]byte, error) {
 	}
 
 	return proto.Marshal(m.node.Summary())
+}
+
+// onlineCh returns core OnlineCh
+func (m *Mobile) onlineCh() <-chan struct{} {
+	return m.node.OnlineCh()
 }
 
 // blockView returns marshaled view of a block
