@@ -135,8 +135,21 @@ func (m *Mobile) CafeRequestPending(id string) error {
 		return err
 	}
 
+	log.Debugf("request %s pending", id)
+
 	m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_UPDATE, m.cafeSyncGroupStatus(id))
 	return nil
+}
+
+// CafeRequestNotPending marks a request as not pending (new)
+func (m *Mobile) CafeRequestNotPending(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	log.Debugf("request %s not pending", id)
+
+	return m.node.Datastore().CafeRequests().UpdateGroupStatus(id, pb.CafeRequest_NEW)
 }
 
 // CompleteCafeRequest marks a request as complete
@@ -155,7 +168,7 @@ func (m *Mobile) CompleteCafeRequest(id string) error {
 	return m.handleCafeRequestDone(id, m.cafeSyncGroupStatus(id))
 }
 
-// FailCafeRequest deletes a cafe request
+// FailCafeRequest deletes a request
 func (m *Mobile) FailCafeRequest(id string, reason string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
@@ -173,6 +186,23 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 	log.Warningf("request %s failed: %s", id, reason)
 
 	return m.handleCafeRequestDone(id, status)
+}
+
+// UpdateCafeRequestProgress updates the request with progress info
+func (m *Mobile) UpdateCafeRequestProgress(id string, transerred int64, total int64) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	err := m.node.Datastore().CafeRequests().UpdateGroupProgress(id, transerred, total)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("request progress: %d / %d transerred", transerred, total)
+
+	m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_UPDATE, m.cafeSyncGroupStatus(id))
+	return nil
 }
 
 // WriteCafeRequest is the async version of writeCafeRequest

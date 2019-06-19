@@ -29,8 +29,8 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	}
 	stmt, err := tx.Prepare(`
         INSERT INTO cafe_requests(
-    	    id, peerId, targetId, cafeId, cafe, groupId, syncGroupId, type, date, size, status, attempts
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    	    id, peerId, targetId, cafeId, cafe, groupId, syncGroupId, type, date, size, status, attempts, groupSize, groupTransferred
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `)
 	if err != nil {
 		return err
@@ -55,6 +55,8 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 		req.Size,
 		int32(req.Status),
 		req.Attempts,
+		req.GroupSize,
+		req.GroupTransferred,
 	)
 	if err != nil {
 		_ = tx.Rollback()
@@ -97,7 +99,8 @@ func (c *CafeRequestDB) GetSyncGroup(group string) string {
 
 	for total.Next() {
 		var syncGroupId string
-		if err := total.Scan(&syncGroupId); err != nil {
+		err = total.Scan(&syncGroupId)
+		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -155,7 +158,8 @@ func (c *CafeRequestDB) ListGroups(offset string, limit int) []string {
 	}
 	for total.Next() {
 		var groupId string
-		if err := total.Scan(&groupId); err != nil {
+		err = total.Scan(&groupId)
+		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -195,7 +199,8 @@ func (c *CafeRequestDB) SyncGroupComplete(syncGroupId string) bool {
 	}
 	for total.Next() {
 		var syncGroupId string
-		if err := total.Scan(&syncGroupId); err != nil {
+		err = total.Scan(&syncGroupId)
+		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -211,7 +216,7 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 	status := &pb.CafeSyncGroupStatus{}
 
 	rows, err := c.db.Query(`
-        SELECT cafeId, size, status, syncGroupId FROM cafe_requests WHERE syncGroupId=(
+        SELECT cafeId, syncGroupId, size, status, groupSize, groupTransferred FROM cafe_requests WHERE syncGroupId=(
             SELECT syncGroupId FROM cafe_requests WHERE groupId=?
         ) ORDER BY date ASC;
 	`, groupId)
@@ -220,11 +225,13 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 		return status
 	}
 
+	groups := make(map[string]struct{})
 	for rows.Next() {
 		var cafeId, syncGroupId string
-		var size int64
+		var size, groupSize, groupTransferred int64
 		var stat int
-		if err := rows.Scan(&cafeId, &size, &stat, &syncGroupId); err != nil {
+		err = rows.Scan(&cafeId, &syncGroupId, &size, &stat, &groupSize, &groupTransferred)
+		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -233,12 +240,17 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 		status.NumTotal += 1
 		status.SizeTotal += size
 		switch stat {
-		case 1:
+		case int(pb.CafeRequest_PENDING):
 			status.NumPending += 1
 			status.SizePending += size
-		case 2:
+		case int(pb.CafeRequest_COMPLETE):
 			status.NumComplete += 1
 			status.SizeComplete += size
+		}
+
+		if _, ok := groups[groupId]; !ok {
+			status.GroupsSizeTotal += groupSize
+			status.GroupsSizeComplete += groupTransferred
 		}
 	}
 
@@ -258,6 +270,16 @@ func (c *CafeRequestDB) UpdateGroupStatus(groupId string, status pb.CafeRequest_
 	defer c.lock.Unlock()
 
 	_, err := c.db.Exec("UPDATE cafe_requests SET status=? WHERE groupId=?", int32(status), groupId)
+	return err
+}
+
+func (c *CafeRequestDB) UpdateGroupProgress(groupId string, transerred int64, total int64) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	_, err := c.db.Exec(
+		"UPDATE cafe_requests SET groupSize=?, groupTransferred=? WHERE groupId=?",
+		total, transerred, groupId)
 	return err
 }
 
@@ -337,10 +359,24 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 	for rows.Next() {
 		var id, peerId, targetId, cafeId, groupId, syncGroupId string
 		var typeInt, statusInt, attempts int
-		var dateInt, size int64
+		var dateInt, size, groupSize, groupTransferred int64
 		var cafe []byte
 
-		err = rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &groupId, &syncGroupId, &typeInt, &dateInt, &size, &statusInt, &attempts)
+		err = rows.Scan(
+			&id,
+			&peerId,
+			&targetId,
+			&cafeId,
+			&cafe,
+			&groupId,
+			&syncGroupId,
+			&typeInt,
+			&dateInt,
+			&size,
+			&statusInt,
+			&attempts,
+			&groupSize,
+			&groupTransferred)
 		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -354,17 +390,19 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 		}
 
 		list.Items = append(list.Items, &pb.CafeRequest{
-			Id:        id,
-			Peer:      peerId,
-			Target:    targetId,
-			Cafe:      mod,
-			Group:     groupId,
-			SyncGroup: syncGroupId,
-			Type:      pb.CafeRequest_Type(typeInt),
-			Date:      util.ProtoTs(dateInt),
-			Size:      size,
-			Status:    pb.CafeRequest_Status(statusInt),
-			Attempts:  int32(attempts),
+			Id:               id,
+			Peer:             peerId,
+			Target:           targetId,
+			Cafe:             mod,
+			Group:            groupId,
+			SyncGroup:        syncGroupId,
+			Type:             pb.CafeRequest_Type(typeInt),
+			Date:             util.ProtoTs(dateInt),
+			Size:             size,
+			Status:           pb.CafeRequest_Status(statusInt),
+			Attempts:         int32(attempts),
+			GroupSize:        groupSize,
+			GroupTransferred: groupTransferred,
 		})
 	}
 

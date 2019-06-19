@@ -50,7 +50,7 @@ func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandl
 	}
 
 	if wait {
-		<-node.OnlineCh()
+		<-node.onlineCh()
 	}
 
 	return node, nil
