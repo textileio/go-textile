@@ -26,17 +26,19 @@ func setupCafeRequestDB() {
 
 func TestCafeRequestDB_Add(t *testing.T) {
 	err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:        "abcde",
-		Peer:      "peer",
-		Target:    "zxy",
-		Cafe:      testCafe,
-		Group:     "group",
-		SyncGroup: "sync_group",
-		Type:      pb.CafeRequest_STORE,
-		Date:      ptypes.TimestampNow(),
-		Size:      1024,
-		Status:    pb.CafeRequest_NEW,
-		Attempts:  0,
+		Id:               "abcde",
+		Peer:             "peer",
+		Target:           "zxy",
+		Cafe:             testCafe,
+		Group:            "group",
+		SyncGroup:        "sync_group",
+		Type:             pb.CafeRequest_STORE,
+		Date:             ptypes.TimestampNow(),
+		Size:             1024,
+		Status:           pb.CafeRequest_NEW,
+		Attempts:         0,
+		GroupSize:        0,
+		GroupTransferred: 0,
 	})
 	if err != nil {
 		t.Error(err)
@@ -231,6 +233,44 @@ func TestCafeRequestDB_SyncGroupStatus(t *testing.T) {
 	}
 	if status.SizeComplete != 0 {
 		t.Errorf("wrong size complete %d", status.SizeComplete)
+	}
+}
+
+func TestCafeRequestDB_UpdateGroupProgress(t *testing.T) {
+	err := cafeRequestStore.UpdateGroupProgress("group2", 8, 16)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	stmt, err := cafeRequestStore.PrepareQuery("select groupTransferred from cafe_requests where id=?")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer stmt.Close()
+	var groupTransferred int64
+	err = stmt.QueryRow("abcdef").Scan(&groupTransferred)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if groupTransferred != 8 {
+		t.Error("wrong group transferred")
+	}
+	stmt, err = cafeRequestStore.PrepareQuery("select groupSize from cafe_requests where id=?")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer stmt.Close()
+	var groupSize int64
+	err = stmt.QueryRow("abcdef").Scan(&groupSize)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if groupSize != 16 {
+		t.Error("wrong group size")
 	}
 }
 

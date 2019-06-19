@@ -25,7 +25,7 @@ var ErrRepoDoesNotExist = fmt.Errorf("repo does not exist, initialization is req
 var ErrMigrationRequired = fmt.Errorf("repo needs migration")
 var ErrRepoCorrupted = fmt.Errorf("repo is corrupted")
 
-const Repover = "15"
+const Repover = "16"
 
 func Init(repoPath string, mobile bool, server bool) error {
 	err := checkWriteable(repoPath)

@@ -270,6 +270,8 @@ message CafeRequest {
     int64 size                     = 7;
     Status status                  = 9;
     int32 attempts                 = 11;
+	int64 group_size               = 12;
+	int64 group_transferred        = 13;
 
     enum Type {
         STORE          = 0;
@@ -291,15 +293,20 @@ message CafeRequestList {
 }
 
 message CafeSyncGroupStatus {
-    string id           = 1; // sync group id
-    int32 num_total     = 2;
-    int32 num_pending   = 3;
-    int32 num_complete  = 4;
-    int64 size_total    = 5;
-    int64 size_pending  = 6;
-    int64 size_complete = 7;
-    string error        = 8;
-    string error_id     = 9;
+    string id              = 1; // sync group id
+
+    int32 num_total        = 2;
+    int32 num_pending      = 3;
+    int32 num_complete     = 4;
+    int64 size_total       = 5;
+    int64 size_pending     = 6;
+    int64 size_complete    = 7;
+
+	int64 group_size_total    = 8;
+	int64 group_size_complete = 9;
+
+    string error        = 50;
+    string error_id     = 51;
 }
 
 message CafeHTTPRequest {
