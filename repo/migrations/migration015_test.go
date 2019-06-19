@@ -54,7 +54,7 @@ func Test015(t *testing.T) {
 	}
 
 	// test new tables
-	_, err = db.Exec("insert into cafe_requests(id, peerId, targetId, cafeId, cafe, groupId, syncGroupId, type, date, size, status, attempts, groupSize, groupTransferred) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", "id", "peerId", "targetId", "cafeId", []byte("cafe"), "groupId", "syncGroupId", 0, 0, 8, 0, 0, 0, 0)
+	_, err = db.Exec("insert into cafe_requests(id, peerId, targetId, cafeId, cafe, groupId, syncGroupId, type, date, size, status, attempts, groupSize, groupTransferred) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", "id2", "peerId", "targetId", "cafeId", []byte("cafe"), "groupId", "syncGroupId", 0, 0, 8, 0, 0, 0, 0)
 	if err != nil {
 		t.Error(err)
 		return

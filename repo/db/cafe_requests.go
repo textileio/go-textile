@@ -249,8 +249,8 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 		}
 
 		if _, ok := groups[groupId]; !ok {
-			status.GroupSizeTotal += groupSize
-			status.GroupSizeComplete += groupTransferred
+			status.GroupsSizeTotal += groupSize
+			status.GroupsSizeComplete += groupTransferred
 		}
 	}
 
