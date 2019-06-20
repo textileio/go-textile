@@ -1,10 +1,9 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
+#!/bin/sh
+set -e
 user=textile
 repo="$TEXTILE_PATH"
 
-if test "$(id -u)" -eq 0; then
+if [ $(id -u) -eq 0 ]; then
 	echo "Changing user to $user"
 	# ensure folder is writable
 	su-exec "$user" test -w "$repo" || chown -R -- "$user" "$repo"
@@ -15,16 +14,16 @@ fi
 # 2nd invocation with regular user
 textile version
 
-if test -e "$repo/config"; then
+if [ -e "$repo/config" ]; then
 	echo "Found IPFS fs-repo at $repo"
 else
 	wallet=$(textile wallet init)
 	echo "$wallet"
-	textile init "$(echo "$wallet" | tail -n1)" $INIT_ARGS
+	textile init $(echo "$wallet" | tail -n1) $INIT_ARGS
 fi
 
 # if the first argument is daemon
-if test "$1" = "daemon"; then
+if [ "$1" = "daemon" ]; then
 	shift
 fi
 
