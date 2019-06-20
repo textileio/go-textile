@@ -369,7 +369,7 @@ func TestMobile_AddData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res4, err := testVars.mobile1.FileContent(list.Items[0].Files[0].File.Hash)
+	res4, err := testVars.mobile1.fileContent(list.Items[0].Files[0].File.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,7 +449,7 @@ func TestMobile_FilesBadThread(t *testing.T) {
 }
 
 func TestMobile_FileData(t *testing.T) {
-	res, err := testVars.mobile1.FileContent(testVars.files[0].Files[0].Links["small"].Hash)
+	res, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Fatalf("get file data failed: %s", err)
 	}
@@ -502,22 +502,22 @@ func TestMobile_Feed(t *testing.T) {
 }
 
 func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
-	large, err := testVars.mobile1.FileContent(testVars.files[0].Files[0].Links["large"].Hash)
+	large, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	small, err := testVars.mobile1.FileContent(testVars.files[0].Files[0].Links["small"].Hash)
+	small, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	thumb, err := testVars.mobile1.FileContent(testVars.files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	pth := testVars.files[0].Data + "/0"
 
-	d1, err := testVars.mobile1.ImageFileContentForMinWidth(pth, 2000)
+	d1, err := testVars.mobile1.imageFileContentForMinWidth(pth, 2000)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -525,7 +525,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		t.Fatalf("expected large result")
 	}
 
-	d2, err := testVars.mobile1.ImageFileContentForMinWidth(pth, 600)
+	d2, err := testVars.mobile1.imageFileContentForMinWidth(pth, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,7 +533,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		t.Fatalf("expected large result")
 	}
 
-	d3, err := testVars.mobile1.ImageFileContentForMinWidth(pth, 320)
+	d3, err := testVars.mobile1.imageFileContentForMinWidth(pth, 320)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,7 +541,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 		t.Fatalf("expected small result")
 	}
 
-	d4, err := testVars.mobile1.ImageFileContentForMinWidth(pth, 80)
+	d4, err := testVars.mobile1.imageFileContentForMinWidth(pth, 80)
 	if err != nil {
 		t.Fatal(err)
 	}

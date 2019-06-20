@@ -22,6 +22,7 @@ func (c *cafeApi) store(g *gin.Context) {
 
 	form, err := g.MultipartForm()
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
@@ -36,6 +37,7 @@ func (c *cafeApi) store(g *gin.Context) {
 	for _, file := range files {
 		f, err = file.Open()
 		if err != nil {
+			log.Warning(err)
 			c.abort(g, http.StatusBadRequest, err)
 			return
 		}
@@ -46,6 +48,7 @@ func (c *cafeApi) store(g *gin.Context) {
 			aid, err = ipfs.AddData(c.node.Ipfs(), f, true, false)
 		}
 		if err != nil {
+			log.Warning(err)
 			c.abort(g, http.StatusBadRequest, err)
 			return
 		}
@@ -62,12 +65,14 @@ func (c *cafeApi) store(g *gin.Context) {
 func (c *cafeApi) unstore(g *gin.Context) {
 	id, err := cid.Decode(g.Param("cid"))
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
 	pinned, err := c.node.Ipfs().Pinning.CheckIfPinned(id)
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
@@ -76,6 +81,7 @@ func (c *cafeApi) unstore(g *gin.Context) {
 		if p.Mode != pin.NotPinned {
 			err = ipfs.UnpinCid(c.node.Ipfs(), p.Key, true)
 			if err != nil {
+				log.Warning(err)
 				c.abort(g, http.StatusBadRequest, err)
 				return
 			}
@@ -106,7 +112,8 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 	buf.Grow(bytes.MinRead)
 	_, err := buf.ReadFrom(g.Request.Body)
 	if err != nil && err != io.EOF {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
@@ -166,7 +173,8 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 	buf.Grow(bytes.MinRead)
 	_, err := buf.ReadFrom(g.Request.Body)
 	if err != nil && err != io.EOF {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 	body := buf.Bytes()
@@ -175,35 +183,41 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 	nenv := new(pb.Envelope)
 	err = proto.Unmarshal(body, nenv)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 	tenv := new(pb.ThreadEnvelope)
 	err = ptypes.UnmarshalAny(nenv.Message.Payload, tenv)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 	oid, err := ipfs.AddObject(c.node.Ipfs(), bytes.NewReader(tenv.Node), true)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 	node, err := ipfs.NodeAtCid(c.node.Ipfs(), *oid)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 	_, err = extractNode(c.node.Ipfs(), node, true)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
 	// pin envelope
 	id, err := ipfs.AddData(c.node.Ipfs(), bytes.NewReader(body), true, false)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
@@ -236,7 +250,8 @@ func (c *cafeApi) search(g *gin.Context) {
 
 	pid, err := peer.IDB58Decode(from)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
@@ -249,7 +264,8 @@ func (c *cafeApi) search(g *gin.Context) {
 	buf.Grow(bytes.MinRead)
 	_, err = buf.ReadFrom(g.Request.Body)
 	if err != nil && err != io.EOF {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
@@ -257,7 +273,8 @@ func (c *cafeApi) search(g *gin.Context) {
 	pmes := new(pb.Envelope)
 	err = proto.Unmarshal(buf.Bytes(), pmes)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
 
@@ -270,7 +287,8 @@ func (c *cafeApi) search(g *gin.Context) {
 			close(cancel)
 
 		case err := <-errCh:
-			g.String(http.StatusBadRequest, err.Error())
+			log.Warning(err)
+			c.abort(g, http.StatusBadRequest, err)
 			return false
 
 		case rpmes, ok := <-rpmesCh:
