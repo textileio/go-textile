@@ -216,7 +216,7 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 	status := &pb.CafeSyncGroupStatus{}
 
 	rows, err := c.db.Query(`
-        SELECT cafeId, syncGroupId, size, status, groupSize, groupTransferred FROM cafe_requests WHERE syncGroupId=(
+        SELECT cafeId, groupId, syncGroupId, size, status, groupSize, groupTransferred FROM cafe_requests WHERE syncGroupId=(
             SELECT syncGroupId FROM cafe_requests WHERE groupId=?
         ) ORDER BY date ASC;
 	`, groupId)
@@ -227,10 +227,10 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 
 	groups := make(map[string]struct{})
 	for rows.Next() {
-		var cafeId, syncGroupId string
+		var cafeId, groupId, syncGroupId string
 		var size, groupSize, groupTransferred int64
 		var stat int
-		err = rows.Scan(&cafeId, &syncGroupId, &size, &stat, &groupSize, &groupTransferred)
+		err = rows.Scan(&cafeId, &groupId, &syncGroupId, &size, &stat, &groupSize, &groupTransferred)
 		if err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -249,6 +249,7 @@ func (c *CafeRequestDB) SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus 
 		}
 
 		if _, ok := groups[groupId]; !ok {
+			groups[groupId] = struct{}{}
 			status.GroupsSizeTotal += groupSize
 			status.GroupsSizeComplete += groupTransferred
 		}
