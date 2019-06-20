@@ -1,4 +1,6 @@
 #!/bin/sh
+# this file requires sh over bash:
+# https://github.com/textileio/go-textile/commit/d1190129727f6f2cb19183f348d67a8552352a2e
 set -e
 user=textile
 repo="$TEXTILE_PATH"
