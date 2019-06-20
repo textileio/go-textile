@@ -19,6 +19,7 @@ type Config struct {
 	Logs      Logs      // local node's log settings
 	IsMobile  bool      // local node is setup for mobile
 	IsServer  bool      // local node is setup for a server w/ a public IP
+	Cluster   Cluster   // local node's IPFS Cluster settings
 	Cafe      Cafe      // local node cafe settings
 }
 
@@ -34,11 +35,6 @@ type Addresses struct {
 	CafeAPI   string // bind address of the cafe REST API
 	Gateway   string // bind address of the IPFS object gateway
 	Profiling string // bind address of the profiling API
-}
-
-type SwarmPorts struct {
-	TCP string // TCP address port
-	WS  string // WS address port
 }
 
 // HTTPHeaders to customise things like COR
@@ -60,6 +56,11 @@ type Logs struct {
 	LogToDisk bool // when true, sends all logs to rolling files on disk
 }
 
+// IPFS Cluster settings
+type Cluster struct {
+	Bootstraps []string
+}
+
 // Cafe settings
 type Cafe struct {
 	Host CafeHost
@@ -67,10 +68,10 @@ type Cafe struct {
 
 // CafeHost settings
 type CafeHost struct {
-	Open        bool   // When true, other peers can register with this node for cafe services.
-	URL         string // Override the resolved URL of this cafe, useful for load HTTPS and/or load balancers
-	NeighborURL string // Specifies the URL of a secondary cafe. Must return cafe info.
-	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes.
+	Open        bool   // When true, other peers can register with this node for cafe services
+	URL         string // Override the resolved URL of this cafe, useful for HTTPS and/or load balancers
+	NeighborURL string // Deprecated
+	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes
 }
 
 // Init returns the default textile config
@@ -147,12 +148,13 @@ func Init() (*Config, error) {
 		Logs: Logs{
 			LogToDisk: true,
 		},
+		Cluster: Cluster{
+			Bootstraps: []string{},
+		},
 		Cafe: Cafe{
 			Host: CafeHost{
-				Open:        false,
-				URL:         "",
-				NeighborURL: "",
-				SizeLimit:   0,
+				Open:      false,
+				SizeLimit: 0,
 			},
 		},
 		IsMobile: false,

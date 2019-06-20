@@ -16,13 +16,13 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerepo"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	ipfscluster "github.com/ipfs/ipfs-cluster"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/cluster"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -48,21 +48,24 @@ const kSyncAccountFreq = time.Hour
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account         *keypair.Full
-	PinCode         string
-	RepoPath        string
-	SwarmPorts      string
-	ApiAddr         string
-	CafeApiAddr     string
-	GatewayAddr     string
-	ProfilingAddr   string
-	IsMobile        bool
-	IsServer        bool
-	LogToDisk       bool
-	Debug           bool
-	CafeOpen        bool
-	CafeURL         string
-	CafeNeighborURL string
+	Account              *keypair.Full
+	PinCode              string
+	RepoPath             string
+	SwarmPorts           string
+	ApiAddr              string
+	CafeApiAddr          string
+	GatewayAddr          string
+	ProfilingAddr        string
+	IsMobile             bool
+	IsServer             bool
+	LogToDisk            bool
+	Debug                bool
+	CafeOpen             bool
+	CafeURL              string
+	CafeNeighborURL      string // Deprecated
+	Cluster              bool
+	ClusterBindMultiaddr string
+	ClusterPeers         []string
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -88,6 +91,7 @@ type Textile struct {
 	cancel            context.CancelFunc
 	node              *core.IpfsNode
 	datastore         repo.Datastore
+	cluster           *ipfscluster.Cluster
 	started           bool
 	loadedThreads     []*Thread
 	online            chan struct{}
@@ -140,21 +144,19 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
+	// init cluster
+	if conf.Cluster {
+		err = cluster.InitCluster(conf.RepoPath, conf.ClusterBindMultiaddr)
+		if err != nil {
+			return err
+		}
+	}
+
 	rep, err := fsrepo.Open(conf.RepoPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := rep.Close(); err != nil {
-			log.Error(err.Error())
-		}
-	}()
-
-	// apply ipfs config opts
-	err = applySwarmPortConfigOption(rep, conf.SwarmPorts)
-	if err != nil {
-		return err
-	}
+	defer rep.Close()
 
 	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
 	if err != nil {
@@ -179,6 +181,11 @@ func InitRepo(conf InitConfig) error {
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
 	})
+	if err != nil {
+		return err
+	}
+
+	err = applyIPFSSwarmPorts(rep, conf.SwarmPorts)
 	if err != nil {
 		return err
 	}
@@ -385,6 +392,14 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		go t.cafeOutbox.Flush()
+
+		// start cluster
+		if t.clusterExists() {
+			err = t.startCluster()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
@@ -432,6 +447,14 @@ func (t *Textile) Stop() error {
 	err := t.stopCafeApi()
 	if err != nil {
 		return err
+	}
+
+	// shutdown cluster
+	if t.cluster != nil {
+		err = t.cluster.Shutdown(t.node.Context())
+		if err != nil {
+			return err
+		}
 	}
 
 	// close ipfs node
@@ -496,6 +519,11 @@ func (t *Textile) Writer() io.Writer {
 // Ipfs returns the underlying ipfs node
 func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.node
+}
+
+// Cluster returns the underlying ipfs cluster
+func (t *Textile) Cluster() *ipfscluster.Cluster {
+	return t.cluster
 }
 
 // OnlineCh returns the online channel
@@ -607,46 +635,6 @@ func (t *Textile) threadsService() *ThreadsService {
 // cafeService returns the cafe service
 func (t *Textile) cafeService() *CafeService {
 	return t.cafe
-}
-
-// createIPFS creates an IPFS node
-func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
-	rep, err := fsrepo.Open(t.repoPath)
-	if err != nil {
-		return err
-	}
-
-	routing := libp2p.DHTOption
-	if t.Mobile() {
-		routing = libp2p.DHTClientOption
-	}
-
-	cctx, _ := context.WithCancel(context.Background())
-	nd, err := core.NewNode(cctx, &core.BuildCfg{
-		Repo:      rep,
-		Permanent: true, // temporary way to signify that node is permanent
-		Online:    online,
-		ExtraOpts: map[string]bool{
-			"pubsub": true,
-			"ipnsps": true,
-			"mplex":  true,
-		},
-		Routing: routing,
-	})
-	if err != nil {
-		return err
-	}
-	nd.IsDaemon = true
-
-	if t.node != nil {
-		err = t.node.Close()
-		if err != nil {
-			return err
-		}
-	}
-	t.node = nd
-
-	return nil
 }
 
 // runJobs runs each message queue

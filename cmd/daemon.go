@@ -30,9 +30,7 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 		return fmt.Errorf(fmt.Sprintf("create node failed: %s", err))
 	}
 
-	gateway.Host = &gateway.Gateway{
-		Node: node,
-	}
+	gateway.Host = &gateway.Gateway{Node: node}
 
 	err = startNode(docs)
 	if err != nil {
@@ -44,14 +42,17 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
+
 	fmt.Println("Interrupted")
 	fmt.Printf("Shutting down...")
+
 	err = stopNode()
 	if err != nil && err != core.ErrStopped {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Print("done\n")
 	}
+
 	os.Exit(1)
 	return nil
 }

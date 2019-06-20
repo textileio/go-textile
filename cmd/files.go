@@ -75,7 +75,7 @@ func FileAdd(path string, threadID string, caption string, group bool, verbose b
 				pth = path
 			}
 
-			fi, err = os.Stat(path)
+			fi, err = os.Stat(pth)
 			if err != nil {
 				return err
 			}

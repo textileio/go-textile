@@ -6,6 +6,7 @@ import (
 
 	ipfs "github.com/ipfs/go-ipfs"
 	native "github.com/ipfs/go-ipfs-config"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // DefaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
@@ -49,7 +50,7 @@ var TextileBootstrapAddresses = []string{
 }
 
 // TextileBootstrapPeers returns the (parsed) set of Textile bootstrap peers.
-func TextileBootstrapPeers() ([]native.BootstrapPeer, error) {
+func TextileBootstrapPeers() ([]peer.AddrInfo, error) {
 	ps, err := native.ParseBootstrapPeers(TextileBootstrapAddresses)
 	if err != nil {
 		return nil, fmt.Errorf(`failed to parse hardcoded bootstrap peers: %s

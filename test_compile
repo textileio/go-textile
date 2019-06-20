@@ -30,6 +30,9 @@ go test -coverprofile=core.cover.out ./core
 # mobile
 go test -coverprofile=mobile.cover.out ./mobile
 
+# cluster
+go test -coverprofile=cluster.cover.out ./cluster
+
 # gateway
 go test -coverprofile=gateway.cover.out ./gateway
 
