@@ -18,8 +18,15 @@ func (m *Mobile) PeerId() (string, error) {
 	return pid.Pretty(), nil
 }
 
-// DataAtPath calls core DataAtPath
-func (m *Mobile) DataAtPath(pth string) ([]byte, error) {
+// DataAtPath is the async version of dataAtPath
+func (m *Mobile) DataAtPath(pth string, cb Callback) {
+	go func() {
+		cb.Call(m.dataAtPath(pth))
+	}()
+}
+
+// dataAtPath calls core DataAtPath
+func (m *Mobile) dataAtPath(pth string) ([]byte, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}

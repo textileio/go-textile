@@ -74,7 +74,9 @@ func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callba
 // AddFiles builds a directory from paths and adds it to the thread
 // Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
 func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
-	go func() {
+	log.Debugf("paths1: %s", string(paths))
+	go func(paths []byte, threadId string, caption string) {
+		log.Debugf("paths2: %s", string(paths))
 		pths := new(pb.Strings)
 		err := proto.Unmarshal(paths, pths)
 		if err != nil {
@@ -89,7 +91,7 @@ func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Call
 		}
 
 		cb.Call(m.blockView(hash))
-	}()
+	}(paths, threadId, caption)
 }
 
 func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb Callback) {
@@ -118,8 +120,15 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 	return proto.Marshal(files)
 }
 
-// FileContent returns a data url of a raw file under a path
-func (m *Mobile) FileContent(hash string) (string, error) {
+// FileContent is the async version of fileContent
+func (m *Mobile) FileContent(hash string, cb StringCallback) {
+	go func() {
+		cb.Call(m.fileContent(hash))
+	}()
+}
+
+// fileContent returns a data url of a raw file under a path
+func (m *Mobile) fileContent(hash string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -146,12 +155,19 @@ type img struct {
 	width int
 }
 
-// ImageFileContentForMinWidth returns a data url of an image at or above requested size,
+// ImageFileContentForMinWidth is the async version of imageFileContentForMinWidth
+func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb StringCallback) {
+	go func() {
+		cb.Call(m.imageFileContentForMinWidth(pth, minWidth))
+	}()
+}
+
+// imageFileContentForMinWidth returns a data url of an image at or above requested size,
 // or the next best option.
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <data>/<index>, e.g., "Qm.../0"
-func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, error) {
+func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -217,7 +233,7 @@ func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, 
 		hash = imgs[len(imgs)-1].hash
 	}
 
-	return m.FileContent(hash)
+	return m.fileContent(hash)
 }
 
 func (m *Mobile) addData(data []byte, threadId string, caption string) (mh.Multihash, error) {
