@@ -57,7 +57,7 @@ func (m *Mobile) Avatar() (string, error) {
 }
 
 // SetAvatar adds the image at pth to the account thread and calls core SetAvatar
-func (m *Mobile) SetAvatar(pth string, cb Callback) {
+func (m *Mobile) SetAvatar(pth string, cb ProtoCallback) {
 	go func() {
 		hash, err := m.setAvatar(pth)
 		if err != nil {

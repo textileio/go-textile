@@ -472,7 +472,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		}
 	}
 
-	media, err := a.node.GetMedia(reader, mill)
+	media, err := a.node.GetMillMedia(reader, mill)
 	if err != nil {
 		return nil, err
 	}

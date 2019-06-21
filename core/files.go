@@ -118,13 +118,21 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, 
 	return t.datastore.Files().Get(model.Hash), nil
 }
 
-func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
+func (t *Textile) GetMedia(reader io.Reader) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
 		return "", err
 	}
-	media := http.DetectContentType(buffer[:n])
+
+	return http.DetectContentType(buffer[:n]), nil
+}
+
+func (t *Textile) GetMillMedia(reader io.Reader, mill m.Mill) (string, error) {
+	media, err := t.GetMedia(reader)
+	if err != nil {
+		return "", err
+	}
 
 	return media, mill.AcceptMedia(media)
 }
@@ -220,7 +228,7 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, fmt.Errorf("failed to get the file meta content for hash %s with error: %s", file.Hash, ErrFileNotFound)
+		return nil, fmt.Errorf("failed to get the file meta content for hash %s with error: %s", hash, ErrFileNotFound)
 	}
 	return file, nil
 }

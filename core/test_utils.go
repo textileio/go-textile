@@ -66,7 +66,7 @@ func addData(node *Textile, names []string, thread *Thread, caption string) (*pb
 		}
 
 		mil := &mill.Blob{}
-		media, err := node.GetMedia(f, mil)
+		media, err := node.GetMillMedia(f, mil)
 		if err != nil {
 			return nil, err
 		}

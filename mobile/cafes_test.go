@@ -69,7 +69,7 @@ func TestMobile_RegisterCafe(t *testing.T) {
 		cafeID, cafesTestVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 
 	// register with cafe
-	err = cafesTestVars.mobile.RegisterCafe(cafeID.Pretty(), token)
+	err = cafesTestVars.mobile.registerCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatal(err)
 	}

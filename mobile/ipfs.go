@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"bytes"
+
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/core"
 )
@@ -19,24 +21,30 @@ func (m *Mobile) PeerId() (string, error) {
 }
 
 // DataAtPath is the async version of dataAtPath
-func (m *Mobile) DataAtPath(pth string, cb Callback) {
+func (m *Mobile) DataAtPath(pth string, cb DataCallback) {
 	go func() {
 		cb.Call(m.dataAtPath(pth))
 	}()
 }
 
 // dataAtPath calls core DataAtPath
-func (m *Mobile) dataAtPath(pth string) ([]byte, error) {
+func (m *Mobile) dataAtPath(pth string) ([]byte, string, error) {
 	if !m.node.Online() {
-		return nil, core.ErrOffline
+		return nil, "", core.ErrOffline
 	}
 
 	data, err := m.node.DataAtPath(pth)
 	if err != nil {
 		if err == ipld.ErrNotFound {
-			return nil, nil
+			return nil, "", nil
 		}
-		return nil, err
+		return nil, "", err
 	}
-	return data, nil
+
+	media, err := m.node.GetMedia(bytes.NewReader(data))
+	if err != nil {
+		return nil, "", err
+	}
+
+	return data, media, nil
 }
