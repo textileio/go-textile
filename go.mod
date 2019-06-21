@@ -25,7 +25,7 @@ require (
 	github.com/hsanjuan/go-libp2p-http v0.0.2 // indirect
 	github.com/ipfs/dir-index-html v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.0.2
-	github.com/ipfs/go-ipfs v0.4.22-0.20190621151928-90252f839f20
+	github.com/ipfs/go-ipfs v0.4.22-0.20190621160838-810cb607ede8
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.0.10
 	github.com/ipfs/go-ipfs-config v0.0.6
@@ -79,6 +79,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
 	golang.org/x/tools v0.0.0-20190521203540-521d6ed310dd // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
