@@ -11,8 +11,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/textileio/go-textile/util"
-
 	"github.com/golang/protobuf/proto"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
@@ -74,11 +72,18 @@ func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callba
 	}()
 }
 
-// AddFiles builds a directory from a list of comma seperated paths and adds it to the thread
+// AddFiles builds a directory from paths and adds it to the thread
 // Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
-func (m *Mobile) AddFiles(paths string, threadId string, caption string, cb Callback) {
+func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
 	go func() {
-		hash, err := m.addFiles(util.SplitString(paths, ","), threadId, caption)
+		pths := new(pb.Strings)
+		err := proto.Unmarshal(bytes.Trim(paths, "\x00"), pths)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		hash, err := m.addFiles(pths.Values, threadId, caption)
 		if err != nil {
 			cb.Call(nil, err)
 			return
