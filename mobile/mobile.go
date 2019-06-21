@@ -27,14 +27,19 @@ type Event struct {
 	Data []byte
 }
 
-// Callback is used for asyc methods (data is usually a protobuf)
+// Callback is used for asyc methods
 type Callback interface {
-	Call(data []byte, err error)
+	Call(err error)
 }
 
-// StringCallback is used for asyc methods
-type StringCallback interface {
-	Call(data string, err error)
+// ProtoCallback is used for asyc methods that deliver a protobuf message
+type ProtoCallback interface {
+	Call(msg []byte, err error)
+}
+
+// DataCallback is used for asyc methods that deliver raw data
+type DataCallback interface {
+	Call(data []byte, media string, err error)
 }
 
 // NewWallet creates a brand new wallet and returns its recovery phrase

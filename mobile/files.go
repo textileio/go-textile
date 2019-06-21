@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -60,7 +59,7 @@ func fileConfigOptions(opts ...fileConfigOption) *fileConfigSettings {
 }
 
 // AddData adds raw data to a thread
-func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callback) {
+func (m *Mobile) AddData(data []byte, threadId string, caption string, cb ProtoCallback) {
 	go func() {
 		hash, err := m.addData(data, threadId, caption)
 		if err != nil {
@@ -74,7 +73,7 @@ func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callba
 
 // AddFiles builds a directory from paths and adds it to the thread
 // Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
-func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
+func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb ProtoCallback) {
 	go func() {
 		pths := new(pb.Strings)
 		err := proto.Unmarshal(bytes.Trim(paths, "\x00"), pths)
@@ -94,7 +93,7 @@ func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Call
 }
 
 // ShareFiles adds an existing file DAG to a thread via its top level hash (data)
-func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb Callback) {
+func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb ProtoCallback) {
 	go func() {
 		hash, err := m.shareFiles(data, threadId, caption)
 		if err != nil {
@@ -121,33 +120,32 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 }
 
 // FileContent is the async version of fileContent
-func (m *Mobile) FileContent(hash string, cb StringCallback) {
+func (m *Mobile) FileContent(hash string, cb DataCallback) {
 	go func() {
 		cb.Call(m.fileContent(hash))
 	}()
 }
 
-// fileContent returns a data url of a raw file under a path
-func (m *Mobile) fileContent(hash string) (string, error) {
+// fileContent returns the data and media type of a raw file under a path
+func (m *Mobile) fileContent(hash string) ([]byte, string, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, "", core.ErrStopped
 	}
 
 	reader, file, err := m.node.FileContent(hash)
 	if err != nil {
 		if err == core.ErrFileNotFound || err == ipld.ErrNotFound {
-			return "", nil
+			return nil, "", nil
 		}
-		return "", err
+		return nil, "", err
 	}
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	prefix := "data:" + file.Media + ";base64,"
-	return prefix + base64.StdEncoding.EncodeToString(data), nil
+	return data, file.Media, nil
 }
 
 type img struct {
@@ -156,7 +154,7 @@ type img struct {
 }
 
 // ImageFileContentForMinWidth is the async version of imageFileContentForMinWidth
-func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb StringCallback) {
+func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb DataCallback) {
 	go func() {
 		cb.Call(m.imageFileContentForMinWidth(pth, minWidth))
 	}()
@@ -167,17 +165,17 @@ func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb String
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <data>/<index>, e.g., "Qm.../0"
-func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) (string, error) {
+func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) ([]byte, string, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, "", core.ErrStopped
 	}
 
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
 		if err == ipld.ErrNotFound {
-			return "", nil
+			return nil, "", nil
 		}
-		return "", err
+		return nil, "", err
 	}
 
 	var imgs []img
@@ -185,9 +183,9 @@ func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) (string, 
 		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
 		if err != nil {
 			if err == ipld.ErrNotFound {
-				return "", nil
+				return nil, "", nil
 			}
-			return "", err
+			return nil, "", err
 		}
 
 		dlink := schema.LinkByName(nd.Links(), core.ValidContentLinkNames)
@@ -198,9 +196,9 @@ func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) (string, 
 		file, err := m.node.FileMeta(dlink.Cid.Hash().B58String())
 		if err != nil {
 			if err == core.ErrFileNotFound {
-				return "", nil
+				return nil, "", nil
 			}
-			return "", err
+			return nil, "", err
 		}
 
 		if file.Mill == "/image/resize" {
@@ -215,7 +213,7 @@ func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) (string, 
 	}
 
 	if len(imgs) == 0 {
-		return "", nil
+		return nil, "", nil
 	}
 
 	sort.SliceStable(imgs, func(i, j int) bool {
@@ -424,7 +422,7 @@ func (m *Mobile) getFileConfig(mil mill.Mill, opts ...fileConfigOption) (*core.A
 	if mil.ID() == "/json" {
 		conf.Media = "application/json"
 	} else {
-		conf.Media, err = m.node.GetMedia(reader, mil)
+		conf.Media, err = m.node.GetMillMedia(reader, mil)
 		if err != nil {
 			return nil, err
 		}

@@ -118,13 +118,21 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, 
 	return t.datastore.Files().Get(model.Hash), nil
 }
 
-func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
+func (t *Textile) GetMedia(reader io.Reader) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
 		return "", err
 	}
-	media := http.DetectContentType(buffer[:n])
+
+	return http.DetectContentType(buffer[:n]), nil
+}
+
+func (t *Textile) GetMillMedia(reader io.Reader, mill m.Mill) (string, error) {
+	media, err := t.GetMedia(reader)
+	if err != nil {
+		return "", err
+	}
 
 	return media, mill.AcceptMedia(media)
 }

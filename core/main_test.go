@@ -122,7 +122,7 @@ func TestTextile_GetMedia(t *testing.T) {
 	}
 	defer f.Close()
 
-	media, err := vars.node.GetMedia(f, &mill.ImageResize{})
+	media, err := vars.node.GetMillMedia(f, &mill.ImageResize{})
 	if err != nil {
 		t.Fatal(err)
 	}

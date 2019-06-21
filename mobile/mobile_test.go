@@ -1,7 +1,6 @@
 package mobile
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"testing"
@@ -369,17 +368,11 @@ func TestMobile_AddData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res4, err := testVars.mobile1.fileContent(list.Items[0].Files[0].File.Hash)
+	res4, _, err := testVars.mobile1.fileContent(list.Items[0].Files[0].File.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	res5 := util.SplitString(res4, ",")
-	res6, err := base64.StdEncoding.DecodeString(res5[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-	output := string(res6)
+	output := string(res4)
 
 	if output != input {
 		t.Fatal("file output does not match input")
@@ -449,7 +442,7 @@ func TestMobile_FilesBadThread(t *testing.T) {
 }
 
 func TestMobile_FileData(t *testing.T) {
-	res, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
+	res, _, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Fatalf("get file data failed: %s", err)
 	}
@@ -502,50 +495,50 @@ func TestMobile_Feed(t *testing.T) {
 }
 
 func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
-	large, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["large"].Hash)
+	large, _, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	small, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
+	small, _, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	thumb, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["thumb"].Hash)
+	thumb, _, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	pth := testVars.files[0].Data + "/0"
 
-	d1, err := testVars.mobile1.imageFileContentForMinWidth(pth, 2000)
+	d1, _, err := testVars.mobile1.imageFileContentForMinWidth(pth, 2000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d1 != large {
+	if util.CompareSlices(d1, large) {
 		t.Fatalf("expected large result")
 	}
 
-	d2, err := testVars.mobile1.imageFileContentForMinWidth(pth, 600)
+	d2, _, err := testVars.mobile1.imageFileContentForMinWidth(pth, 600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d2 != large {
+	if util.CompareSlices(d2, large) {
 		t.Fatalf("expected large result")
 	}
 
-	d3, err := testVars.mobile1.imageFileContentForMinWidth(pth, 320)
+	d3, _, err := testVars.mobile1.imageFileContentForMinWidth(pth, 320)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d3 != small {
+	if util.CompareSlices(d3, small) {
 		t.Fatalf("expected small result")
 	}
 
-	d4, err := testVars.mobile1.imageFileContentForMinWidth(pth, 80)
+	d4, _, err := testVars.mobile1.imageFileContentForMinWidth(pth, 80)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d4 != thumb {
+	if util.CompareSlices(d4, thumb) {
 		t.Fatalf("expected thumb result")
 	}
 }
