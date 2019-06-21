@@ -2,7 +2,6 @@ package util
 
 import (
 	"bufio"
-	"encoding/base64"
 	"net/http"
 	"testing"
 
@@ -114,8 +113,4 @@ func TestURL(t *testing.T, addr string) {
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("bad status: got %v want %v", resp.StatusCode, http.StatusNoContent)
 	}
-}
-
-func CompareSlices(a []byte, b []byte) bool {
-	return base64.StdEncoding.EncodeToString(a) == base64.StdEncoding.EncodeToString(b)
 }

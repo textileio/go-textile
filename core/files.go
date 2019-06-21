@@ -228,7 +228,7 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, fmt.Errorf("failed to get the file meta content for hash %s with error: %s", file.Hash, ErrFileNotFound)
+		return nil, fmt.Errorf("failed to get the file meta content for hash %s with error: %s", hash, ErrFileNotFound)
 	}
 	return file, nil
 }

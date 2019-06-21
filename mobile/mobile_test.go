@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -494,7 +495,7 @@ func TestMobile_Feed(t *testing.T) {
 	}
 }
 
-func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
+func TestMobile_ImageFileContentForMinWidth(t *testing.T) {
 	large, _, err := testVars.mobile1.fileContent(testVars.files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Fatal(err)
@@ -514,7 +515,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if util.CompareSlices(d1, large) {
+	if !bytes.Equal(d1, large) {
 		t.Fatalf("expected large result")
 	}
 
@@ -522,7 +523,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if util.CompareSlices(d2, large) {
+	if !bytes.Equal(d2, large) {
 		t.Fatalf("expected large result")
 	}
 
@@ -530,7 +531,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if util.CompareSlices(d3, small) {
+	if !bytes.Equal(d3, small) {
 		t.Fatalf("expected small result")
 	}
 
@@ -538,7 +539,7 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if util.CompareSlices(d4, thumb) {
+	if !bytes.Equal(d4, thumb) {
 		t.Fatalf("expected thumb result")
 	}
 }
