@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/textileio/go-textile/util"
+
 	"github.com/golang/protobuf/proto"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
@@ -59,6 +61,7 @@ func fileConfigOptions(opts ...fileConfigOption) *fileConfigSettings {
 	return options
 }
 
+// AddData adds raw data to a thread
 func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callback) {
 	go func() {
 		hash, err := m.addData(data, threadId, caption)
@@ -71,29 +74,21 @@ func (m *Mobile) AddData(data []byte, threadId string, caption string, cb Callba
 	}()
 }
 
-// AddFiles builds a directory from paths and adds it to the thread
+// AddFiles builds a directory from a list of comma seperated paths and adds it to the thread
 // Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
-func (m *Mobile) AddFiles(paths []byte, threadId string, caption string, cb Callback) {
-	log.Debugf("paths1: %s", string(paths))
-	go func(paths []byte, threadId string, caption string) {
-		log.Debugf("paths2: %s", string(paths))
-		pths := new(pb.Strings)
-		err := proto.Unmarshal(paths, pths)
-		if err != nil {
-			cb.Call(nil, err)
-			return
-		}
-
-		hash, err := m.addFiles(pths.Values, threadId, caption)
+func (m *Mobile) AddFiles(paths string, threadId string, caption string, cb Callback) {
+	go func() {
+		hash, err := m.addFiles(util.SplitString(paths, ","), threadId, caption)
 		if err != nil {
 			cb.Call(nil, err)
 			return
 		}
 
 		cb.Call(m.blockView(hash))
-	}(paths, threadId, caption)
+	}()
 }
 
+// ShareFiles adds an existing file DAG to a thread via its top level hash (data)
 func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb Callback) {
 	go func() {
 		hash, err := m.shareFiles(data, threadId, caption)
