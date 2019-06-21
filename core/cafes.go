@@ -54,25 +54,6 @@ func (t *Textile) RegisterCafe(id string, token string) (*pb.CafeSession, error)
 	return session, nil
 }
 
-// CafeSession returns an active session by id
-func (t *Textile) CafeSession(id string) (*pb.CafeSession, error) {
-	return t.datastore.CafeSessions().Get(id), nil
-}
-
-// CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() *pb.CafeSessionList {
-	return t.datastore.CafeSessions().List()
-}
-
-// RefreshCafeSession attempts to refresh a token with a cafe
-func (t *Textile) RefreshCafeSession(id string) (*pb.CafeSession, error) {
-	session := t.datastore.CafeSessions().Get(id)
-	if session == nil {
-		return nil, fmt.Errorf("session not found")
-	}
-	return t.cafe.refresh(session)
-}
-
 // DeregisterCafe removes the session associated with the given cafe
 func (t *Textile) DeregisterCafe(id string) error {
 	// ensure id is a peer id
@@ -101,9 +82,28 @@ func (t *Textile) DeregisterCafe(id string) error {
 	return t.publishPeer()
 }
 
+// RefreshCafeSession attempts to refresh a token with a cafe
+func (t *Textile) RefreshCafeSession(id string) (*pb.CafeSession, error) {
+	session := t.datastore.CafeSessions().Get(id)
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+	return t.cafe.refresh(session)
+}
+
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
+}
+
+// CafeSession returns an active session by id
+func (t *Textile) CafeSession(id string) (*pb.CafeSession, error) {
+	return t.datastore.CafeSessions().Get(id), nil
+}
+
+// CafeSessions lists active cafe sessions
+func (t *Textile) CafeSessions() *pb.CafeSessionList {
+	return t.datastore.CafeSessions().List()
 }
 
 // cafeRequestThreadContent sync the entire thread conents (blocks and files) to the given cafe

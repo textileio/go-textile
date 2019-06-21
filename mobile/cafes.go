@@ -14,8 +14,15 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-// RegisterCafe calls core RegisterCafe
-func (m *Mobile) RegisterCafe(id string, token string) error {
+// RegisterCafe is the async flavor of registerCafe
+func (m *Mobile) RegisterCafe(id string, token string, cb Callback) {
+	go func() {
+		cb.Call(m.registerCafe(id, token))
+	}()
+}
+
+// registerCafe calls core RegisterCafe
+func (m *Mobile) registerCafe(id string, token string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -26,6 +33,72 @@ func (m *Mobile) RegisterCafe(id string, token string) error {
 	}
 
 	m.node.FlushCafes()
+
+	return nil
+}
+
+// DeegisterCafe is the async flavor of deregisterCafe
+func (m *Mobile) DeregisterCafe(id string, cb Callback) {
+	go func() {
+		cb.Call(m.deregisterCafe(id))
+	}()
+}
+
+// deregisterCafe calls core DeregisterCafe
+func (m *Mobile) deregisterCafe(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	err := m.node.DeregisterCafe(id)
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
+}
+
+// RefreshCafeSession is the async flavor of refreshCafeSession
+func (m *Mobile) RefreshCafeSession(id string, cb ProtoCallback) {
+	go func() {
+		cb.Call(m.refreshCafeSession(id))
+	}()
+}
+
+// refreshCafeSession calls core RefreshCafeSession
+func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	session, err := m.node.RefreshCafeSession(id)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := proto.Marshal(session)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+// CheckCafeMessages calls core CheckCafeMessages
+func (m *Mobile) CheckCafeMessages() error {
+	if !m.node.Started() {
+		return core.ErrOffline
+	}
+
+	go func() {
+		err := m.node.CheckCafeMessages()
+		if err != nil {
+			log.Errorf("error checking cafe inbox: %s", err)
+		}
+
+		m.node.FlushCafes()
+	}()
 
 	return nil
 }
@@ -62,56 +135,6 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 		return nil, err
 	}
 	return bytes, nil
-}
-
-// RefreshCafeSession calls core RefreshCafeSession
-func (m *Mobile) RefreshCafeSession(id string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	session, err := m.node.RefreshCafeSession(id)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := proto.Marshal(session)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-// DeegisterCafe calls core DeregisterCafe
-func (m *Mobile) DeregisterCafe(id string) error {
-	if !m.node.Started() {
-		return core.ErrStopped
-	}
-
-	err := m.node.DeregisterCafe(id)
-	if err != nil {
-		return err
-	}
-
-	m.node.FlushCafes()
-
-	return nil
-}
-
-// CheckCafeMessages calls core CheckCafeMessages
-func (m *Mobile) CheckCafeMessages() error {
-	if !m.node.Started() {
-		return core.ErrOffline
-	}
-
-	err := m.node.CheckCafeMessages()
-	if err != nil {
-		return err
-	}
-
-	m.node.FlushCafes()
-
-	return nil
 }
 
 // CafeRequests paginates new requests
