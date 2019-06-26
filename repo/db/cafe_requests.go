@@ -274,13 +274,13 @@ func (c *CafeRequestDB) UpdateGroupStatus(groupId string, status pb.CafeRequest_
 	return err
 }
 
-func (c *CafeRequestDB) UpdateGroupProgress(groupId string, transerred int64, total int64) error {
+func (c *CafeRequestDB) UpdateGroupProgress(groupId string, transferred int64, total int64) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	_, err := c.db.Exec(
 		"UPDATE cafe_requests SET groupSize=?, groupTransferred=? WHERE groupId=?",
-		total, transerred, groupId)
+		total, transferred, groupId)
 	return err
 }
 

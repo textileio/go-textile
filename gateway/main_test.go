@@ -1,7 +1,6 @@
 package gateway_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -19,7 +18,7 @@ func TestGateway_Creation(t *testing.T) {
 	err := core.InitRepo(core.InitConfig{
 		Account:     keypair.Random(),
 		RepoPath:    repoPath,
-		GatewayAddr: fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
+		GatewayAddr: "127.0.0.1:9998",
 	})
 	if err != nil {
 		t.Errorf("init node failed: %s", err)
