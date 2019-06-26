@@ -18,6 +18,11 @@ func (t *Textile) RegisterCafe(id string, token string) (*pb.CafeSession, error)
 		return nil, fmt.Errorf("not a valid peerID: %s", id)
 	}
 
+	// return existing session
+	if x := t.datastore.CafeSessions().Get(id); x != nil {
+		return x, nil
+	}
+
 	session, err := t.cafe.Register(id, token)
 	if err != nil {
 		return nil, err
