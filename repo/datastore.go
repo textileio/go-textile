@@ -165,7 +165,7 @@ type CafeRequestStore interface {
 	SyncGroupStatus(groupId string) *pb.CafeSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
-	UpdateGroupProgress(group string, transerred int64, total int64) error
+	UpdateGroupProgress(group string, transferred int64, total int64) error
 	AddAttempt(id string) error
 	Delete(id string) error
 	DeleteByGroup(groupId string) error

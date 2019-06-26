@@ -212,17 +212,17 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 }
 
 // UpdateCafeRequestProgress updates the request with progress info
-func (m *Mobile) UpdateCafeRequestProgress(id string, transerred int64, total int64) error {
+func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total int64) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	err := m.node.Datastore().CafeRequests().UpdateGroupProgress(id, transerred, total)
+	err := m.node.Datastore().CafeRequests().UpdateGroupProgress(id, transferred, total)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("request progress: %d / %d transerred", transerred, total)
+	log.Debugf("request progress: %d / %d transferred", transferred, total)
 
 	m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_UPDATE, m.cafeSyncGroupStatus(id))
 	return nil

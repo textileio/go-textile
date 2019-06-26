@@ -85,6 +85,9 @@ func (c *cafeApi) start() {
 		v0.POST("/pin", c.validateToken, c.pin)
 		v0.POST("/service", c.service)
 	}
+	router.POST("/api/v0/search", func(g *gin.Context) {
+		g.Redirect(http.StatusPermanentRedirect, "/api/v1/search")
+	})
 
 	// v1 routes
 	v1 := router.Group("/api/v1")

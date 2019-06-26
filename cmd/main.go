@@ -433,7 +433,8 @@ Stacks may include:
 	initCafeApiBindAddr := initCmd.Flag("cafe-bind-addr", "Set the cafe REST API address").Default("0.0.0.0:40601").String()
 	initGatewayBindAddr := initCmd.Flag("gateway-bind-addr", "Set the IPFS gateway address").Default("127.0.0.1:5050").String()
 	initProfilingBindAddr := initCmd.Flag("profile-bind-addr", "Set the profiling address").Default("127.0.0.1:6060").String()
-	initCafeOpen := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Bool()
+	initCafe := initCmd.Flag("cafe", "Open the p2p cafe service for other peers").Bool()
+	initCafeOpen := initCmd.Flag("cafe-open", "Open the p2p cafe service for other peers").Hidden().Bool() // hidden alias
 	initCafeURL := initCmd.Flag("cafe-url", "Specify a custom URL of this cafe, e.g., https://mycafe.com").Envar("CAFE_HOST_URL").String()
 	initCafeNeighborURL := initCmd.Flag("cafe-neighbor-url", "Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a cafe API: https://my-cafe.yolo.com").Envar("CAFE_HOST_NEIGHBOR_URL").String()
 	cmds[initCmd.FullCommand()] = func() error {
@@ -465,7 +466,7 @@ Stacks may include:
 			IsServer:        *initIpfsServerMode,
 			LogToDisk:       *initLogFiles,
 			Debug:           *logDebug,
-			CafeOpen:        *initCafeOpen,
+			CafeOpen:        *initCafe || *initCafeOpen,
 			CafeURL:         *initCafeURL,
 			CafeNeighborURL: *initCafeNeighborURL,
 		}
