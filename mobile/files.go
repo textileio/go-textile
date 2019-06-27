@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -61,9 +62,14 @@ func fileConfigOptions(opts ...fileConfigOption) *fileConfigSettings {
 }
 
 // AddData adds raw data to a thread
-func (m *Mobile) AddData(data []byte, threadId string, caption string, cb ProtoCallback) {
+func (m *Mobile) AddData(data string, threadId string, caption string, cb ProtoCallback) {
 	go func() {
-		hash, err := m.addData(data, threadId, caption)
+		decoded, err := base64.StdEncoding.DecodeString(data)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+		hash, err := m.addData(decoded, threadId, caption)
 		if err != nil {
 			cb.Call(nil, err)
 			return
