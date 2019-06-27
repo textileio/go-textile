@@ -35,8 +35,11 @@ var DefaultServerFilters = []string{
 	"/ip6/fe80::/ipcidr/10",
 }
 
-// TextileBootstrapAddresses are the addresses of cafe nodes run by the Textile team.
-var TextileBootstrapAddresses = []string{
+// DefaultBootstrapAddresses are the addresses of cafe nodes run by the Textile team.
+var DefaultBootstrapAddresses = []string{
+	"/ip4/104.210.43.77/tcp/4001/ipfs/12D3KooWSsM117bNw6yu1auMfNqeu59578Bct5V4S9fWxavogrsw",  // us-west
+	"/ip4/20.39.232.27/tcp/4001/ipfs/12D3KooWLnUv9MWuRM6uHirRPBM4NwRj54n4gNNnBtiFiwPiv3Up",   // eu-west
+	"/ip4/34.87.103.105/tcp/4001/ipfs/12D3KooWA5z2C3z1PNKi36Bw1MxZhBD8nv7UbB7YQP6WcSWYNwRQ",  // as-southeast
 	"/ip4/18.144.12.135/tcp/4001/ipfs/12D3KooWGBW3LfzypK3zgV4QxdPyUm3aEuwBDMKRRpCPm9FrJvar",  // us-west-1a
 	"/ip4/13.57.23.210/tcp/4001/ipfs/12D3KooWQue2dSRqnZTVvikoxorZQ5Qyyug3hV65rYnWYpYsNMRE",   // us-west-1c
 	"/ip4/13.56.163.77/tcp/4001/ipfs/12D3KooWFrrmGJcQhE5h6VUvUEXdLH7gPKdWh2q4CEM62rFGcFpr",   // us-west-beta
@@ -51,7 +54,7 @@ var TextileBootstrapAddresses = []string{
 
 // TextileBootstrapPeers returns the (parsed) set of Textile bootstrap peers.
 func TextileBootstrapPeers() ([]peer.AddrInfo, error) {
-	ps, err := native.ParseBootstrapPeers(TextileBootstrapAddresses)
+	ps, err := native.ParseBootstrapPeers(DefaultBootstrapAddresses)
 	if err != nil {
 		return nil, fmt.Errorf(`failed to parse hardcoded bootstrap peers: %s
 This is a problem with the Textile codebase. Please report it to the dev team.`, err)
