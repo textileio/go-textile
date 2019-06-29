@@ -9,8 +9,7 @@ import (
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -124,7 +123,7 @@ func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
+func peersWithAddresses(addrs []string) ([]peer.AddrInfo, error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
@@ -140,9 +139,9 @@ func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 			peers[id] = nil
 		}
 	}
-	pis := make([]pstore.PeerInfo, 0, len(peers))
+	pis := make([]peer.AddrInfo, 0, len(peers))
 	for id, maddrs := range peers {
-		pis = append(pis, pstore.PeerInfo{
+		pis = append(pis, peer.AddrInfo{
 			ID:    id,
 			Addrs: maddrs,
 		})

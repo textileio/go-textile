@@ -10,7 +10,7 @@ import (
 
 	ggio "github.com/gogo/protobuf/io"
 	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/pb"
 )
 

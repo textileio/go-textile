@@ -21,8 +21,8 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	ctxio "github.com/jbenet/go-context/io"
 	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -43,8 +43,8 @@ type Service struct {
 	smlk   sync.Mutex
 }
 
-// defaultTimeout is the context timeout for sending / requesting messages
-const defaultTimeout = time.Second * 30
+// DefaultTimeout is the context timeout for sending / requesting messages
+const DefaultTimeout = time.Second * 30
 
 // PeerStatus is the possible results from pinging another peer
 type PeerStatus string
@@ -106,7 +106,7 @@ func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, erro
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
 	ms, err := srv.messageSenderForPeer(ctx, pid)
@@ -223,7 +223,7 @@ func (srv *Service) SendMessage(ctx context.Context, p string, pmes *pb.Envelope
 
 	if ctx == nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
+		ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeout)
 		defer cancel()
 	}
 
@@ -502,12 +502,17 @@ func (srv *Service) listen(tag string) {
 			// send out response msg
 			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
-			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-			err = srv.SendMessage(ctx, mPeer.Pretty(), rpmes)
+			payload, err := proto.Marshal(rpmes)
+			if err != nil {
+				log.Warningf("error marshaling payload: %s", err)
+				continue
+			}
+
+			topic := string(srv.handler.Protocol()) + "/" + mPeer.Pretty()
+			err = ipfs.Publish(srv.Node(), topic, payload)
 			if err != nil {
 				log.Warningf("error sending message response to %s: %s", mPeer, err)
 			}
-			cancel()
 		}
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 const PublishTimeout = time.Second * 5
@@ -78,7 +78,7 @@ func connectToTopicReceiver(node *core.IpfsNode, ctx context.Context, topic stri
 			continue
 		}
 		wg.Add(1)
-		go func(pi pstore.PeerInfo) {
+		go func(pi peer.AddrInfo) {
 			defer wg.Done()
 			err := node.PeerHost.Connect(ctx, pi)
 			if err != nil {

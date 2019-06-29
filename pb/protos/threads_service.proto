@@ -15,6 +15,10 @@ message ThreadEnvelope {
     bytes node       = 5; // block node (v2)
 }
 
+message ThreadEnvelopeAck {
+    string id = 1;
+}
+
 message ThreadBlock {
     ThreadBlockHeader header    = 1;
     Block.BlockType type        = 2;

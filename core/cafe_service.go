@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -16,8 +17,8 @@ import (
 	icid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	iface "github.com/ipfs/interface-go-ipfs-core"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/mr-tron/base58/base58"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/broadcast"
@@ -1347,7 +1348,14 @@ func (h *CafeService) handlePubSubQuery(env *pb.Envelope, pid peer.ID) (*pb.Enve
 
 	switch query.ResponseType {
 	case pb.PubSubQuery_P2P:
-		return renv, nil
+		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
+		ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+		defer cancel()
+
+		err = h.service.SendMessage(ctx, pid.Pretty(), renv)
+		if err != nil {
+			log.Warningf("error sending message response to %s: %s", pid, err)
+		}
 	case pb.PubSubQuery_PUBSUB:
 		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
 		if query.Topic == "" {

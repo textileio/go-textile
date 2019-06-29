@@ -17,7 +17,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	ipfspath "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58/base58"
 	gincors "github.com/rs/cors/wrapper/gin"
 	"github.com/textileio/go-textile/core"

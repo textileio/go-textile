@@ -13,7 +13,7 @@ import (
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/repo/config"
 )

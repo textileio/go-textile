@@ -11,7 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/pin"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )

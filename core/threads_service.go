@@ -2,16 +2,18 @@ package core
 
 import (
 	"bytes"
-	"context"
+	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -24,6 +26,12 @@ import (
 // ErrInvalidThreadBlock is a catch all error for malformed / invalid blocks
 var ErrInvalidThreadBlock = fmt.Errorf("invalid thread block")
 
+// threadsServiceProtocol is the current protocol tag
+const threadsServiceProtocol = protocol.ID("/textile/threads/2.0.0")
+
+// sendMessageTimeout is the duration to wait on a message ack before bailing to an inbox
+const sendMessageTimeout = time.Millisecond * time.Duration(2500)
+
 // ThreadService is a libp2p service for orchestrating a collection of files
 // with annotations amongst a group of peers
 type ThreadsService struct {
@@ -33,6 +41,7 @@ type ThreadsService struct {
 	addThread        func([]byte, []string) (mh.Multihash, error)
 	removeThread     func(string) (mh.Multihash, error)
 	sendNotification func(*pb.Notification) error
+	acknowledgements *broadcast.Broadcaster
 	online           bool
 }
 
@@ -52,6 +61,7 @@ func NewThreadsService(
 		addThread:        addThread,
 		removeThread:     removeThread,
 		sendNotification: sendNotification,
+		acknowledgements: broadcast.NewBroadcaster(10),
 	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
@@ -59,7 +69,7 @@ func NewThreadsService(
 
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
-	return protocol.ID("/textile/threads/2.0.0")
+	return threadsServiceProtocol
 }
 
 // Start begins online services
@@ -74,6 +84,10 @@ func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 
 // Handle is called by the underlying service handler method
 func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
+	if env.Message.Type == pb.Message_THREAD_ENVELOPE_ACK {
+		return h.handleMessageAck(env)
+	}
+
 	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
 		return nil, nil
 	}
@@ -107,6 +121,10 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		nhash = node.Cid().Hash().B58String()
 	}
 
+	reply := func() (*pb.Envelope, error) {
+		return h.NewEnvelopeAck(env.Sig)
+	}
+
 	// check for an account signature
 	var accountPeer bool
 	if tenv.Sig != nil {
@@ -123,13 +141,13 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		if err != nil {
 			return nil, err
 		}
-		return nil, nil
+		return reply()
 	}
 
 	index := h.datastore.Blocks().Get(bnode.hash)
 	if index != nil {
 		log.Debugf("%s exists, aborting", bnode.hash)
-		return nil, nil
+		return reply()
 	}
 	index, err = thread.handle(bnode, false)
 	if err != nil {
@@ -202,7 +220,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		}
 
 		go thread.cafeOutbox.Flush()
-		return nil, nil
+		return reply()
 	}
 
 	// handle the thread tail in the background
@@ -225,18 +243,13 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		thread.cafeOutbox.Flush()
 	}()
 
-	return nil, nil
+	return reply()
 }
 
 // HandleStream is called by the underlying service handler method
 func (h *ThreadsService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.Envelope, chan error, chan interface{}) {
 	// no-op
 	return make(chan *pb.Envelope), make(chan error), make(chan interface{})
-}
-
-// SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(ctx context.Context, peerId string, env *pb.Envelope) error {
-	return h.service.SendMessage(ctx, peerId, env)
 }
 
 // NewEnvelope signs and wraps an encypted block for transport
@@ -247,6 +260,74 @@ func (h *ThreadsService) NewEnvelope(threadId string, node []byte, sig []byte) (
 		Sig:    sig,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
+}
+
+// NewEnvelopeAck signs and wraps an ack message
+func (h *ThreadsService) NewEnvelopeAck(sig []byte) (*pb.Envelope, error) {
+	tenv := &pb.ThreadEnvelopeAck{
+		Id: base64.StdEncoding.EncodeToString(sig),
+	}
+	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE_ACK, tenv, nil, false)
+}
+
+func (h *ThreadsService) SendMessage(msg pb.BlockMessage) error {
+	if !h.online {
+		return ErrOffline
+	}
+
+	topic := string(threadsServiceProtocol) + "/" + msg.Peer
+	payload, err := proto.Marshal(msg.Env)
+	if err != nil {
+		return err
+	}
+	err = ipfs.Publish(h.service.Node(), topic, payload)
+	if err != nil {
+		return err
+	}
+
+	msgId := base64.StdEncoding.EncodeToString(msg.Env.Sig)
+	timer := time.NewTimer(sendMessageTimeout)
+	listener := h.acknowledgements.Listen()
+	doneCh := make(chan struct{})
+
+	done := func() {
+		listener.Close()
+		close(doneCh)
+	}
+
+	go func() {
+		<-timer.C
+		err = fmt.Errorf("%s failed to ack message %s", msg.Peer, msg.Id)
+		done()
+	}()
+
+	for {
+		select {
+		case <-doneCh:
+			return err
+		case value, ok := <-listener.Ch:
+			if !ok {
+				return nil
+			}
+			if r, ok := value.(string); ok && r == msgId {
+				if timer.Stop() {
+					done()
+				}
+			}
+		}
+	}
+}
+
+// handleMessageAck handles a message acknowledgement from a peer
+func (h *ThreadsService) handleMessageAck(env *pb.Envelope) (*pb.Envelope, error) {
+	tenv := new(pb.ThreadEnvelopeAck)
+	err := ptypes.UnmarshalAny(env.Message.Payload, tenv)
+	if err != nil {
+		return nil, err
+	}
+
+	h.acknowledgements.Send(tenv.Id)
+	return nil, nil
 }
 
 // handleAdd receives an invite message

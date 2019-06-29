@@ -7,7 +7,7 @@ import (
 	"time"
 
 	icid "github.com/ipfs/go-cid"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"

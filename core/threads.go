@@ -5,13 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/textileio/go-textile/util"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
@@ -20,6 +18,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/schema/textile"
+	"github.com/textileio/go-textile/util"
 )
 
 // ErrThreadNotFound indicates thread is not found in the loaded list
@@ -225,6 +224,16 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// compare heads to determine if we need to backtrack
+	xheads, err := nthread.Heads()
+	if err != nil {
+		return err
+	}
+	if util.EqualStringSlices(xheads, heads) {
+		t.cafeOutbox.Flush()
+		return nil
 	}
 
 	// handle the thread tail in the background
