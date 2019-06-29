@@ -7,9 +7,9 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/pb"
 )

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"

@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
 	uio "github.com/ipfs/go-unixfs/io"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"

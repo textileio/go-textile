@@ -6,9 +6,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	config "github.com/ipfs/go-ipfs-config"
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	pb "github.com/libp2p/go-libp2p-crypto/pb"
-	peer "github.com/libp2p/go-libp2p-peer"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
+	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"golang.org/x/crypto/ed25519"
 )
 

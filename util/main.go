@@ -31,6 +31,18 @@ func SplitString(in string, sep string) []string {
 	return list
 }
 
+func EqualStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func ProtoTime(ts *timestamp.Timestamp) time.Time {
 	return time.Unix(ts.Seconds, int64(ts.Nanos))
 }

@@ -76,9 +76,5 @@ func AccountSync(wait int) error {
 		}
 	}
 
-	if _, err := createThreadSnapshot(); err != nil {
-		return err
-	}
-
 	return nil
 }

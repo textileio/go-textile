@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	cid "github.com/ipfs/go-cid"
 	uio "github.com/ipfs/go-unixfs/io"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )

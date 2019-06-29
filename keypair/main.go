@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/strkey"
 )
 

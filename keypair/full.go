@@ -3,9 +3,9 @@ package keypair
 import (
 	"bytes"
 
-	libp2pc "github.com/libp2p/go-libp2p-crypto"
-	pb "github.com/libp2p/go-libp2p-crypto/pb"
-	peer "github.com/libp2p/go-libp2p-peer"
+	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
+	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/strkey"
 	"golang.org/x/crypto/ed25519"

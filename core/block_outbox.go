@@ -6,7 +6,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 )
@@ -77,7 +76,7 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 		wg.Add(1)
 		go func(id string, msgs []pb.BlockMessage) {
 			for _, msg := range msgs {
-				if err := q.handle(id, msg); err != nil {
+				if err := q.handle(msg); err != nil {
 					log.Warningf("error handling block message %s: %s", msg.Id, err)
 					continue
 				}
@@ -106,34 +105,18 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 }
 
 // handle handles a single message
-func (q *BlockOutbox) handle(peerId string, msg pb.BlockMessage) error {
-	// first, attempt to send the message directly to the recipient
-	sendable := q.service().online
-	if sendable {
-		connected, err := ipfs.SwarmConnected(q.node(), peerId)
-		if err != nil {
-			return err
-		}
-		if !connected {
-			sendable = false
-		}
-	}
-	var err error
-	if sendable {
-		err = q.service().SendMessage(nil, peerId, msg.Env)
-	}
-	if !sendable || err != nil {
-		if err != nil {
-			log.Debugf("send block message direct to %s failed: %s", peerId, err)
-		}
+func (q *BlockOutbox) handle(msg pb.BlockMessage) error {
+	err := q.service().SendMessage(msg)
+	if err != nil {
+		log.Debugf("send block message direct to %s failed: %s", msg.Peer, err)
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-		contact := q.datastore.Peers().Get(peerId)
+		contact := q.datastore.Peers().Get(msg.Peer)
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("sending block message for %s to inbox(es)", peerId)
+			log.Debugf("sending block message for %s to inbox(es)", msg.Peer)
 
 			// add an inbox request for message delivery
-			err = q.cafeOutbox.AddForInbox(peerId, msg.Env, contact.Inboxes)
+			err = q.cafeOutbox.AddForInbox(msg.Peer, msg.Env, contact.Inboxes)
 			if err != nil {
 				return err
 			}
