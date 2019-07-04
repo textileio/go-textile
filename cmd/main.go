@@ -162,6 +162,81 @@ func Run() error {
 		return AccountSync(*accountSyncWait)
 	}
 
+	// account sign <mnemonic> <passphrase> <index> <bytes>
+
+	// account sign <account-private-key> <bytes>
+	// echo 'blah' | account sign [<account-private-key>]
+	// account sign <bytes>
+
+	// account verify <account-public-key> <bytes>
+	// account verify bytes
+
+	// account auth twitter <twitter-username>
+
+	// account auth ipid <ipid-wallet>
+
+	// account auth github <github-username>
+	// outputs: wallet sign <account-private-key> "github:id account:id time:timestamp"
+	// dump that to gist.github.com
+	// press enter to verify
+	// scans the gists to make sure it is there
+	// if it is there, then publish to the profile/auth thread
+
+	// send the auth thread id in the header to requests to the cafe
+	// cafe receives the thread id, scans it for verifications
+	// caches verifications locally
+	// and likes verifications once verified itself (checks github for that verification)
+
+	// if a verification is liked by trusted peers, then we don't bother verifying
+
+	// local cache in the cafe of whose verified
+	// rejecting requests at the cafe level
+
+	// account sign
+	accountSignCmd := accountCmd.Command("sign", "Generate a base64 encoded signature for the message (stdin), using the determined private-key").Alias("account")
+	accountSignPrivateKey := accountSignCmd.Arg("private-key", "If provided, use this private-key to generate the signature, otherwise use the configured account's private key").String()
+	cmds[accountSignCmd.FullCommand()] = func() error {
+		message, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		return AccountSign(message, *accountSignPrivateKey)
+	}
+
+	// account verify
+	accountVerifyCmd := accountCmd.Command("verify", "Verify the message (stdin) against the signature, using the determined public-key").Alias("account")
+	accountVerifySignature := accountVerifyCmd.Arg("signature", "The base64 encoded signature to verify").Required().String()
+	accountVerifyPublicKey := accountVerifyCmd.Arg("public-key", "If provided, use this public-key to validate the signature against the message, otherwise use the configured account's public-key").String()
+	cmds[accountVerifyCmd.FullCommand()] = func() error {
+		message, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		return AccountVerify(message, *accountVerifySignature,  *accountVerifyPublicKey)
+	}
+
+	// account encrypt
+	accountEncryptCmd := accountCmd.Command("encrypt", "Encrypt the message (stdin), using the determined public-key").Alias("account")
+	accountDecryptPublicKey := accountEncryptCmd.Arg("public-key", "If provided, use this public-key for the encryption, otherwise use the configured account's public-key").String()
+	cmds[accountEncryptCmd.FullCommand()] = func() error {
+		message, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		return AccountEncrypt(message,  *accountDecryptPublicKey)
+	}
+
+	// account decrypt
+	accountDecryptCmd := accountCmd.Command("decrypt", "Decrypt the message (stdin), using the determined private-key").Alias("account")
+	accountDecryptPrivateKey := accountDecryptCmd.Arg("private-key", "If provided, use this private-key for the decryption, otherwise use the configured account's private-key").String()
+	cmds[accountDecryptCmd.FullCommand()] = func() error {
+		message, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return err
+		}
+		return AccountDecrypt(message, *accountDecryptPrivateKey)
+	}
+
 	// ================================
 
 	// block

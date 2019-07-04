@@ -41,12 +41,13 @@ func WalletInit(words int, passphrase string) error {
 	return nil
 }
 
+// @todo perhaps depth should be renamed as breadth
 func WalletAccounts(mnemonic string, passphrase string, depth int, offset int) error {
 	if depth < 1 || depth > 100 {
-		return fmt.Errorf("depth must be greater than 0 and less than 100")
+		return fmt.Errorf("depth must be between 1 (inclusive) and 100 (inclusive)")
 	}
 	if offset < 0 || offset > depth {
-		return fmt.Errorf("offset must be greater than 0 and less than depth")
+		return fmt.Errorf("offset must be between 0 (inclusive) and depth (inclusive)")
 	}
 
 	wall := wallet.WalletFromMnemonic(mnemonic)

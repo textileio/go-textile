@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/keypair"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
@@ -41,6 +45,146 @@ func AccountAddress() error {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+func getAccountKeyPair() (keypair.KeyPair, error) {
+	var kp keypair.KeyPair
+	res, err := executeStringCmd(http.MethodGet, "account/seed", params{})
+	if err != nil {
+		return kp, err
+	}
+	return keypair.Parse(res)
+}
+
+func AccountSign(message []byte, privateKeyString string) error {
+	var signed []byte
+
+	if privateKeyString == "" {
+		kp, err := getAccountKeyPair()
+		if err != nil {
+			return err
+		}
+
+		signed, err = kp.Sign(message)
+		if err != nil {
+			return err
+		}
+	} else  {
+		kp, err := keypair.Parse(privateKeyString)
+		if err != nil {
+			return err
+		}
+
+		signed, err = kp.Sign(message)
+	}
+
+	sigString := base64.StdEncoding.EncodeToString(signed)
+	fmt.Println(sigString)
+
+	return nil
+}
+
+
+func AccountVerify(message []byte, sigString string, publicKeyString string) error {
+	signed, err := base64.StdEncoding.DecodeString(sigString)
+	if err != nil {
+		return err
+	}
+
+	if publicKeyString == "" {
+		kp, err := getAccountKeyPair()
+		if err != nil {
+			return err
+		}
+
+		err = kp.Verify(message, signed)
+	} else {
+		kp, err := keypair.Parse(publicKeyString)
+		if err != nil {
+			return err
+		}
+
+		err = kp.Verify(message, signed)
+	}
+
+	if err != nil {
+		fmt.Errorf("fail: %s\n", err)
+	} else {
+		fmt.Println("pass")
+	}
+
+	return nil
+}
+
+func AccountEncrypt(message []byte, publicKeyString string) error {
+	var encrypted []byte
+
+	if publicKeyString == "" {
+		kp, err := getAccountKeyPair()
+		if err != nil {
+			return err
+		}
+
+		publicKey, err := kp.LibP2PPubKey()
+		if err != nil {
+			return err
+		}
+
+		encrypted, err = crypto.Encrypt(publicKey, message)
+		if err != nil {
+			return err
+		}
+	} else {
+		kp, err := keypair.Parse(publicKeyString)
+		if err != nil {
+			return err
+		}
+
+		encrypted, err = kp.Encrypt(message)
+		if err != nil {
+			return err
+		}
+	}
+
+
+	os.Stdout.Write(encrypted)
+
+	return nil
+}
+
+func AccountDecrypt(message []byte, privateKeyString string) error {
+	var decrypted []byte
+
+	if privateKeyString == "" {
+		kp, err := getAccountKeyPair()
+		if err != nil {
+			return err
+		}
+
+		privateKey, err := kp.LibP2PPrivKey()
+		if err != nil {
+			return err
+		}
+
+		decrypted, err = crypto.Decrypt(privateKey, message)
+		if err != nil {
+			return err
+		}
+	} else {
+		kp, err := keypair.Parse(privateKeyString)
+		if err != nil {
+			return err
+		}
+
+		decrypted, err = kp.Decrypt(message)
+		if err != nil {
+			return err
+		}
+	}
+
+	os.Stdout.Write(decrypted)
+
 	return nil
 }
 
