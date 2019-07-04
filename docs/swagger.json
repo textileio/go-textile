@@ -2893,10 +2893,16 @@
         "pb.Block": {
             "type": "object",
             "properties": {
+                "attempts": {
+                    "type": "integer"
+                },
                 "author": {
                     "type": "string"
                 },
                 "body": {
+                    "type": "string"
+                },
+                "data": {
                     "type": "string"
                 },
                 "date": {
@@ -2910,6 +2916,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "status": {
+                    "type": "integer"
                 },
                 "target": {
                     "type": "string"
@@ -3209,6 +3218,9 @@
                     "items": {
                         "$ref": "#/definitions/pb.Comment"
                     }
+                },
+                "data": {
+                    "type": "string"
                 },
                 "date": {
                     "type": "string"
@@ -3553,6 +3565,7 @@
                     }
                 },
                 "state": {
+                    "description": "Deprecated: Do not use.",
                     "type": "integer"
                 },
                 "type": {
