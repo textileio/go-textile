@@ -254,6 +254,14 @@ func flushCafeRequests(limit int) (int, error) {
 		}
 	}
 
+	// make sure we can query for each
+	for g := range reqs {
+		bytes, err = cafesTestVars.mobile.CafeRequest(g)
+		if err != nil {
+			return count, err
+		}
+	}
+
 	// handle each
 	for g, req := range reqs {
 		res, err := handleReq(req)

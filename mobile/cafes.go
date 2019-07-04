@@ -147,6 +147,24 @@ func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
 	return proto.Marshal(&pb.Strings{Values: groups})
 }
 
+// CafeRequest fetches a single CafeRequest by id
+func (m *Mobile) CafeRequest(id string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	cafeRequest := m.node.Datastore().CafeRequests().Get(id)
+	if cafeRequest == nil {
+		return nil, nil
+	}
+
+	bytes, err := proto.Marshal(cafeRequest)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 // CafeRequestPending marks a request as pending
 func (m *Mobile) CafeRequestPending(id string) error {
 	if !m.node.Started() {
