@@ -36,9 +36,13 @@ definitions:
     type: object
   pb.Block:
     properties:
+      attempts:
+        type: integer
       author:
         type: string
       body:
+        type: string
+      data:
         type: string
       date:
         type: string
@@ -48,6 +52,8 @@ definitions:
         items:
           type: string
         type: array
+      status:
+        type: integer
       target:
         type: string
       thread:
@@ -244,6 +250,8 @@ definitions:
         items:
           $ref: '#/definitions/pb.Comment'
         type: array
+      data:
+        type: string
       date:
         type: string
       files:
@@ -471,6 +479,7 @@ definitions:
           type: integer
         type: array
       state:
+        description: 'Deprecated: Do not use.'
         type: integer
       type:
         type: integer

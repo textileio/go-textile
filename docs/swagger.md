@@ -1754,11 +1754,14 @@ Check validity of existing cafe access token
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
+| attempts | integer |  | No |
 | author | string |  | No |
 | body | string |  | No |
+| data | string |  | No |
 | date | string |  | No |
 | id | string |  | No |
 | parents | [ string ] |  | No |
+| status | integer |  | No |
 | target | string |  | No |
 | thread | string |  | No |
 | type | integer |  | No |
@@ -1900,6 +1903,7 @@ Check validity of existing cafe access token
 | block | string |  | No |
 | caption | string |  | No |
 | comments | [ [pb.Comment](#pb.comment) ] |  | No |
+| data | string |  | No |
 | date | string |  | No |
 | files | [ [pb.File](#pb.file) ] |  | No |
 | likes | [ [pb.Like](#pb.like) ] |  | No |
@@ -2048,7 +2052,7 @@ Check validity of existing cafe access token
 | schema_node | [pb.Node](#pb.node) |  | No |
 | sharing | integer |  | No |
 | sk | [ integer ] |  | No |
-| state | integer |  | No |
+| state | integer | Deprecated: Do not use. | No |
 | type | integer |  | No |
 | whitelist | [ string ] |  | No |
 

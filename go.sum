@@ -7,6 +7,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd/go.mod h1:bqoB8kInrTeEtYAwaIXoSRqdwnjQmFhsfusnzyui6yY=
+github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
+github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OpenPeeDeeP/depguard v0.0.0-20180806142446-a69c782687b2/go.mod h1:7/4sitnI9YlQgTLLk734QlzXT8DuHVnAyztLplQjk+o=
 github.com/PuerkitoBio/purell v1.1.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
@@ -863,6 +865,8 @@ github.com/swaggo/gin-swagger v1.1.0/go.mod h1:FQlm07YuT1glfN3hQiO11UQ2m39vOCZ/a
 github.com/swaggo/swag v1.4.0/go.mod h1:hog2WgeMOrQ/LvQ+o1YGTeT+vWVrbi0SiIslBtxKTyM=
 github.com/swaggo/swag v1.5.0 h1:haK8VG3hj+v/c8hQ4f3U+oYpkdI/26m9LAUTXHOv+2U=
 github.com/swaggo/swag v1.5.0/go.mod h1:+xZrnu5Ut3GcUkKAJm9spnOooIS1WB1cUOkLNPrvrE0=
+github.com/swaggo/swag v1.6.0 h1:d6Z3kNGQmM2Z6DZtOyK138eFTkpi2JwSwNVOV4wnlLk=
+github.com/swaggo/swag v1.6.0/go.mod h1:YyZstMc22WYm6GEDx/CYWxq+faBbjQ5EqwQcrjREDBo=
 github.com/syndtr/goleveldb v1.0.0 h1:fBdIW9lB4Iz0n9khmH8w27SJ3QEJ7+IgjPEwGSZiFdE=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
 github.com/texttheater/golang-levenshtein v0.0.0-20180516184445-d188e65d659e/go.mod h1:XDKHRm5ThF8YJjx001LtgelzsoaEcvnA7lVWz9EeX3g=
@@ -1043,6 +1047,8 @@ golang.org/x/tools v0.0.0-20190420000508-685fecacd0a0 h1:pa1CyBALPFjblgkNQp7T7gE
 golang.org/x/tools v0.0.0-20190420000508-685fecacd0a0/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190521203540-521d6ed310dd h1:7E3PabyysDSEjnaANKBgums/hyvMI/HoHQ50qZEzTrg=
 golang.org/x/tools v0.0.0-20190521203540-521d6ed310dd/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
+golang.org/x/tools v0.0.0-20190606050223-4d9ae51c2468 h1:fTfk6GjmihJbK0mSUFgPPgYpsdmApQ86Mcd4GuKax9U=
+golang.org/x/tools v0.0.0-20190606050223-4d9ae51c2468/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/xerrors v0.0.0-20190212162355-a5947ffaace3 h1:P6iTFmrTQqWrqLZPX1VMzCUbCRCAUXSUsSpkEOvWzJ0=
 golang.org/x/xerrors v0.0.0-20190212162355-a5947ffaace3/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522 h1:bhOzK9QyoD0ogCnFro1m2mz41+Ib0oOhfJnBp5MR4K4=

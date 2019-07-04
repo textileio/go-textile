@@ -700,20 +700,6 @@ There are two types of invites, direct account-to-account and external:
 		return ProfileSet(*profileSetName, *profileSetAvatar)
 	}
 
-	// profile set name
-	profileSetNameCmd := profileSetCmd.Command("name", "Sets the profile name of the peer")
-	profileSetNameValue := profileSetNameCmd.Arg("value", "The value to set the profile name to").Required().String()
-	cmds[profileSetNameCmd.FullCommand()] = func() error {
-		return ProfileSet(*profileSetNameValue, "")
-	}
-
-	// profile set avatar
-	profileSetAvatarCmd := profileSetCmd.Command("avatar", "Sets the profile avatar of the peer")
-	profileSetAvatarValue := profileSetAvatarCmd.Arg("value", "The value (as an image path: JPEG, PNG, GIF) to set the profile avatar to").Required().String()
-	cmds[profileSetAvatarCmd.FullCommand()] = func() error {
-		return ProfileSet("", *profileSetAvatarValue)
-	}
-
 	// ================================
 
 	// observe
