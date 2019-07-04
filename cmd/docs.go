@@ -122,7 +122,7 @@ func formatCommand(appCmd *kingpin.Application, i interface{}) string {
 
 	level := depth + 1
 	line := fmt.Sprintf("\n<h%d>%s</h%d>", level, html.EscapeString(fullCommand), level)
-	line += "\n<p><pre>" + html.EscapeString(strings.TrimSpace(help)) + "</pre></p>"
+	line += "\n<pre>" + html.EscapeString(strings.TrimSpace(help)) + "</pre>"
 	details := formatFlags(flags) + formatArgs(args)
 	if details != "" {
 		line += "\n<table>" + details + "\n</table>"
