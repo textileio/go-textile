@@ -237,6 +237,17 @@ func Run() error {
 		return AccountDecrypt(message, *accountDecryptPrivateKey)
 	}
 
+
+	// account auth
+	accountAuthCmd := accountCmd.Command("auth", "Authorize your textile account against an external service").Alias("authorise").Alias("authorize")
+
+	// account auth github
+	accountAuthGithubCmd := accountAuthCmd.Command("github", "Authorize your textile account against a github username").Alias("gh")
+	accountAuthGithubUsername := accountAuthGithubCmd.Arg("github-username", "The github username to authorise").Required().String()
+	cmds[accountAuthGithubCmd.FullCommand()] = func() error {
+		return AccountAuthGithub(*accountAuthGithubUsername)
+	}
+
 	// ================================
 
 	// block

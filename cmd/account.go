@@ -1,13 +1,19 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/util"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/textileio/go-textile/pb"
 )
@@ -30,21 +36,39 @@ func AccountGet() error {
 	return nil
 }
 
+func getAccountPrivateKey() (string, error) {
+	var privateKey string
+	privateKey, err := executeStringCmd(http.MethodGet, "account/seed", params{})
+	if err != nil {
+		return privateKey, err
+	}
+	return privateKey, nil
+}
+
 func AccountSeed() error {
-	res, err := executeStringCmd(http.MethodGet, "account/seed", params{})
+	privateKey, err := getAccountPrivateKey()
 	if err != nil {
 		return err
 	}
-	output(res)
+	output(privateKey)
 	return nil
 }
 
+func getAccountPublicKey() (string, error) {
+	var publicKey string
+	publicKey, err := executeStringCmd(http.MethodGet, "account/address", params{})
+	if err != nil {
+		return publicKey, err
+	}
+	return publicKey, nil
+}
+
 func AccountAddress() error {
-	res, err := executeStringCmd(http.MethodGet, "account/address", params{})
+	publicKey, err := getAccountPublicKey()
 	if err != nil {
 		return err
 	}
-	output(res)
+	output(publicKey)
 	return nil
 }
 
@@ -57,34 +81,42 @@ func getAccountKeyPair() (keypair.KeyPair, error) {
 	return keypair.Parse(res)
 }
 
-func AccountSign(message []byte, privateKeyString string) error {
+func accountSign(message []byte, privateKeyString string) (string, error) {
 	var signed []byte
+	var sigString string
 
 	if privateKeyString == "" {
 		kp, err := getAccountKeyPair()
 		if err != nil {
-			return err
+			return sigString, err
 		}
 
 		signed, err = kp.Sign(message)
 		if err != nil {
-			return err
+			return sigString, err
 		}
 	} else  {
 		kp, err := keypair.Parse(privateKeyString)
 		if err != nil {
-			return err
+			return sigString, err
 		}
 
 		signed, err = kp.Sign(message)
 	}
 
-	sigString := base64.StdEncoding.EncodeToString(signed)
-	fmt.Println(sigString)
+	sigString = base64.StdEncoding.EncodeToString(signed)
 
-	return nil
+	return sigString, nil
 }
 
+func AccountSign(message []byte, privateKeyString string) error {
+	sigString, err := accountSign(message, privateKeyString)
+	if err != nil {
+		return err
+	}
+	fmt.Println(sigString)
+	return nil
+}
 
 func AccountVerify(message []byte, sigString string, publicKeyString string) error {
 	signed, err := base64.StdEncoding.DecodeString(sigString)
@@ -219,6 +251,77 @@ func AccountSync(wait int) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func AccountAuthGithub(username string) error {
+	privateKeyString, err := getAccountPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	publicKeyString, err := getAccountPublicKey()
+	if err != nil {
+		return err
+	}
+
+	message, err := json.Marshal([]string{publicKeyString, username, time.Now().UTC().String()})
+	if err != nil {
+		return err
+	}
+
+	sigString, err := accountSign(message, privateKeyString)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Post a gist with the following:\n\n%s\n\n", sigString)
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Once posted, post the gist URL here, then press <enter>\n\n")
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	url := strings.TrimSpace(input)
+	fmt.Print("\n\n")
+
+	r := regexp.MustCompile(`^https://gist\.github\.com/([^/]+)/([^/]+)/?$`)
+
+	matches := r.FindAllStringSubmatch(url, -1)
+
+	if len(matches) != 1 && len(matches[0]) != 3 {
+		return fmt.Errorf("Gist URL was not constructed as expected")
+	}
+
+	if matches[0][1] != username {
+		return fmt.Errorf("Gist Username was not as expected")
+	}
+
+	gistID := matches[0][2]
+
+	rawURL := fmt.Sprintf("https://gist.githubusercontent.com/%s/%s/raw/", username, gistID)
+
+	resp, err := http.Get(rawURL)
+	if err != nil {
+		return err
+	}
+
+	rawResult, err := util.UnmarshalString(resp.Body)
+	if err != nil {
+		return err
+	}
+	result := strings.TrimSpace(rawResult)
+
+	if result != sigString {
+		return fmt.Errorf("Signature did not match what we expected\nActual:    %s\nExpected:  %s", result, sigString)
+	}
+
+	// signature is ok, write it all the the auth thread
+
+	fmt.Println("Verified", result) // false
 
 	return nil
 }
