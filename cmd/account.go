@@ -82,44 +82,44 @@ func getAccountKeyPair() (keypair.KeyPair, error) {
 }
 
 func accountSign(message []byte, privateKeyString string) (string, error) {
-	var signed []byte
-	var sigString string
+	var signatureBytes []byte
+	var signatureString string
 
 	if privateKeyString == "" {
 		kp, err := getAccountKeyPair()
 		if err != nil {
-			return sigString, err
+			return signatureString, err
 		}
 
-		signed, err = kp.Sign(message)
+		signatureBytes, err = kp.Sign(message)
 		if err != nil {
-			return sigString, err
+			return signatureString, err
 		}
 	} else  {
 		kp, err := keypair.Parse(privateKeyString)
 		if err != nil {
-			return sigString, err
+			return signatureString, err
 		}
 
-		signed, err = kp.Sign(message)
+		signatureBytes, err = kp.Sign(message)
 	}
 
-	sigString = base64.StdEncoding.EncodeToString(signed)
+	signatureString = base64.StdEncoding.EncodeToString(signatureBytes)
 
-	return sigString, nil
+	return signatureString, nil
 }
 
 func AccountSign(message []byte, privateKeyString string) error {
-	sigString, err := accountSign(message, privateKeyString)
+	signatureString, err := accountSign(message, privateKeyString)
 	if err != nil {
 		return err
 	}
-	fmt.Println(sigString)
+	fmt.Println(signatureString)
 	return nil
 }
 
-func AccountVerify(message []byte, sigString string, publicKeyString string) error {
-	signed, err := base64.StdEncoding.DecodeString(sigString)
+func AccountVerify(message []byte, signatureString string, publicKeyString string) error {
+	signatureBytes, err := base64.StdEncoding.DecodeString(signatureString)
 	if err != nil {
 		return err
 	}
@@ -130,14 +130,14 @@ func AccountVerify(message []byte, sigString string, publicKeyString string) err
 			return err
 		}
 
-		err = kp.Verify(message, signed)
+		err = kp.Verify(message, signatureBytes)
 	} else {
 		kp, err := keypair.Parse(publicKeyString)
 		if err != nil {
 			return err
 		}
 
-		err = kp.Verify(message, signed)
+		err = kp.Verify(message, signatureBytes)
 	}
 
 	if err != nil {
@@ -256,72 +256,86 @@ func AccountSync(wait int) error {
 }
 
 func AccountAuthGithub(username string) error {
+	// The private key is used to generate the signature
 	privateKeyString, err := getAccountPrivateKey()
 	if err != nil {
 		return err
 	}
 
+	// The public key is used to verify the signature
 	publicKeyString, err := getAccountPublicKey()
 	if err != nil {
 		return err
 	}
 
+	// Create the message to be signed, which is a JSON array of the
+	// textile account id
+	// external account id
+	// timestamp
 	message, err := json.Marshal([]string{publicKeyString, username, time.Now().UTC().String()})
 	if err != nil {
 		return err
 	}
 
-	sigString, err := accountSign(message, privateKeyString)
+	// Create the signature
+	signatureString, err := accountSign(message, privateKeyString)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Post a gist with the following:\n\n%s\n\n", sigString)
+	// Output the instructions for the user
+	fmt.Printf("Create a GitHub Gist — https://gist.github.com/new — with the following:\n\n%s\n\n", signatureString)
 
+	// Read the input verification
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Once posted, post the gist URL here, then press <enter>\n\n")
+	fmt.Print("Once the GitHub Gist has been created, copy its URL and paste it here, then press <enter>\n\n")
 	input, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-
-	url := strings.TrimSpace(input)
 	fmt.Print("\n\n")
+	if err != nil {
+		return err
+	}
 
+	// Prepare the input for verification
+	inputURL := strings.TrimSpace(input)
+
+	// Extract the verifiable components of the input
 	r := regexp.MustCompile(`^https://gist\.github\.com/([^/]+)/([^/]+)/?$`)
+	matches := r.FindAllStringSubmatch(inputURL, -1)
 
-	matches := r.FindAllStringSubmatch(url, -1)
-
+	// Verify the input is indeed verifiable
 	if len(matches) != 1 && len(matches[0]) != 3 {
-		return fmt.Errorf("Gist URL was not constructed as expected")
+		return fmt.Errorf("The URL of the GitHub Gist was not constructed as expected")
 	}
 
+	// Verify the username is as expected
+	// This is to prevent someone posting the verification on a different external account
 	if matches[0][1] != username {
-		return fmt.Errorf("Gist Username was not as expected")
+		return fmt.Errorf("The username of the GitHub Gist was not as expected")
 	}
 
-	gistID := matches[0][2]
+	// The verification id, in this case it is the gistID
+	verificationID := matches[0][2]
 
-	rawURL := fmt.Sprintf("https://gist.githubusercontent.com/%s/%s/raw/", username, gistID)
+	// The verification URL, in this case it is the GitHub Gist URL for the raw content
+	verificationURL := fmt.Sprintf("https://gist.githubusercontent.com/%s/%s/raw/", username, verificationID)
 
-	resp, err := http.Get(rawURL)
+	// Fetch the contents of the verification URL
+	verificationResponse, err := http.Get(verificationURL)
 	if err != nil {
 		return err
 	}
-
-	rawResult, err := util.UnmarshalString(resp.Body)
+	verificationResponseBody, err := util.UnmarshalString(verificationResponse.Body)
 	if err != nil {
 		return err
 	}
-	result := strings.TrimSpace(rawResult)
+	verificationResponseContent := strings.TrimSpace(verificationResponseBody)
 
-	if result != sigString {
-		return fmt.Errorf("Signature did not match what we expected\nActual:    %s\nExpected:  %s", result, sigString)
+	// Verify that the contents of the verification URL match the signature
+	if verificationResponseContent != signatureString {
+		return fmt.Errorf("Signature did not match what we expected\nActual:    %s\nExpected:  %s", verificationResponseContent, signatureString)
 	}
+	fmt.Println("Verified")
 
-	// signature is ok, write it all the the auth thread
-
-	fmt.Println("Verified", result) // false
-
+	// Complete
 	return nil
 }
