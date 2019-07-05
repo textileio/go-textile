@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -256,9 +257,12 @@ func flushCafeRequests(limit int) (int, error) {
 
 	// make sure we can query for each
 	for g := range reqs {
-		_, err := cafesTestVars.mobile.CafeRequest(g)
+		bytes, err := cafesTestVars.mobile.CafeRequest(g)
 		if err != nil {
 			return count, err
+		}
+		if bytes == nil {
+			return count, errors.New("no bytes returned for CafeRequest")
 		}
 	}
 
