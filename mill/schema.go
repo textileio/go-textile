@@ -10,10 +10,6 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var pbMarshaler = jsonpb.Marshaler{
-	OrigName: true,
-}
-
 type Schema struct{}
 
 func (m *Schema) ID() string {

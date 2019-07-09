@@ -1,22 +1,23 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/textileio/go-textile/crypto"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	uio "github.com/ipfs/go-unixfs/io"
+	"github.com/libp2p/go-libp2p-core/peer"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
-	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/schema/textile"
 	"github.com/textileio/go-textile/util"
 )
@@ -27,28 +28,17 @@ var ErrThreadNotFound = fmt.Errorf("thread not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = fmt.Errorf("thread is loaded")
 
-// emptyThreadKey indicates "" was used for a thread key
-var emptyThreadKey = fmt.Errorf("thread key cannot by empty")
-
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool, inviteAccount bool) (*Thread, error) {
-	conf.Key = strings.TrimSpace(conf.Key)
-	if conf.Key == "" {
-		return nil, emptyThreadKey
-	}
-
-	id, err := peer.IDFromPrivateKey(sk)
+func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount bool) (*Thread, error) {
+	key, err := crypto.GenerateAESKey()
 	if err != nil {
 		return nil, err
 	}
-	skb, err := sk.Bytes()
-	if err != nil {
-		return nil, err
-	}
+	dir := uio.NewDirectory(t.node.DAG)
 
-	var sch string
+	var schemaHash string
 	if conf.Schema != nil {
-		var sjson string
+		var schemaJSON string
 
 		if conf.Schema.Id != "" {
 			// ensure schema id is a multi hash
@@ -56,80 +46,108 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 			if err != nil {
 				return nil, err
 			}
-			sch = conf.Schema.Id
+			schemaHash = conf.Schema.Id
 		} else if conf.Schema.Json != "" {
-			sjson = conf.Schema.Json
+			schemaJSON = conf.Schema.Json
 		} else {
 			switch conf.Schema.Preset {
-			case pb.AddThreadConfig_Schema_BLOB:
-				sjson = textile.Blob
-			case pb.AddThreadConfig_Schema_CAMERA_ROLL:
-				sjson = textile.CameraRoll
-			case pb.AddThreadConfig_Schema_MEDIA:
-				sjson = textile.Media
+			case pb.AddThread2Config_Schema_BLOB:
+				schemaJSON = textile.Blob
+			case pb.AddThread2Config_Schema_CAMERA_ROLL:
+				schemaJSON = textile.CameraRoll
+			case pb.AddThread2Config_Schema_MEDIA:
+				schemaJSON = textile.Media
 			}
 		}
 
-		if sjson != "" {
+		if schemaJSON != "" {
 			sfile, err := t.AddFileIndex(&mill.Schema{}, AddFileConfig{
-				Input: []byte(sjson),
+				Input: []byte(schemaJSON),
 				Media: "application/json",
 			})
 			if err != nil {
 				return nil, err
 			}
-			sch = sfile.Hash
+			schemaHash = sfile.Hash
 		}
 
-		if sch != "" {
-			err = t.cafeOutbox.Add(sch, pb.CafeRequest_STORE)
+		if schemaHash != "" {
+			err = t.cafeOutbox.Add(schemaHash, pb.CafeRequest_STORE)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// ensure whitelist is unique
-	set := make(map[string]struct{})
-	var members []string
-	for _, m := range conf.Whitelist {
-		if _, ok := set[m]; !ok {
-			kp, err := keypair.Parse(m)
+	var rolesHash string
+	if conf.Roles != nil {
+		var rolesJSON string
+
+		if conf.Schema.Id != "" {
+			// ensure schema id is a multi hash
+			_, err = mh.FromB58String(conf.Schema.Id)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing address: %s", err)
+				return nil, err
 			}
-			_, err = kp.Sign([]byte{0x00})
-			if err == nil {
-				// we don't want to handle account seeds, just addresses
-				return nil, fmt.Errorf("entry is an account seed, not address")
+			schemaHash = conf.Schema.Id
+		} else if conf.Schema.Json != "" {
+			schemaJSON = conf.Schema.Json
+		} else {
+			switch conf.Schema.Preset {
+			case pb.AddThread2Config_Schema_BLOB:
+				schemaJSON = textile.Blob
+			case pb.AddThread2Config_Schema_CAMERA_ROLL:
+				schemaJSON = textile.CameraRoll
+			case pb.AddThread2Config_Schema_MEDIA:
+				schemaJSON = textile.Media
 			}
-			members = append(members, m)
 		}
-		set[m] = struct{}{}
+
+		if schemaJSON != "" {
+			sfile, err := t.AddFileIndex(&mill.Schema{}, AddFileConfig{
+				Input: []byte(schemaJSON),
+				Media: "application/json",
+			})
+			if err != nil {
+				return nil, err
+			}
+			schemaHash = sfile.Hash
+		}
+
+		if schemaHash != "" {
+			err = t.cafeOutbox.Add(schemaHash, pb.CafeRequest_STORE)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	model := &pb.Thread{
-		Id:        id.Pretty(),
-		Key:       conf.Key,
-		Sk:        skb,
-		Name:      strings.TrimSpace(conf.Name),
-		Schema:    sch,
-		Initiator: initiator,
-		Type:      conf.Type,
-		Sharing:   conf.Sharing,
-		Whitelist: members,
-		State:     pb.Thread_LOADED,
-	}
-	err = t.datastore.Threads().Add(model)
+	// seed randomizes the thread
+	seed, err := crypto.GenerateAESKey()
 	if err != nil {
-		if conf.Force && db.ConflictError(err) && strings.Contains(err.Error(), ".key") {
-			conf.Key = incrementKey(conf.Key)
-			return t.AddThread(conf, sk, initiator, join, inviteAccount)
-		}
+		return nil, err
+	}
+	_, err = ipfs.AddDataToDirectory(t.node, dir, "seed", bytes.NewReader(seed))
+	if err != nil {
 		return nil, err
 	}
 
-	thread, err := t.loadThread(model)
+	index := &pb.Thread2{
+		Id: "id",
+		//Schema
+		Intent: strings.TrimSpace(conf.Intent),
+		//Public
+		//Roles
+
+		Key:  key,
+		Name: strings.TrimSpace(conf.Name),
+	}
+	err = t.datastore.Threads().Add(index)
+	if err != nil {
+		return nil, err
+	}
+
+	thread, err := t.loadThread(index)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +175,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 	}
 
-	log.Debugf("added a new thread %s with name %s", thread.Id, conf.Name)
+	log.Debugf("added a new thread %s with name %s", thread.Id, thread.Name)
 
 	return thread, nil
 }

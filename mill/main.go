@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/golang/protobuf/jsonpb"
 	logging "github.com/ipfs/go-log"
 	"github.com/mr-tron/base58/base58"
 )
 
 var log = logging.Logger("tex-mill")
+
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
 
 var ErrMediaTypeNotSupported = fmt.Errorf("media type not supported")
 

@@ -31,6 +31,32 @@ message AddThreadConfig {
     }
 }
 
+message AddThread2Config {
+	string name         = 1;
+	Schema schema       = 2;
+	string intent       = 3;
+	bool public         = 4;
+	Thread2.Roles roles = 5;
+
+	message Schema {
+		string id     = 1;
+		string json   = 2;
+		Preset preset = 3;
+
+		enum Preset {
+			NONE        = 0;
+			BLOB        = 1;
+			CAMERA_ROLL = 2;
+			MEDIA       = 3;
+		}
+	}
+
+	message Roles {
+		string id   = 1;
+		string json = 2;
+	}
+}
+
 message BlockViz {
     string dots = 1;
     int32 count = 2;
