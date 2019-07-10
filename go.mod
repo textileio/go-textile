@@ -43,15 +43,12 @@ require (
 	github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec // indirect
 	github.com/libp2p/go-conn-security v0.0.1 // indirect
 	github.com/libp2p/go-libp2p-core v0.0.4
-	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/libp2p/go-libp2p-host v0.0.3 // indirect
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5 // indirect
 	github.com/libp2p/go-libp2p-interface-pnet v0.0.1 // indirect
 	github.com/libp2p/go-libp2p-metrics v0.0.1 // indirect
 	github.com/libp2p/go-libp2p-net v0.0.2 // indirect
-	github.com/libp2p/go-libp2p-peer v0.2.0
-	github.com/libp2p/go-libp2p-peerstore v0.1.2-0.20190621130618-cfa9bb890c1a
-	github.com/libp2p/go-libp2p-protocol v0.1.0
+	github.com/libp2p/go-libp2p-protocol v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.1.0
 	github.com/libp2p/go-libp2p-transport v0.0.5 // indirect
 	github.com/libp2p/go-stream-muxer v0.1.0 // indirect

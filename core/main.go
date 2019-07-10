@@ -377,13 +377,6 @@ func (t *Textile) Start() error {
 		}
 		log.Info("node is online")
 
-		// tmp. publish contact for migrated users.
-		// this normally only happens when peer details are changed,
-		// will be removed at some point in the future.
-		err = t.publishPeer()
-		if err != nil {
-			log.Errorf(err.Error())
-		}
 		go t.cafeOutbox.Flush()
 	}()
 
