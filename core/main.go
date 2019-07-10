@@ -561,6 +561,16 @@ func (t *Textile) FlushBlocks() {
 			wg.Add(1)
 			go func(block *pb.Block) {
 				var posted bool
+				defer func() {
+					go t.blockOutbox.Flush()
+					if posted {
+						go t.cafeOutbox.Flush()
+					} else if t.cafeOutbox.handler != nil {
+						go t.cafeOutbox.handler.Flush()
+					}
+					wg.Done()
+				}()
+
 				thread := t.Thread(block.Thread)
 				if thread == nil {
 					return
@@ -584,18 +594,9 @@ func (t *Textile) FlushBlocks() {
 				err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
 				if err != nil {
 					log.Error(err)
-					return
+				} else {
+					log.Debugf("deleted sync group: %s", block.Id)
 				}
-				log.Debugf("deleted sync group: %s", block.Id)
-
-				go t.blockOutbox.Flush()
-				if posted {
-					go t.cafeOutbox.Flush()
-				} else if t.cafeOutbox.handler != nil {
-					go t.cafeOutbox.handler.Flush()
-				}
-
-				wg.Done()
 			}(block)
 		}
 	}
