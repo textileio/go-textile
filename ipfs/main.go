@@ -24,9 +24,10 @@ import (
 
 var log = logging.Logger("tex-ipfs")
 
-const pinTimeout = time.Minute
-const catTimeout = time.Minute
-const connectTimeout = time.Second * 10
+const DefaultTimeout = time.Second * 5
+const PinTimeout = time.Minute
+const CatTimeout = time.Minute
+const ConnectTimeout = time.Second * 10
 
 // DataAtPath return bytes under an ipfs path
 func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
@@ -35,7 +36,7 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 
 	f, err := api.Unixfs().Get(ctx, path.New(pth))
@@ -64,7 +65,7 @@ func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 
 	res, err := api.Unixfs().Ls(ctx, path.New(pth))
@@ -121,7 +122,7 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), DefaultTimeout)
 	defer cancel()
 
 	nd, err := api.Dag().Get(ctx, id)
@@ -129,7 +130,7 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 		return err
 	}
 
-	ctx2, cancel2 := context.WithTimeout(node.Context(), catTimeout)
+	ctx2, cancel2 := context.WithTimeout(node.Context(), DefaultTimeout)
 	defer cancel2()
 
 	return dir.AddChild(ctx2, fname, nd)
@@ -142,7 +143,7 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool, hashOnly bool) (*i
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), PinTimeout)
 	defer cancel()
 
 	pth, err := api.Unixfs().Add(ctx, files.NewReaderFile(reader), options.Unixfs.HashOnly(hashOnly))
@@ -168,7 +169,7 @@ func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*icid.Cid, erro
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), PinTimeout)
 	defer cancel()
 
 	pth, err := api.Object().Put(ctx, reader)
@@ -194,7 +195,7 @@ func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 	return link.GetNode(ctx, api.Dag())
 }
@@ -206,19 +207,19 @@ func NodeAtCid(node *core.IpfsNode, id icid.Cid) (ipld.Node, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 	return api.Dag().Get(ctx, id)
 }
 
 // NodeAtPath returns the last node under path
-func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
+func NodeAtPath(node *core.IpfsNode, pth string, timeout time.Duration) (ipld.Node, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), timeout)
 	defer cancel()
 
 	return api.ResolveNode(ctx, path.New(pth))
@@ -241,7 +242,7 @@ func ObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 
 	ipth := path.New(pth)
@@ -283,7 +284,7 @@ func StatObjectAtPath(node *core.IpfsNode, pth string) (*iface.ObjectStat, error
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), CatTimeout)
 	defer cancel()
 
 	return api.Object().Stat(ctx, path.New(pth))
@@ -291,7 +292,7 @@ func StatObjectAtPath(node *core.IpfsNode, pth string) (*iface.ObjectStat, error
 
 // PinNode pins an ipld node
 func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), PinTimeout)
 	defer cancel()
 
 	defer node.Blockstore.PinLock().Unlock()
@@ -314,7 +315,7 @@ func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 
 // UnpinCid unpins a cid
 func UnpinCid(node *core.IpfsNode, id icid.Cid, recursive bool) error {
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), PinTimeout)
 	defer cancel()
 
 	err := node.Pinning.Unpin(ctx, id, recursive)

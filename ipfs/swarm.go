@@ -22,7 +22,7 @@ func SwarmConnect(node *core.IpfsNode, addrs []string) ([]string, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), ConnectTimeout)
 	defer cancel()
 
 	output := make([]string, len(pis))
@@ -87,7 +87,7 @@ func SwarmPeers(node *core.IpfsNode, verbose bool, latency bool, streams bool, d
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), ConnectTimeout)
 	defer cancel()
 
 	conns, err := api.Swarm().Peers(ctx)
@@ -144,7 +144,7 @@ func SwarmConnected(node *core.IpfsNode, peerId string) (bool, error) {
 		return false, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), ConnectTimeout)
 	defer cancel()
 
 	conns, err := api.Swarm().Peers(ctx)

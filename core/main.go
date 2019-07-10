@@ -555,36 +555,51 @@ func (t *Textile) FlushBlocks() {
 		return util.ProtoTime(pending.Items[i].Date).Before(
 			util.ProtoTime(pending.Items[j].Date))
 	})
-	var posted bool
+	wg := sync.WaitGroup{}
 	for _, block := range pending.Items {
 		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
-			thread := t.Thread(block.Thread)
-			if thread == nil {
-				continue
-			}
+			wg.Add(1)
+			go func(block *pb.Block) {
+				var posted bool
+				thread := t.Thread(block.Thread)
+				if thread == nil {
+					return
+				}
 
-			err := thread.post(block)
-			if err != nil {
-				log.Errorf("error posting block %s: %s", block.Id, err)
-				continue
-			}
-			posted = true
+				err := thread.post(block)
+				if err != nil {
+					log.Errorf("error posting block %s: %s", block.Id, err)
+					if block.Attempts+1 >= maxDownloadAttempts {
+						err = t.datastore.Blocks().Delete(block.Id)
+					} else {
+						err = t.datastore.Blocks().AddAttempt(block.Id)
+					}
+					if err != nil {
+						log.Errorf("error handling post error: %s", err)
+					}
+					return
+				}
+				posted = true
 
-			err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			log.Debugf("deleted sync group: %s", block.Id)
+				err = t.datastore.CafeRequests().DeleteBySyncGroup(block.Id)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+				log.Debugf("deleted sync group: %s", block.Id)
+
+				go t.blockOutbox.Flush()
+				if posted {
+					go t.cafeOutbox.Flush()
+				} else if t.cafeOutbox.handler != nil {
+					go t.cafeOutbox.handler.Flush()
+				}
+
+				wg.Done()
+			}(block)
 		}
 	}
-
-	go t.blockOutbox.Flush()
-	if posted {
-		go t.cafeOutbox.Flush()
-	} else if t.cafeOutbox.handler != nil {
-		go t.cafeOutbox.handler.Flush()
-	}
+	wg.Wait()
 }
 
 // FlushCafes flushes the cafe request outbox

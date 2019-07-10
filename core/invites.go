@@ -123,7 +123,7 @@ func (t *Textile) AcceptInvite(id string) (mh.Multihash, error) {
 // AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, error) {
-	node, err := ipfs.NodeAtPath(t.node, fmt.Sprintf("%s", id))
+	node, err := ipfs.NodeAtPath(t.node, fmt.Sprintf("%s", id), ipfs.CatTimeout)
 	if err != nil {
 		return nil, err
 	}
