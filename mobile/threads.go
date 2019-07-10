@@ -105,10 +105,11 @@ func (m *Mobile) Threads() ([]byte, error) {
 	}
 	for _, thrd := range m.node.Threads() {
 		view, err := m.node.ThreadView(thrd.Id)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			views.Items = append(views.Items, view)
+		} else {
+			log.Errorf("error getting thread view %s: %s", thrd.Id, err)
 		}
-		views.Items = append(views.Items, view)
 	}
 
 	return proto.Marshal(views)

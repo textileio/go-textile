@@ -228,7 +228,7 @@ func (t *Thread) followParents(parents []string) []string {
 
 // followParent tries to follow a tree of blocks, processing along the way
 func (t *Thread) followParent(parent string) ([]string, error) {
-	node, err := ipfs.NodeAtPath(t.node(), parent)
+	node, err := ipfs.NodeAtPath(t.node(), parent, ipfs.CatTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -969,7 +969,7 @@ func extractNode(ipfsNode *core.IpfsNode, node ipld.Node, downloadBlock bool) (*
 
 // blockCIDFromNode returns the inner block id from its ipld wrapper
 func blockCIDFromNode(ipfsNode *core.IpfsNode, nhash string) (string, error) {
-	node, err := ipfs.NodeAtPath(ipfsNode, nhash)
+	node, err := ipfs.NodeAtPath(ipfsNode, nhash, ipfs.DefaultTimeout)
 	if err != nil {
 		return "", err
 	}

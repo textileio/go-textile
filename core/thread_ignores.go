@@ -104,7 +104,7 @@ func (t *Thread) ignoreBlockTarget(block *pb.Block) error {
 			return nil
 		}
 
-		node, err := ipfs.NodeAtPath(t.node(), block.Data)
+		node, err := ipfs.NodeAtPath(t.node(), block.Data, ipfs.CatTimeout)
 		if err != nil {
 			return err
 		}

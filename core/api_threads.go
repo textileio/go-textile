@@ -162,11 +162,11 @@ func (a *api) lsThreads(g *gin.Context) {
 	}
 	for _, thrd := range a.node.Threads() {
 		view, err := a.node.ThreadView(thrd.Id)
-		if err != nil {
-			a.abort500(g, err)
-			return
+		if err == nil {
+			views.Items = append(views.Items, view)
+		} else {
+			log.Errorf("error getting thread view %s: %s", thrd.Id, err)
 		}
-		views.Items = append(views.Items, view)
 	}
 
 	pbJSON(g, http.StatusOK, views)

@@ -171,7 +171,7 @@ func (m *Mobile) imageFileContentForMinWidth(pth string, minWidth int) ([]byte, 
 		return nil, "", core.ErrStopped
 	}
 
-	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth, ipfs.CatTimeout)
 	if err != nil {
 		if err == ipld.ErrNotFound {
 			return nil, "", nil
@@ -267,7 +267,7 @@ func (m *Mobile) shareFiles(data string, threadId string, caption string) (mh.Mu
 		return nil, core.ErrThreadNotFound
 	}
 
-	node, err := ipfs.NodeAtPath(m.node.Ipfs(), data)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), data, ipfs.CatTimeout)
 	if err != nil {
 		return nil, err
 	}
