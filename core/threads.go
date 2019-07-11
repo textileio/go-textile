@@ -404,13 +404,14 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	mod.SchemaNode = thread.Schema
 	for _, head := range util.SplitString(mod.Head, ",") {
 		hid, err := blockCIDFromNode(t.node, head)
-		if err != nil {
-			return nil, err
-		}
-		block := t.datastore.Blocks().Get(hid)
-		if block != nil {
-			block.User = t.PeerUser(block.Author)
-			mod.HeadBlocks = append(mod.HeadBlocks, block)
+		if err == nil {
+			block := t.datastore.Blocks().Get(hid)
+			if block != nil {
+				block.User = t.PeerUser(block.Author)
+				mod.HeadBlocks = append(mod.HeadBlocks, block)
+			}
+		} else {
+			log.Errorf("error getting node block %s: %s", head, err)
 		}
 	}
 	mod.BlockCount = int32(t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", thread.Id)))
