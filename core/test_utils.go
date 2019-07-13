@@ -1,13 +1,11 @@
 package core
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
@@ -40,12 +38,8 @@ func CreateAndStartPeer(conf InitConfig, wait bool) (*Textile, error) {
 	return node, nil
 }
 
-func addTestThread(node *Textile, conf *pb.AddThreadConfig) (*Thread, error) {
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-	thrd, err := node.AddThread(*conf, sk, node.Account().Address(), true, true)
+func addTestThread(node *Textile, conf *pb.AddThread2Config) (*Thread, error) {
+	thrd, err := node.AddThread(*conf, true, true)
 	if err != nil {
 		return nil, err
 	}

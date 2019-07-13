@@ -200,18 +200,18 @@ func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multih
 		return nil, nil
 	}
 
-	config := pb.AddThreadConfig{
-		Key:  msg.Thread.Key,
+	config := pb.AddThread2Config{
+		//Key:  msg.Thread.Key,
 		Name: msg.Thread.Name,
-		Schema: &pb.AddThreadConfig_Schema{
+		Schema: &pb.AddThread2Config_Schema{
 			Id: msg.Thread.Schema,
 		},
-		Type:      msg.Thread.Type,
-		Sharing:   msg.Thread.Sharing,
-		Whitelist: msg.Thread.Whitelist,
-		Force:     true,
+		//Type:      msg.Thread.Type,
+		//Sharing:   msg.Thread.Sharing,
+		//Whitelist: msg.Thread.Whitelist,
+		//Force:     true,
 	}
-	thread, err := t.AddThread(config, sk, msg.Thread.Initiator, false, !t.isAccountPeer(msg.Inviter.Id))
+	thread, err := t.AddThread(config, false, !t.isAccountPeer(msg.Inviter.Id))
 	if err != nil {
 		return nil, err
 	}

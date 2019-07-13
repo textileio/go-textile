@@ -3,10 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
-
-	"github.com/textileio/go-textile/crypto"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -15,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
@@ -30,7 +28,7 @@ var ErrThreadLoaded = fmt.Errorf("thread is loaded")
 
 // AddThread adds a thread with a given name and secret key
 func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount bool) (*Thread, error) {
-	key, err := crypto.GenerateAESKey()
+	_, err := crypto.GenerateAESKey()
 	if err != nil {
 		return nil, err
 	}
@@ -79,46 +77,37 @@ func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount b
 		}
 	}
 
-	var rolesHash string
-	if conf.Roles != nil {
-		var rolesJSON string
-
-		if conf.Schema.Id != "" {
-			// ensure schema id is a multi hash
-			_, err = mh.FromB58String(conf.Schema.Id)
-			if err != nil {
-				return nil, err
-			}
-			schemaHash = conf.Schema.Id
-		} else if conf.Schema.Json != "" {
-			schemaJSON = conf.Schema.Json
-		} else {
-			switch conf.Schema.Preset {
-			case pb.AddThread2Config_Schema_BLOB:
-				schemaJSON = textile.Blob
-			case pb.AddThread2Config_Schema_CAMERA_ROLL:
-				schemaJSON = textile.CameraRoll
-			case pb.AddThread2Config_Schema_MEDIA:
-				schemaJSON = textile.Media
-			}
+	var rolesHash, rolesJSON string
+	if conf.Roles == nil {
+		rolesJSON = fmt.Sprintf(defaultRoles, t.account.Address())
+	} else if conf.Roles.Id != "" {
+		// ensure roles id is a multi hash
+		_, err = mh.FromB58String(conf.Roles.Id)
+		if err != nil {
+			return nil, err
 		}
+		rolesHash = conf.Roles.Id
+	} else if conf.Roles.Json != "" {
+		rolesJSON = conf.Roles.Json
+	}
 
-		if schemaJSON != "" {
-			sfile, err := t.AddFileIndex(&mill.Schema{}, AddFileConfig{
-				Input: []byte(schemaJSON),
-				Media: "application/json",
-			})
-			if err != nil {
-				return nil, err
-			}
-			schemaHash = sfile.Hash
+	if rolesJSON != "" {
+		//rcid, err := ipfs.AddJSON(t.node, rolesJSON)
+		//rfile, err := t.AddFileIndex(&mill.Roles{}, AddFileConfig{
+		//	Input: []byte(rolesJSON),
+		//	Media: "application/json",
+		//})
+		if err != nil {
+			return nil, err
 		}
+		//rolesHash = rcid.Hash().B58String()
+		fmt.Println(rolesHash)
+	}
 
-		if schemaHash != "" {
-			err = t.cafeOutbox.Add(schemaHash, pb.CafeRequest_STORE)
-			if err != nil {
-				return nil, err
-			}
+	if rolesHash != "" {
+		err = t.cafeOutbox.Add(schemaHash, pb.CafeRequest_STORE)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -132,52 +121,53 @@ func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount b
 		return nil, err
 	}
 
-	index := &pb.Thread2{
-		Id: "id",
-		//Schema
-		Intent: strings.TrimSpace(conf.Intent),
-		//Public
-		//Roles
+	//index := &pb.Thread2{
+	//	Id:     "id",
+	//	Schema: schemaHash,
+	//	Intent: strings.TrimSpace(conf.Intent),
+	//	Public: conf.Public,
+	//	Roles:  rolesHash,
+	//
+	//	Key:  key,
+	//	Name: strings.TrimSpace(conf.Name),
+	//}
+	//err = t.datastore.Threads().Add(index)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//thread, err := t.loadThread(index)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-		Key:  key,
-		Name: strings.TrimSpace(conf.Name),
-	}
-	err = t.datastore.Threads().Add(index)
-	if err != nil {
-		return nil, err
-	}
-
-	thread, err := t.loadThread(index)
-	if err != nil {
-		return nil, err
-	}
-
-	// we join here if we're the creator
-	if join {
-		_, err = thread.join("")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	t.sendUpdate(&pb.AccountUpdate{
-		Id:   thread.Id,
-		Type: pb.AccountUpdate_THREAD_ADDED,
-	})
-
-	// invite account peers if inviter is not an account peer
-	if inviteAccount {
-		for _, p := range t.accountPeers() {
-			_, err = thread.AddInvite(p)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	log.Debugf("added a new thread %s with name %s", thread.Id, thread.Name)
-
-	return thread, nil
+	//// we join here if we're the creator
+	//if join {
+	//	_, err = thread.join("")
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	//
+	//t.sendUpdate(&pb.AccountUpdate{
+	//	Id:   thread.Id,
+	//	Type: pb.AccountUpdate_THREAD_ADDED,
+	//})
+	//
+	//// invite account peers if inviter is not an account peer
+	//if inviteAccount {
+	//	for _, p := range t.accountPeers() {
+	//		_, err = thread.AddInvite(p)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//	}
+	//}
+	//
+	//log.Debugf("added a new thread %s with name %s", thread.Id, thread.Name)
+	//
+	//return thread, nil
+	return nil, nil
 }
 
 // AddOrUpdateThread add or updates a thread directly, usually from a backup
@@ -211,27 +201,27 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 	heads := util.SplitString(thread.Head, ",")
 	nthread := t.Thread(id.Pretty())
 	if nthread == nil {
-		config := pb.AddThreadConfig{
-			Key:  thread.Key,
-			Name: thread.Name,
-			Schema: &pb.AddThreadConfig_Schema{
-				Id: thread.Schema,
-			},
-			Type:      thread.Type,
-			Sharing:   thread.Sharing,
-			Whitelist: thread.Whitelist,
-			Force:     true,
-		}
+		//config := pb.AddThreadConfig{
+		//	Key:  thread.Key,
+		//	Name: thread.Name,
+		//	Schema: &pb.AddThreadConfig_Schema{
+		//		Id: thread.Schema,
+		//	},
+		//	Type:      thread.Type,
+		//	Sharing:   thread.Sharing,
+		//	Whitelist: thread.Whitelist,
+		//	Force:     true,
+		//}
 
-		var err error
-		nthread, err = t.AddThread(config, sk, thread.Initiator, false, false)
-		if err != nil {
-			return err
-		}
-		err = nthread.updateHead(heads, false)
-		if err != nil {
-			return err
-		}
+		//var err error
+		//nthread, err = t.AddThread(config, sk, thread.Initiator, false, false)
+		//if err != nil {
+		//	return err
+		//}
+		//err = nthread.updateHead(heads, false)
+		//if err != nil {
+		//	return err
+		//}
 	}
 
 	// have we joined?
@@ -552,52 +542,46 @@ func (t *Textile) addAccountThread() error {
 		}
 	}
 
-	sf, err := t.AddSchema(textile.Avatars, "avatars")
+	_, err := t.AddSchema(textile.Avatars, "avatars")
 	if err != nil {
 		return err
 	}
 
-	config := pb.AddThreadConfig{
-		Key:  t.account.Address(),
-		Name: "account",
-		Schema: &pb.AddThreadConfig_Schema{
-			Id: sf.Hash,
-		},
-		Type:    pb.Thread_PRIVATE,
-		Sharing: pb.Thread_NOT_SHARED,
-	}
-	sk, err := t.account.LibP2PPrivKey()
-	if err != nil {
-		return err
-	}
-	thread, err := t.AddThread(config, sk, t.account.Address(), true, false)
-	if err != nil {
-		return err
-	}
+	//config := pb.AddThreadConfig{
+	//	Key:  t.account.Address(),
+	//	Name: "account",
+	//	Schema: &pb.AddThreadConfig_Schema{
+	//		Id: sf.Hash,
+	//	},
+	//	Type:    pb.Thread_PRIVATE,
+	//	Sharing: pb.Thread_NOT_SHARED,
+	//}
+	//sk, err := t.account.LibP2PPrivKey()
+	//if err != nil {
+	//	return err
+	//}
+	//thread, err := t.AddThread(config, sk, t.account.Address(), true, false)
+	//if err != nil {
+	//	return err
+	//}
 
 	// add existing contacts
-	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
-		_, err = thread.annouce(&pb.ThreadAnnounce{Peer: p})
-		if err != nil {
-			return err
-		}
-	}
+	//for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
+	//	_, err = thread.annouce(&pb.ThreadAnnounce{Peer: p})
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
 
-// incrementKey add "_xxx" to the end of a key
-func incrementKey(key string) string {
-	_, err := strconv.Atoi(key)
-	if err == nil {
-		return key + "_1"
-	}
-	a := strings.Split(key, "_")
-	var x string
-	x, a = a[len(a)-1], a[:len(a)-1]
-	i, err := strconv.Atoi(x)
-	if err != nil {
-		return key + "_1"
-	}
-	return strings.Join(append(a, strconv.Itoa(i+1)), "_")
+// defaultRoles is a template for default roles when creating a new thread
+var defaultRoles = `
+{
+  "default": "NO_ACCESS",
+  "accounts": {
+    "%s": "WRITE",
+  }
 }
+`

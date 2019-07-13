@@ -32,11 +32,11 @@ message AddThreadConfig {
 }
 
 message AddThread2Config {
-	string name         = 1;
-	Schema schema       = 2;
-	string intent       = 3;
-	bool public         = 4;
-	Thread2.Roles roles = 5;
+	string name   = 1;
+	Schema schema = 2;
+	string intent = 3;
+	bool public   = 4;
+	Roles roles   = 5;
 
 	message Schema {
 		string id     = 1;

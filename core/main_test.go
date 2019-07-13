@@ -5,13 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/textileio/go-textile/util"
-
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
+	"github.com/textileio/go-textile/util"
 )
 
 var vars = struct {
@@ -141,38 +139,38 @@ func TestTextile_AddSchema(t *testing.T) {
 
 func TestTextile_AddThread(t *testing.T) {
 	var err error
-	vars.thread, err = addTestThread(vars.node, &pb.AddThreadConfig{
-		Key:       ksuid.New().String(),
-		Name:      "test",
-		Schema:    &pb.AddThreadConfig_Schema{Id: vars.schemaHash},
-		Type:      pb.Thread_OPEN,
-		Sharing:   pb.Thread_SHARED,
-		Whitelist: []string{},
+	vars.thread, err = addTestThread(vars.node, &pb.AddThread2Config{
+		//Key:       ksuid.New().String(),
+		Name:   "test",
+		Schema: &pb.AddThread2Config_Schema{Id: vars.schemaHash},
+		//Type:      pb.Thread_OPEN,
+		//Sharing:   pb.Thread_SHARED,
+		//Whitelist: []string{},
 	})
 	if err != nil {
 		t.Fatalf("add thread failed: %s", err)
 	}
 
 	// add again w/ same key
-	_, err = addTestThread(vars.node, &pb.AddThreadConfig{
-		Key:       vars.thread.Key,
-		Name:      "test2",
-		Type:      pb.Thread_PUBLIC,
-		Sharing:   pb.Thread_NOT_SHARED,
-		Whitelist: []string{},
+	_, err = addTestThread(vars.node, &pb.AddThread2Config{
+		//Key:       vars.thread.Key,
+		Name: "test2",
+		//Type:      pb.Thread_PUBLIC,
+		//Sharing:   pb.Thread_NOT_SHARED,
+		//Whitelist: []string{},
 	})
 	if err == nil {
 		t.Fatal("add thread with same key should fail")
 	}
 
 	// add again w/ same key but force true
-	forced, err := addTestThread(vars.node, &pb.AddThreadConfig{
-		Key:       vars.thread.Key,
-		Force:     true,
-		Name:      "test3",
-		Type:      pb.Thread_PUBLIC,
-		Sharing:   pb.Thread_NOT_SHARED,
-		Whitelist: []string{},
+	forced, err := addTestThread(vars.node, &pb.AddThread2Config{
+		//Key:       vars.thread.Key,
+		//Force:     true,
+		Name: "test3",
+		//Type:      pb.Thread_PUBLIC,
+		//Sharing:   pb.Thread_NOT_SHARED,
+		//Whitelist: []string{},
 	})
 	if err != nil {
 		t.Fatalf("add thread with same key and force should not fail: %s", err)

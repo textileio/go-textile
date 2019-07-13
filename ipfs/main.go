@@ -298,10 +298,7 @@ func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	defer node.Blockstore.PinLock().Unlock()
 
 	err := node.Pinning.Pin(ctx, nd, recursive)
-	if err != nil {
-		if strings.Contains(err.Error(), "already pinned recursively") {
-			return nil
-		}
+	if err != nil && !strings.Contains(err.Error(), "already pinned recursively") {
 		return err
 	}
 

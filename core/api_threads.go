@@ -1,14 +1,10 @@
 package core
 
 import (
-	"crypto/rand"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
 // addThreads godoc
@@ -39,47 +35,42 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	config := pb.AddThreadConfig{
+	config := pb.AddThread2Config{
 		Name: args[0],
 	}
 
-	if opts["key"] != "" {
-		config.Key = opts["key"]
-	} else {
-		config.Key = ksuid.New().String()
-	}
-
 	if opts["schema"] != "" {
-		config.Schema = &pb.AddThreadConfig_Schema{
+		config.Schema = &pb.AddThread2Config_Schema{
 			Id: opts["schema"],
 		}
 	}
 
-	config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))
-	config.Sharing = pb.Thread_Sharing(pbValForEnumString(pb.Thread_Sharing_value, opts["sharing"]))
-	config.Whitelist = util.SplitString(opts["whitelist"], ",")
+	//config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))
+	//config.Sharing = pb.Thread_Sharing(pbValForEnumString(pb.Thread_Sharing_value, opts["sharing"]))
+	//config.Whitelist = util.SplitString(opts["whitelist"], ",")
 
 	// make a new secret
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
+	//sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	//if err != nil {
+	//	a.abort500(g, err)
+	//	return
+	//}
 
-	thrd, err := a.node.AddThread(config, sk, a.node.account.Address(), true, true)
+	_, err = a.node.AddThread(config, true, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	view, err := a.node.ThreadView(thrd.Id)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
+	//view, err := a.node.ThreadView(thrd.Id)
+	//if err != nil {
+	//	a.abort500(g, err)
+	//	return
+	//}
 
 	go a.node.cafeOutbox.Flush()
 
-	pbJSON(g, http.StatusCreated, view)
+	//pbJSON(g, http.StatusCreated, view)
+	g.Status(http.StatusNoContent)
 }
 
 // addOrUpdateThreads godoc
