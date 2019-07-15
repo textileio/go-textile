@@ -92,21 +92,23 @@ func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount b
 	}
 
 	if rolesJSON != "" {
-		//rcid, err := ipfs.AddJSON(t.node, rolesJSON)
-		//rfile, err := t.AddFileIndex(&mill.Roles{}, AddFileConfig{
-		//	Input: []byte(rolesJSON),
-		//	Media: "application/json",
-		//})
+		fmt.Println(rolesJSON)
+		rcid, err := ipfs.AddJSON(t.node, rolesJSON)
 		if err != nil {
 			return nil, err
 		}
-		//rolesHash = rcid.Hash().B58String()
+		rolesHash = rcid.Hash().B58String()
 		fmt.Println(rolesHash)
+		fmt.Println("///////")
+
+		test, err := ipfs.ObjectAtPath(t.node, rolesHash)
+		fmt.Println(string(test))
 	}
 
 	if rolesHash != "" {
 		err = t.cafeOutbox.Add(schemaHash, pb.CafeRequest_STORE)
 		if err != nil {
+			fmt.Println("1")
 			return nil, err
 		}
 	}
@@ -118,6 +120,7 @@ func (t *Textile) AddThread(conf pb.AddThread2Config, join bool, inviteAccount b
 	}
 	_, err = ipfs.AddDataToDirectory(t.node, dir, "seed", bytes.NewReader(seed))
 	if err != nil {
+		fmt.Println("2")
 		return nil, err
 	}
 
@@ -579,9 +582,9 @@ func (t *Textile) addAccountThread() error {
 // defaultRoles is a template for default roles when creating a new thread
 var defaultRoles = `
 {
-  "default": "NO_ACCESS",
-  "accounts": {
-    "%s": "WRITE",
-  }
+    "default": "NO_ACCESS",
+    "accounts": {
+        "%s": "WRITE"
+    }
 }
 `

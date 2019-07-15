@@ -1,6 +1,8 @@
 package ipfs_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/textileio/go-textile/core"
@@ -14,6 +16,7 @@ var vars = struct {
 
 	input1 string
 	input2 string
+	input3 string
 }{
 	nodePath: "./testdata/.textile",
 
@@ -56,7 +59,7 @@ var vars = struct {
     "greeting": "Hello, Liza! You have 7 unread messages.",
     "favoriteFruit": "banana"
 }
-`,
+	`,
 	input2: `
 [
     {
@@ -172,237 +175,17 @@ var vars = struct {
         ],
         "greeting": "Hello, Tracey! You have 8 unread messages.",
         "favoriteFruit": "banana"
-    },
-    {
-        "_id": "5d28de69181cc13f4098b43c",
-        "index": 2,
-        "guid": "72d3b854-ad3b-48a0-8586-933bcf4db91b",
-        "isActive": true,
-        "balance": "$1,880.80",
-        "picture": "http://placehold.it/32x32",
-        "age": 39,
-        "eyeColor": "brown",
-        "name": {
-            "first": "Booker",
-            "last": "Clements"
-        },
-        "company": "ANARCO",
-        "email": "booker.clements@anarco.biz",
-        "phone": "+1 (948) 427-3054",
-        "address": "137 Ingraham Street, Fingerville, Pennsylvania, 5567",
-        "about": "Culpa eiusmod mollit ad occaecat sunt in dolore velit est proident excepteur. Ut ullamco nostrud incididunt minim non nulla laborum ullamco reprehenderit. Esse labore ea non ad nulla aliquip ut nulla officia. Amet velit ea sit consectetur in.",
-        "registered": "Monday, June 4, 2018 2:13 AM",
-        "latitude": "-36.779417",
-        "longitude": "-109.215102",
-        "tags": [
-            "magna",
-            "amet",
-            "id",
-            "sit",
-            "occaecat"
-        ],
-        "range": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9
-        ],
-        "friends": [
-            {
-                "id": 0,
-                "name": "Terri Nicholson"
-            },
-            {
-                "id": 1,
-                "name": "Eaton Moreno"
-            },
-            {
-                "id": 2,
-                "name": "Ola Byrd"
-            }
-        ],
-        "greeting": "Hello, Booker! You have 10 unread messages.",
-        "favoriteFruit": "banana"
-    },
-    {
-        "_id": "5d28de696a60f30f0c35440a",
-        "index": 3,
-        "guid": "053914d8-0f07-457c-a0b0-237b143f7103",
-        "isActive": false,
-        "balance": "$2,379.77",
-        "picture": "http://placehold.it/32x32",
-        "age": 23,
-        "eyeColor": "green",
-        "name": {
-            "first": "Maribel",
-            "last": "Lynch"
-        },
-        "company": "QUALITERN",
-        "email": "maribel.lynch@qualitern.net",
-        "phone": "+1 (996) 598-2639",
-        "address": "194 Jamaica Avenue, Foxworth, New Hampshire, 1097",
-        "about": "Do tempor excepteur velit in ex. Deserunt amet officia mollit incididunt laborum in tempor ullamco dolor proident excepteur. Nulla ut cillum in aliqua mollit amet cupidatat elit sint aliquip labore Lorem. Culpa enim ad Lorem ipsum aliquip. Cupidatat aliquip officia eiusmod mollit laboris nulla labore duis velit enim irure occaecat. Duis incididunt adipisicing elit nulla. Aliquip incididunt qui ullamco cillum Lorem ipsum esse.",
-        "registered": "Thursday, August 6, 2015 3:44 AM",
-        "latitude": "-25.139304",
-        "longitude": "156.595556",
-        "tags": [
-            "dolor",
-            "veniam",
-            "laboris",
-            "sit",
-            "ex"
-        ],
-        "range": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9
-        ],
-        "friends": [
-            {
-                "id": 0,
-                "name": "Noreen Lyons"
-            },
-            {
-                "id": 1,
-                "name": "Colon Walsh"
-            },
-            {
-                "id": 2,
-                "name": "Lessie Donovan"
-            }
-        ],
-        "greeting": "Hello, Maribel! You have 6 unread messages.",
-        "favoriteFruit": "banana"
-    },
-    {
-        "_id": "5d28de69ea4ed4ee3a2256b3",
-        "index": 4,
-        "guid": "8506fff0-cf24-49d7-9bbf-9ea07b25f96e",
-        "isActive": false,
-        "balance": "$3,758.72",
-        "picture": "http://placehold.it/32x32",
-        "age": 35,
-        "eyeColor": "brown",
-        "name": {
-            "first": "Estela",
-            "last": "Hopkins"
-        },
-        "company": "GEEKMOSIS",
-        "email": "estela.hopkins@geekmosis.tv",
-        "phone": "+1 (952) 537-2497",
-        "address": "947 Belvidere Street, Watchtower, Arkansas, 3323",
-        "about": "Enim commodo laboris eu deserunt ut enim eu velit veniam id ullamco aliquip labore. Ad ex consectetur voluptate nulla non esse commodo velit nostrud magna eiusmod labore excepteur Lorem. Aliqua laboris nisi labore irure laboris laboris excepteur incididunt fugiat laboris ad aute enim. Veniam culpa esse culpa laboris quis nisi consequat exercitation tempor nisi ullamco et aliqua eu. Occaecat culpa magna sunt excepteur ipsum labore culpa enim exercitation ut laboris consequat aliqua.",
-        "registered": "Sunday, May 10, 2015 5:00 AM",
-        "latitude": "-39.669387",
-        "longitude": "-25.634747",
-        "tags": [
-            "irure",
-            "non",
-            "ex",
-            "do",
-            "amet"
-        ],
-        "range": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9
-        ],
-        "friends": [
-            {
-                "id": 0,
-                "name": "Donaldson Grant"
-            },
-            {
-                "id": 1,
-                "name": "Eva Daniel"
-            },
-            {
-                "id": 2,
-                "name": "Carney Howe"
-            }
-        ],
-        "greeting": "Hello, Estela! You have 6 unread messages.",
-        "favoriteFruit": "apple"
-    },
-    {
-        "_id": "5d28de69c0b7b3317204c008",
-        "index": 5,
-        "guid": "9562fac7-ee3b-459d-babc-714901666565",
-        "isActive": true,
-        "balance": "$2,101.76",
-        "picture": "http://placehold.it/32x32",
-        "age": 36,
-        "eyeColor": "green",
-        "name": {
-            "first": "Gayle",
-            "last": "Jordan"
-        },
-        "company": "OPTICALL",
-        "email": "gayle.jordan@opticall.ca",
-        "phone": "+1 (834) 408-2269",
-        "address": "907 Dank Court, Welda, Nebraska, 2593",
-        "about": "Ut fugiat ea elit excepteur nostrud qui pariatur aliqua quis cillum proident. Cupidatat ullamco non consectetur minim. Ad ad amet non sint duis occaecat culpa culpa. Dolor aliqua cupidatat ad reprehenderit esse velit adipisicing. Dolore dolore magna ullamco ex dolor enim consectetur dolor deserunt sunt reprehenderit laboris dolore ullamco. Eu et veniam sunt amet do. Sunt velit velit cupidatat est voluptate laborum Lorem.",
-        "registered": "Wednesday, July 27, 2016 1:40 AM",
-        "latitude": "87.365274",
-        "longitude": "71.566986",
-        "tags": [
-            "commodo",
-            "anim",
-            "do",
-            "eu",
-            "adipisicing"
-        ],
-        "range": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9
-        ],
-        "friends": [
-            {
-                "id": 0,
-                "name": "Alexandra Peters"
-            },
-            {
-                "id": 1,
-                "name": "Krista Hartman"
-            },
-            {
-                "id": 2,
-                "name": "Alisha Garrett"
-            }
-        ],
-        "greeting": "Hello, Gayle! You have 6 unread messages.",
-        "favoriteFruit": "banana"
     }
 ]
-`,
+	`,
+	input3: `
+{
+    "default": 7,
+    "accounts": {
+        "P5PiuxRn7qiYM2Wgdjzzfihvo2Stgow3XQ8HyCqM1Xukr4Rb": "WRITE"
+    }
+}
+	`,
 }
 
 func TestIPFS_Setup(t *testing.T) {
@@ -422,20 +205,67 @@ func TestIPFS_Setup(t *testing.T) {
 }
 
 func TestIPFS_AddJSON_Object(t *testing.T) {
-	_, err := AddJSON(vars.node.Ipfs(), vars.input1)
+	cid, err := AddJSON(vars.node.Ipfs(), vars.input1)
 	if err != nil {
 		t.Fatal(err)
+	}
+	t.Log(cid.String())
+
+	j, err := JSONAtPath(vars.node.Ipfs(), cid.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(j))
+
+	if bytes.Equal(jsonBytes(string(j)), jsonBytes(vars.input1)) {
+		t.Fatal("output does not equal input")
 	}
 }
 
 func TestIPFS_AddJSON_Array(t *testing.T) {
-	_, err := AddJSON(vars.node.Ipfs(), vars.input2)
+	cid, err := AddJSON(vars.node.Ipfs(), vars.input2)
 	if err != nil {
 		t.Fatal(err)
+	}
+	t.Log(cid.String())
+
+	j, err := JSONAtPath(vars.node.Ipfs(), cid.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(j))
+
+	if bytes.Equal(jsonBytes(string(j)), jsonBytes(vars.input2)) {
+		t.Fatal("output does not equal input")
+	}
+}
+
+func TestIPFS_AddJSON_Roles(t *testing.T) {
+	cid, err := AddJSON(vars.node.Ipfs(), vars.input3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(cid.String())
+
+	j, err := JSONAtPath(vars.node.Ipfs(), cid.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(j))
+
+	if bytes.Equal(jsonBytes(string(j)), jsonBytes(vars.input3)) {
+		t.Fatal("output does not equal input")
 	}
 }
 
 func TestIPFS_Teardown(t *testing.T) {
 	_ = vars.node.Stop()
 	vars.node = nil
+}
+
+func jsonBytes(input string) []byte {
+	var i interface{}
+	_ = json.Unmarshal([]byte(input), &i)
+	b, _ := json.Marshal(input)
+	return b
 }
