@@ -108,11 +108,11 @@ func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	}
 
 	if err := plugins.Initialize(); err != nil {
-		return nil, fmt.Errorf("error initializing plugins: %s", err)
+		return nil, nil
 	}
 
 	if err := plugins.Inject(); err != nil {
-		return nil, fmt.Errorf("error initializing plugins: %s", err)
+		return nil, nil
 	}
 	return plugins, nil
 }

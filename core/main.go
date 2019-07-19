@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
@@ -271,7 +270,7 @@ func (t *Textile) Start() error {
 	t.online = make(chan struct{})
 	t.done = make(chan struct{})
 
-	plugins, err := repo.LoadPlugins(t.repoPath)
+	_, err := repo.LoadPlugins(t.repoPath)
 	if err != nil {
 		return err
 	}
@@ -343,13 +342,13 @@ func (t *Textile) Start() error {
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	err = t.createIPFS(plugins, false)
+	err = t.createIPFS(false)
 	if err != nil {
 		return err
 	}
 	go func() {
 		defer close(t.online)
-		err := t.createIPFS(plugins, true)
+		err := t.createIPFS(true)
 		if err != nil {
 			log.Errorf("error creating ipfs node: %s", err)
 			return
@@ -619,7 +618,7 @@ func (t *Textile) cafeService() *CafeService {
 }
 
 // createIPFS creates an IPFS node
-func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
+func (t *Textile) createIPFS(online bool) error {
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
 		return err
