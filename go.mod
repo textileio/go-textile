@@ -22,20 +22,20 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/ipfs/go-cid v0.0.2
-	github.com/ipfs/go-ipfs v0.4.22-0.20190621160838-810cb607ede8
+	github.com/ipfs/go-ipfs v0.4.22-0.20190718080458-55afc478ec02
 	github.com/ipfs/go-ipfs-addr v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.10
+	github.com/ipfs/go-ipfs-cmds v0.1.0
 	github.com/ipfs/go-ipfs-config v0.0.6
 	github.com/ipfs/go-ipfs-files v0.0.3
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.1.0
+	github.com/ipfs/go-merkledag v0.2.0
 	github.com/ipfs/go-path v0.0.7
-	github.com/ipfs/go-unixfs v0.0.8
+	github.com/ipfs/go-unixfs v0.2.0
 	github.com/ipfs/interface-go-ipfs-core v0.1.0
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/json-iterator/go v1.1.6 // indirect
-	github.com/libp2p/go-libp2p-core v0.0.4
+	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-record v0.1.0
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -62,5 +62,3 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
-
-replace github.com/libp2p/go-libp2p-core => github.com/libp2p/go-libp2p-core v0.0.3

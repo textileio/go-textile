@@ -91,28 +91,28 @@ func Init(repoPath string, mobile bool, server bool) error {
 func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	pluginpath := filepath.Join(repoPath, "plugins")
 
+	plugins, err := loader.NewPluginLoader()
+	if err != nil {
+		return nil, fmt.Errorf("error loading preloaded plugins: %s", err)
+	}
+
 	// check if repo is accessible before loading plugins
-	var plugins *loader.PluginLoader
 	ok, err := checkPermissions(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	if !ok {
-		pluginpath = ""
-	}
-	plugins, err = loader.NewPluginLoader(pluginpath)
-	if err != nil {
-		log.Errorf("error loading plugins: %s", err)
+	if ok {
+		if err := plugins.LoadDirectory(pluginpath); err != nil {
+			return nil, err
+		}
 	}
 
-	err = plugins.Initialize()
-	if err != nil {
-		log.Errorf("error initializing plugins: %s", err)
+	if err := plugins.Initialize(); err != nil {
+		return nil, fmt.Errorf("error initializing plugins: %s", err)
 	}
 
-	err = plugins.Inject()
-	if err != nil {
-		log.Warningf("inject plugins: %s", err)
+	if err := plugins.Inject(); err != nil {
+		return nil, fmt.Errorf("error initializing plugins: %s", err)
 	}
 	return plugins, nil
 }
