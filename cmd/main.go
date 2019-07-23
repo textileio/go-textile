@@ -681,6 +681,13 @@ There are two types of invites, direct account-to-account and external:
 		return Ping(*pingAddress)
 	}
 
+	// publish
+	publishCmd := appCmd.Command("publish", "Publishes stdin to a topic on the network")
+	publishTopic := publishCmd.Arg("topic", "The topic to publish to").Required().String()
+	cmds[publishCmd.FullCommand()] = func() error {
+		return Publish(*publishTopic)
+	}
+
 	// ================================
 
 	// profile

@@ -515,6 +515,11 @@ func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return t.cafe.Ping(pid)
 }
 
+// Publish sends 'data' to 'topic'
+func (t *Textile) Publish(payload []byte, topic string) error {
+	return ipfs.Publish(t.node, topic, payload)
+}
+
 // UpdateCh returns the account update channel
 func (t *Textile) UpdateCh() <-chan *pb.AccountUpdate {
 	return t.updates
