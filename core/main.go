@@ -21,6 +21,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -375,6 +376,15 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
+
+		// ensure the peer table is not epty by adding our bootstaps
+		boots, err := config.TextileBootstrapPeers()
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		for _, p := range boots {
+			t.node.Peerstore.AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+		}
 
 		go t.cafeOutbox.Flush()
 	}()
