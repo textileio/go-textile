@@ -377,7 +377,7 @@ func (t *Textile) Start() error {
 		}
 		log.Info("node is online")
 
-		// ensure the peer table is not epty by adding our bootstaps
+		// ensure the peer table is not empty by adding our bootstraps
 		boots, err := config.TextileBootstrapPeers()
 		if err != nil {
 			log.Errorf(err.Error())
