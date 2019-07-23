@@ -51,7 +51,7 @@ require (
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
-	github.com/swaggo/swag v1.6.0
+	github.com/swaggo/swag v1.6.2
 	github.com/tyler-smith/go-bip39 v0.0.0-20181017060643-dbb3b84ba2ef
 	github.com/ugorji/go/codec v0.0.0-20190320090025-2dc34c0b8780 // indirect
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc

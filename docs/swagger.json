@@ -2185,6 +2185,44 @@
                 }
             }
         },
+        "/publish": {
+            "post": {
+                "description": "Publishes payload bytes to a topic on the network.",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "utils"
+                ],
+                "summary": "Publish payload to topic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "topic",
+                        "name": "X-Textile-Args",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/snapshots": {
             "post": {
                 "description": "Snapshots all threads and pushes to registered cafes",
