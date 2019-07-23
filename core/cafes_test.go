@@ -7,6 +7,7 @@ import (
 	"time"
 
 	icid "github.com/ipfs/go-cid"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -103,6 +104,8 @@ func TestCore_RegisterCafe(t *testing.T) {
 
 	// register with cafe
 	cafeID := cafeVars.cafe.Ipfs().Identity
+	cafeVars.node.Ipfs().Peerstore.AddAddrs(
+		cafeID, cafeVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 	_, err = cafeVars.node.RegisterCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatalf("register node1 w/ node2 failed: %s", err)

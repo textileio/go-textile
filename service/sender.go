@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-
 	"github.com/libp2p/go-libp2p-core/helpers"
 	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-msgio"
 	"github.com/textileio/go-textile/pb"
 )

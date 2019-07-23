@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	icid "github.com/ipfs/go-cid"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -63,6 +64,8 @@ func TestMobile_RegisterCafe(t *testing.T) {
 
 	// register with cafe
 	cafeID := cafesTestVars.cafe.Ipfs().Identity
+	cafesTestVars.mobile.node.Ipfs().Peerstore.AddAddrs(
+		cafeID, cafesTestVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
 	err = cafesTestVars.mobile.registerCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatal(err)

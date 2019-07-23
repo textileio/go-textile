@@ -20,7 +20,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
