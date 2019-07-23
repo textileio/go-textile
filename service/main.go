@@ -19,10 +19,10 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	logging "github.com/ipfs/go-log"
 	iface "github.com/ipfs/interface-go-ipfs-core"
-	ctxio "github.com/jbenet/go-context/io"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-msgio"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -324,6 +324,7 @@ func (srv *Service) handlePing(env *pb.Envelope, pid peer.ID) (*pb.Envelope, err
 }
 
 var dhtReadMessageTimeout = time.Minute
+var dhtStreamIdleTimeout = 10 * time.Minute
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 // The Protobuf writer performs multiple small writes when writing a message.
@@ -372,42 +373,53 @@ func (srv *Service) handleNewStream(s inet.Stream) {
 func (srv *Service) handleNewMessage(s inet.Stream) bool {
 	ctx := srv.Node().Context()
 
-	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
-	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
-	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	r := msgio.NewVarintReaderSize(s, inet.MessageSizeMax)
+
 	mPeer := s.Conn().RemotePeer()
 
+	timer := time.AfterFunc(dhtStreamIdleTimeout, func() { s.Reset() })
+	defer timer.Stop()
+
 	for {
-		var pmes pb.Envelope
-		switch err := r.ReadMsg(&pmes); err {
-		case io.EOF:
-			return true
-		default:
+		var req pb.Envelope
+		msgbytes, err := r.ReadMsg()
+		if err != nil {
+			defer r.ReleaseMsg(msgbytes)
+			if err == io.EOF {
+				return true
+			}
 			// This string test is necessary because there isn't a single stream reset error
 			// instance	in use.
 			if err.Error() != "stream reset" {
-				log.Debugf("error reading message: %s", err)
+				log.Debugf("error reading message: %#v", err)
 			}
 			return false
-		case nil:
+		}
+		err = proto.Unmarshal(msgbytes, &req)
+		r.ReleaseMsg(msgbytes)
+		if err != nil {
+			log.Debugf("error unmarshalling message: %#v", err)
+			return false
 		}
 
-		if err := srv.VerifyEnvelope(&pmes, mPeer); err != nil {
+		timer.Reset(dhtStreamIdleTimeout)
+
+		if err := srv.VerifyEnvelope(&req, mPeer); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
 		}
 
 		// try a core handler for this msg type
-		handler := srv.handleCore(pmes.Message.Type)
+		handler := srv.handleCore(req.Message.Type)
 		if handler == nil {
 			// get service specific handler
 			handler = srv.handler.Handle
 		}
 
-		log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-		rpmes, err := handler(&pmes, mPeer)
+		log.Debugf("received %s from %s", req.Message.Type.String(), mPeer.Pretty())
+		rpmes, err := handler(&req, mPeer)
 		if err != nil {
-			log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
+			log.Warningf("error handling message %s: %s", req.Message.Type.String(), err)
 			return false
 		}
 
@@ -424,7 +436,7 @@ func (srv *Service) handleNewMessage(s inet.Stream) bool {
 		log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
 		// send out response msg
-		err = writeMsg(cw, rpmes)
+		err = writeMsg(s, rpmes)
 		if err != nil {
 			log.Debugf("error writing response: %s", err)
 			return false
@@ -467,30 +479,30 @@ func (srv *Service) listen(tag string) {
 				continue
 			}
 
-			pmes := new(pb.Envelope)
-			err := proto.Unmarshal(msg.Data(), pmes)
+			req := new(pb.Envelope)
+			err := proto.Unmarshal(msg.Data(), req)
 			if err != nil {
 				log.Warningf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
 				continue
 			}
 
-			err = srv.VerifyEnvelope(pmes, mPeer)
+			err = srv.VerifyEnvelope(req, mPeer)
 			if err != nil {
 				log.Warningf("error verifying message: %s", err)
 				continue
 			}
 
 			// try a core handler for this msg type
-			handler := srv.handleCore(pmes.Message.Type)
+			handler := srv.handleCore(req.Message.Type)
 			if handler == nil {
 				// get service specific handler
 				handler = srv.handler.Handle
 			}
 
-			log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-			rpmes, err := handler(pmes, mPeer)
+			log.Debugf("received pubsub %s from %s", req.Message.Type.String(), mPeer.Pretty())
+			rpmes, err := handler(req, mPeer)
 			if err != nil {
-				log.Warningf("error handling message %s: %s", pmes.Message.Type.String(), err)
+				log.Warningf("error handling message %s: %s", req.Message.Type.String(), err)
 				continue
 			}
 

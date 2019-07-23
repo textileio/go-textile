@@ -37,6 +37,7 @@ require (
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-record v0.1.0
+	github.com/libp2p/go-msgio v0.0.4
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
