@@ -273,12 +273,6 @@ func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 	}
 	for cafe, reqs := range creqs {
 
-		// load the session for this cafe
-		session := m.node.Datastore().CafeSessions().Get(cafe)
-		if session == nil {
-			return nil, fmt.Errorf("session for cafe %s not found", cafe)
-		}
-
 		// group by type
 		treqs := make(map[pb.CafeRequest_Type][]*pb.CafeRequest)
 		for _, req := range reqs {
@@ -291,6 +285,11 @@ func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 
 		// store reqs can be handled by multipart form data
 		if rtype == pb.CafeRequest_STORE {
+			session := m.node.Datastore().CafeSessions().Get(cafe)
+			if session == nil {
+				return nil, fmt.Errorf("session for cafe %s not found", cafe)
+			}
+
 			hreq = &pb.CafeHTTPRequest{
 				Type: pb.CafeHTTPRequest_PUT,
 				Url:  session.Cafe.Url + "/api/" + core.CafeApiVersion + "/store",
@@ -345,10 +344,9 @@ func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 			unpin := make(map[string]struct{})
 			for _, req := range reqs {
 				hreq = &pb.CafeHTTPRequest{
-					Url: session.Cafe.Url + "/api/" + core.CafeApiVersion,
+					Url: req.Cafe.Url + "/api/" + core.CafeApiVersion,
 					Headers: map[string]string{
-						"Authorization": "Basic " + session.Access,
-						"Content-Type":  "application/octet-stream",
+						"Content-Type": "application/octet-stream",
 					},
 					Path: fmt.Sprintf("%s/tmp/%s", m.RepoPath, group),
 				}
@@ -391,6 +389,15 @@ func (m *Mobile) writeCafeRequest(group string) ([]byte, error) {
 						return nil, err
 					}
 					unpin[req.Target] = struct{}{}
+				}
+
+				// include session token for non-inbox requests
+				if req.Type != pb.CafeRequest_INBOX {
+					session := m.node.Datastore().CafeSessions().Get(cafe)
+					if session == nil {
+						return nil, fmt.Errorf("session for cafe %s not found", cafe)
+					}
+					hreq.Headers["Authorization"] = "Basic " + session.Access
 				}
 
 				err = util.WriteFileByPath(hreq.Path, body)
