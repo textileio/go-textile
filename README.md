@@ -2,7 +2,7 @@
 
 [![Made by Textile](https://img.shields.io/badge/made%20by-Textile-informational.svg?style=popout-square)](https://textile.io)
 [![Chat on Slack](https://img.shields.io/badge/slack-slack.textile.io-informational.svg?style=popout-square)](https://slack.textile.io)
-[![GitHub license](https://img.shields.io/github/license/textileio/photos-desktop.svg?style=popout-square)](./LICENSE)
+[![GitHub license](https://img.shields.io/github/license/textileio/go-textile.svg?style=popout-square)](./LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/go-textile?style=flat-square)](https://goreportcard.com/report/github.com/textileio/go-textile?style=flat-square)
 [![CircleCI branch](https://img.shields.io/circleci/project/github/textileio/go-textile/master.svg?style=popout-square)](https://circleci.com/gh/textileio/go-textile)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=popout-square)](https://github.com/RichardLitt/standard-readme)
@@ -23,8 +23,7 @@ Join us on our [public Slack channel](https://slack.textile.io/) for news, discu
 -   [Background](#background)
 -   [Install](#install)
 -   [Usage](#usage)
--   [Develop](#develop)
--   [Contribute](#contribute)
+-   [Contributing](#contributing)
 -   [Changelog](#changelog)
 -   [License](#license)
 
@@ -46,20 +45,19 @@ With good encryption defaults and anonymous, disposable application services lik
 
 ## Install
 
-[Installation instructions](https://docs.textile.io/install/the-daemon/) for the command-line tool and daemon are in [the docs](https://docs.textile.io).
+    go get github.com/textileio/go-textile
+
+[Installation instructions](https://docs.textile.io/install/the-daemon/) for pre-built binaries are in [the docs](https://docs.textile.io).
 
 ## Usage
 
+Go to https://godoc.org/github.com/textileio/go-textile-core.
+
 The [Tour of Textile](https://docs.textile.io/a-tour-of-textile/) goes through many examples and use cases. `textile --help` provides a quick look at the available APIs. For a full overview of every CLI command available, refer to our [Command Line Documentation](https://docs.textile.io/develop/clients/command-line/).
-
-## Develop
-
-    git clone git@github.com:textileio/go-textile.git
 
 ### Requirements
 
 -   go >= 1.12
--   node >= 10.0
 
 Extra setup steps are needed to build the bindings for iOS or Android, as `gomobile` does not yet support [go modules](https://github.com/golang/go/wiki/Modules). You'll need to **move the go-textile source** into your `GOPATH` (like pre-go1.11 development), before installing and initializing the `gomobile` tools:
 

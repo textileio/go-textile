@@ -1,8 +1,0 @@
-# 2019 May 25
-# https://github.com/textileio/base
-
-**/docs/
-**/dist/
-**/vendor/
-**/node_modules/
-**/*.d.ts
