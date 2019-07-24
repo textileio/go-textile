@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -196,6 +197,7 @@ func (c *PeerDB) Find(address string, name string, exclude []string) []*pb.Peer 
 		}
 		q += ")"
 	}
+	fmt.Println("select * from peers where " + q + " order by updated desc;")
 	return c.handleQuery("select * from peers where " + q + " order by updated desc;")
 }
 
