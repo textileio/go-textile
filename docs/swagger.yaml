@@ -2037,6 +2037,31 @@ paths:
       summary: Set display name
       tags:
       - profile
+  /publish:
+    post:
+      consumes:
+      - application/octet-stream
+      description: Publishes payload bytes to a topic on the network.
+      parameters:
+      - description: topic
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "204":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Publish payload to topic
+      tags:
+      - utils
   /snapshots:
     post:
       description: Snapshots all threads and pushes to registered cafes

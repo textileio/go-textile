@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	icid "github.com/ipfs/go-cid"
-	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
@@ -62,13 +62,10 @@ func TestMobile_RegisterCafe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// because local discovery almost _always_ fails initially, a backoff is
-	// set and we fail to register until it's removed... this cheats around that.
+	// register with cafe
 	cafeID := cafesTestVars.cafe.Ipfs().Identity
 	cafesTestVars.mobile.node.Ipfs().Peerstore.AddAddrs(
 		cafeID, cafesTestVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
-
-	// register with cafe
 	err = cafesTestVars.mobile.registerCafe(cafeID.Pretty(), token)
 	if err != nil {
 		t.Fatal(err)

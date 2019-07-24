@@ -125,6 +125,7 @@ func (a *api) Start() {
 		v0.GET("/summary", a.nodeSummary)
 
 		v0.GET("/ping", a.ping)
+		v0.POST("/publish", a.publish)
 
 		account := v0.Group("/account")
 		{

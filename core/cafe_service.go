@@ -1576,8 +1576,8 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 		if err != nil {
 			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 			herr = err
-			for _, req := range reqs {
-				failed = append(failed, req.Target)
+			for _, r := range reqs {
+				failed = append(failed, r.Id)
 			}
 		}
 
@@ -1598,8 +1598,8 @@ func (h *CafeService) handleRequests(reqs []*pb.CafeRequest, rtype pb.CafeReques
 		if err != nil {
 			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafeId, err)
 			herr = err
-			for _, req := range reqs {
-				failed = append(failed, req.Target)
+			for _, r := range reqs {
+				failed = append(failed, r.Id)
 			}
 		}
 

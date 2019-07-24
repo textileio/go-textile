@@ -52,9 +52,7 @@ func (m millOpts) setUse(v string) {
 
 func FileAdd(path string, threadID string, caption string, group bool, verbose bool) error {
 	var pth string
-	var fi os.FileInfo
-	var err error
-	fi, err = os.Stdin.Stat()
+	fi, err := os.Stdin.Stat()
 	if err != nil {
 		return err
 	}

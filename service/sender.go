@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/helpers"
-
-	ggio "github.com/gogo/protobuf/io"
 	inet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-msgio"
 	"github.com/textileio/go-textile/pb"
 )
 
@@ -57,7 +57,7 @@ func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messa
 
 type messageSender struct {
 	s  inet.Stream
-	r  ggio.ReadCloser
+	r  msgio.ReadCloser
 	lk sync.Mutex
 	p  peer.ID
 
@@ -101,7 +101,7 @@ func (ms *messageSender) prep(ctx context.Context) error {
 		return err
 	}
 
-	ms.r = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
+	ms.r = msgio.NewVarintReaderSize(nstr, inet.MessageSizeMax)
 	ms.s = nstr
 
 	return nil
@@ -175,11 +175,10 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*p
 			if retry {
 				log.Info("error reading message, bailing: ", err)
 				return nil, err
-			} else {
-				log.Info("error reading message, trying again: ", err)
-				retry = true
-				continue
 			}
+			log.Info("error reading message, trying again: ", err)
+			retry = true
+			continue
 		}
 
 		if ms.singleMes > streamReuseTries {
@@ -199,8 +198,14 @@ func (ms *messageSender) writeMsg(pmes *pb.Envelope) error {
 
 func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Envelope) error {
 	errc := make(chan error, 1)
-	go func(r ggio.ReadCloser) {
-		errc <- r.ReadMsg(mes)
+	go func(r msgio.ReadCloser) {
+		bytes, err := r.ReadMsg()
+		defer r.ReleaseMsg(bytes)
+		if err != nil {
+			errc <- err
+			return
+		}
+		errc <- proto.Unmarshal(bytes, mes)
 	}(ms.r)
 
 	t := time.NewTimer(dhtReadMessageTimeout)

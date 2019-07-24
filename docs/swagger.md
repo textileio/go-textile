@@ -1317,6 +1317,30 @@ Sets public profile display name to given string
 | 400 | Bad Request | string |
 | 500 | Internal Server Error | string |
 
+### /publish
+
+#### POST
+##### Summary:
+
+Publish payload to topic
+
+##### Description:
+
+Publishes payload bytes to a topic on the network.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| X-Textile-Args | header | topic | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 204 | ok | string |
+| 500 | Internal Server Error | string |
+
 ### /snapshots
 
 #### POST

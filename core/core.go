@@ -20,7 +20,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -376,6 +377,15 @@ func (t *Textile) Start() error {
 		}
 		log.Info("node is online")
 
+		// ensure the peer table is not empty by adding our bootstraps
+		boots, err := config.TextileBootstrapPeers()
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		for _, p := range boots {
+			t.node.Peerstore.AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+		}
+
 		go t.cafeOutbox.Flush()
 	}()
 
@@ -503,6 +513,11 @@ func (t *Textile) DoneCh() <-chan struct{} {
 // Ping pings another peer
 func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return t.cafe.Ping(pid)
+}
+
+// Publish sends 'data' to 'topic'
+func (t *Textile) Publish(payload []byte, topic string) error {
+	return ipfs.Publish(t.node, topic, payload)
 }
 
 // UpdateCh returns the account update channel
