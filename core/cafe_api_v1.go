@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -9,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/pin"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )
@@ -298,8 +299,17 @@ func (c *cafeApi) search(g *gin.Context) {
 			}
 			log.Debugf("responding with %s", rpmes.Message.Type.String())
 
-			g.JSON(http.StatusOK, rpmes)
-			_, _ = g.Writer.Write([]byte("\n"))
+			payload, err := proto.Marshal(rpmes)
+			if err != nil {
+				c.abort(g, http.StatusInternalServerError, err)
+				return false
+			}
+
+			size := make([]byte, 2)
+			binary.LittleEndian.PutUint16(size, uint16(len(payload)))
+
+			payload = append(size, payload...)
+			g.Data(http.StatusOK, "application/octet-stream", payload)
 		}
 		return true
 	})

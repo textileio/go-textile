@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math/rand"
@@ -138,12 +138,12 @@ func (srv *Service) SendRequest(p string, pmes *pb.Envelope) (*pb.Envelope, erro
 
 // SendHTTPStreamRequest sends a request over HTTP
 func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope, access string) (chan *pb.Envelope, chan error, *func()) {
-	rpmesCh := make(chan *pb.Envelope)
+	envCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 
 	var cancel func()
 	go func() {
-		defer close(rpmesCh)
+		defer close(envCh)
 		log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
 
 		payload, err := proto.Marshal(pmes)
@@ -183,10 +183,10 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope, access
 			return
 		}
 
-		decoder := json.NewDecoder(res.Body)
-		for decoder.More() {
-			var rpmes *pb.Envelope
-			err = decoder.Decode(&rpmes)
+		reader := bufio.NewReader(res.Body)
+		for {
+			size := make([]byte, 2)
+			_, err := io.ReadFull(reader, size)
 			if err == io.EOF {
 				return
 			} else if err != nil {
@@ -194,22 +194,37 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope, access
 				return
 			}
 
-			if rpmes == nil || rpmes.Message == nil {
+			mes := make([]byte, binary.LittleEndian.Uint16(size))
+			_, err = io.ReadFull(reader, mes)
+			if err == io.EOF {
+				return
+			} else if err != nil {
 				errCh <- err
 				return
 			}
 
-			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-			err := srv.handleError(rpmes)
+			env := new(pb.Envelope)
+			err = proto.Unmarshal(mes, env)
 			if err != nil {
 				errCh <- err
 				return
 			}
-			rpmesCh <- rpmes
+			if env.Message == nil {
+				errCh <- fmt.Errorf("message is nil")
+				return
+			}
+
+			log.Debugf("received %s response from %s", env.Message.Type.String(), addr)
+			err = srv.handleError(env)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			envCh <- env
 		}
 	}()
 
-	return rpmesCh, errCh, &cancel
+	return envCh, errCh, &cancel
 }
 
 // SendMessage sends out a message
