@@ -1298,6 +1298,10 @@ func (h *CafeService) handleQuery(env *pb.Envelope, pid peer.ID, renvs chan *pb.
 	if err != nil {
 		return err
 	}
+	log.Warning("local results:")
+	for _, v := range localResults.List() {
+		log.Warning(v.Id)
+	}
 	if reply(&pb.QueryResults{
 		Type:  query.Type,
 		Items: localResults.List(),
