@@ -51,7 +51,7 @@ With good encryption defaults and anonymous, disposable application services lik
 
 ## Usage
 
-Go to https://godoc.org/github.com/textileio/go-textile-core.
+Go to https://godoc.org/github.com/textileio/go-textile.
 
 The [Tour of Textile](https://docs.textile.io/a-tour-of-textile/) goes through many examples and use cases. `textile --help` provides a quick look at the available APIs. For a full overview of every CLI command available, refer to our [Command Line Documentation](https://docs.textile.io/develop/clients/command-line/).
 
