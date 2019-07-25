@@ -33,7 +33,6 @@ require (
 	github.com/ipfs/go-path v0.0.7
 	github.com/ipfs/go-unixfs v0.2.0
 	github.com/ipfs/interface-go-ipfs-core v0.1.0
-	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-record v0.1.0
@@ -60,7 +59,6 @@ require (
 	github.com/xeipuuv/gojsonschema v1.1.0
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )

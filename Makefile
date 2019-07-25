@@ -5,10 +5,7 @@ setup:
 test:
 	./test_compile
 
-fmt:
-	echo 'Formatting with prettier...'
-	npx prettier --write "./**" 2> /dev/null || true
-	echo 'Formatting with goimports...'
+format:
 	goimports -w -l `find . -type f -name '*.go' -not -path './vendor/*'`
 
 lint:
@@ -17,14 +14,9 @@ lint:
 	echo 'Linting with golint...'
 	golint `go list ./... | grep -v /vendor/`
 
-build:
+textile:
 	$(eval FLAGS := $$(shell govvv -flags | sed 's/main/github.com\/textileio\/go-textile\/common/g'))
-	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
-	mkdir -p dist
-	mv textile dist/
-
-install:
-	mv dist/textile $$GOPATH/bin
+	go install -ldflags "-w $(FLAGS)" github.com/textileio/go-textile/cmd/textile
 
 ios:
 	$(eval FLAGS := $$(shell govvv -flags | sed 's/main/github.com\/textileio\/go-textile\/common/g'))
@@ -49,9 +41,6 @@ docs:
 	swag init -g core/api.go
 	npm i -g swagger-markdown
 	swagger-markdown -i docs/swagger.yaml -o docs/swagger.md
-
-# Additional dependencies needed below:
-# $ brew install grep
 
 docker:
 	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
