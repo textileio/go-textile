@@ -45,7 +45,8 @@ With good encryption defaults and anonymous, disposable application services lik
 
 ## Install
 
-    go get github.com/textileio/go-textile
+    env GO111MODULE=on go get github.com/textileio/go-textile
+    env GO111MODULE=on go install github.com/textileio/go-textile/cmd/textile
 
 [Installation instructions](https://docs.textile.io/install/the-daemon/) for pre-built binaries are in [the docs](https://docs.textile.io).
 
@@ -72,7 +73,7 @@ Now you can execute the iOS and Android build tasks below. For the other build t
 
 ### Build `textile`:
 
-    make build
+    make textile
 
 ### Run unit tests:
 

@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
+	github.com/ahmetb/govvv v0.2.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20160726135117-62c6fe619375
@@ -33,7 +34,6 @@ require (
 	github.com/ipfs/go-path v0.0.7
 	github.com/ipfs/go-unixfs v0.2.0
 	github.com/ipfs/interface-go-ipfs-core v0.1.0
-	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-record v0.1.0
