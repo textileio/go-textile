@@ -38,8 +38,7 @@ func handleSearchStream(g *gin.Context, resultCh <-chan *pb.QueryResult, errCh <
 			if events {
 				g.SSEvent("result", str)
 			} else {
-				g.Data(http.StatusOK, "application/json", []byte(str))
-				g.Writer.Write([]byte("\n"))
+				g.Data(http.StatusOK, "application/json", []byte(str+"\n"))
 			}
 		}
 		return true
