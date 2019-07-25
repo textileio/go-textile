@@ -1,6 +1,5 @@
 setup:
 	go mod download
-	go get github.com/ahmetb/govvv
 
 test:
 	./test_compile
