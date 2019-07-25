@@ -16,8 +16,8 @@ COPY . $SRC_DIR
 
 # build source
 RUN cd $SRC_DIR \
-  && go get github.com/ahmetb/govvv \
-  && make build
+  && go install github.com/ahmetb/govvv \
+  && make textile
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
@@ -42,7 +42,7 @@ MAINTAINER Sander Pick <sander@textile.io>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /go-textile
-COPY --from=0 $SRC_DIR/dist/textile /usr/local/bin/textile
+COPY --from=0 /go/bin/textile /usr/local/bin/textile
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_textile
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec
 COPY --from=0 /tmp/tini /sbin/tini
