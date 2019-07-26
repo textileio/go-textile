@@ -147,7 +147,7 @@ func (x Message_Type) String() string {
 	return proto.EnumName(Message_Type_name, int32(x))
 }
 func (Message_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_message_08a64f92564dc425, []int{0, 0}
+	return fileDescriptor_message_6b993fd146f2feb2, []int{0, 0}
 }
 
 type Message struct {
@@ -164,7 +164,7 @@ func (m *Message) Reset()         { *m = Message{} }
 func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_08a64f92564dc425, []int{0}
+	return fileDescriptor_message_6b993fd146f2feb2, []int{0}
 }
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Message.Unmarshal(m, b)
@@ -224,7 +224,7 @@ func (m *Envelope) Reset()         { *m = Envelope{} }
 func (m *Envelope) String() string { return proto.CompactTextString(m) }
 func (*Envelope) ProtoMessage()    {}
 func (*Envelope) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_08a64f92564dc425, []int{1}
+	return fileDescriptor_message_6b993fd146f2feb2, []int{1}
 }
 func (m *Envelope) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Envelope.Unmarshal(m, b)
@@ -270,7 +270,7 @@ func (m *Error) Reset()         { *m = Error{} }
 func (m *Error) String() string { return proto.CompactTextString(m) }
 func (*Error) ProtoMessage()    {}
 func (*Error) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_08a64f92564dc425, []int{2}
+	return fileDescriptor_message_6b993fd146f2feb2, []int{2}
 }
 func (m *Error) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Error.Unmarshal(m, b)
@@ -311,9 +311,9 @@ func init() {
 	proto.RegisterEnum("Message_Type", Message_Type_name, Message_Type_value)
 }
 
-func init() { proto.RegisterFile("message.proto", fileDescriptor_message_08a64f92564dc425) }
+func init() { proto.RegisterFile("message.proto", fileDescriptor_message_6b993fd146f2feb2) }
 
-var fileDescriptor_message_08a64f92564dc425 = []byte{
+var fileDescriptor_message_6b993fd146f2feb2 = []byte{
 	// 639 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x94, 0x5b, 0x6f, 0xda, 0x4c,
 	0x10, 0x86, 0x3f, 0x12, 0x12, 0xf8, 0x86, 0x90, 0x6c, 0x26, 0x27, 0xc2, 0x77, 0x10, 0x41, 0xaa,

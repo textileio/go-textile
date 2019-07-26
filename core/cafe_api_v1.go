@@ -207,7 +207,15 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		c.abort(g, http.StatusBadRequest, err)
 		return
 	}
-	_, err = extractNode(c.node.Ipfs(), node, true)
+	if tenv.Block != nil {
+		_, err = ipfs.AddData(c.node.Ipfs(), bytes.NewReader(tenv.Block), true, false)
+		if err != nil {
+			log.Warning(err)
+			c.abort(g, http.StatusBadRequest, err)
+			return
+		}
+	}
+	_, err = extractNode(c.node.Ipfs(), node, tenv.Block == nil)
 	if err != nil {
 		log.Warning(err)
 		c.abort(g, http.StatusBadRequest, err)

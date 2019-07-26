@@ -1108,7 +1108,14 @@ func (h *CafeService) handleDeliverMessage(env *pb.Envelope, pid peer.ID) (*pb.E
 			log.Warningf("error getting node: %s", err)
 			return nil, err
 		}
-		_, err = extractNode(h.service.Node(), node, true)
+		if tenv.Block != nil {
+			_, err = ipfs.AddData(h.service.Node(), bytes.NewReader(tenv.Block), true, false)
+			if err != nil {
+				log.Warningf("error adding block: %s", err)
+				return nil, err
+			}
+		}
+		_, err = extractNode(h.service.Node(), node, tenv.Block == nil)
 		if err != nil {
 			log.Warningf("error extracting node: %s", err)
 			return nil, err

@@ -13,6 +13,7 @@ message ThreadEnvelope {
     bytes ciphertext = 3 [deprecated = true]; // encrypted ThreadBlock, also stored on ipfs for recovery
     bytes sig        = 4; // account signature
     bytes node       = 5; // block node (v2)
+    bytes block      = 6; // block (v2)
 }
 
 message ThreadEnvelopeAck {

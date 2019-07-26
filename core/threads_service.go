@@ -110,13 +110,22 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		if err != nil {
 			return nil, err
 		}
+		if tenv.Block != nil {
+			_, err = ipfs.AddData(h.service.Node(), bytes.NewReader(tenv.Block), true, false)
+			if err != nil {
+				return nil, err
+			}
+		}
 		node, err := ipfs.NodeAtCid(h.service.Node(), *id)
 		if err != nil {
 			return nil, err
 		}
-		bnode, err = extractNode(h.service.Node(), node, true)
+		bnode, err = extractNode(h.service.Node(), node, tenv.Block == nil)
 		if err != nil {
 			return nil, err
+		}
+		if bnode.ciphertext == nil {
+			bnode.ciphertext = tenv.Block
 		}
 		nhash = node.Cid().Hash().B58String()
 	}
@@ -253,11 +262,12 @@ func (h *ThreadsService) HandleStream(env *pb.Envelope, pid peer.ID) (chan *pb.E
 }
 
 // NewEnvelope signs and wraps an encypted block for transport
-func (h *ThreadsService) NewEnvelope(threadId string, node []byte, sig []byte) (*pb.Envelope, error) {
+func (h *ThreadsService) NewEnvelope(threadId string, node []byte, block []byte, sig []byte) (*pb.Envelope, error) {
 	tenv := &pb.ThreadEnvelope{
 		Thread: threadId,
 		Node:   node,
 		Sig:    sig,
+		Block:  block,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
