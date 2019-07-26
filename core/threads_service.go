@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -85,7 +86,7 @@ func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 // Handle is called by the underlying service handler method
 func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, error) {
 	if env.Message.Type == pb.Message_THREAD_ENVELOPE_ACK {
-		return h.handleMessageAck(env)
+		return h.handlePubSubMessageAck(env)
 	}
 
 	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
@@ -280,7 +281,16 @@ func (h *ThreadsService) NewEnvelopeAck(sig []byte) (*pb.Envelope, error) {
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE_ACK, tenv, nil, false)
 }
 
-func (h *ThreadsService) SendMessage(msg pb.BlockMessage) error {
+// SendMessage sends a message to a peer
+func (h *ThreadsService) SendMessage(ctx context.Context, peerId string, env *pb.Envelope) error {
+	return h.service.SendMessage(ctx, peerId, env)
+}
+
+// SendPubSubMessage publishes the message to the recipient's peerID-based topic
+// and waits for an acknowledgement response.
+// This mechanism can result in inbox-free direct messaging via a relay node,
+// which can be useful when two peers are not direcly connected.
+func (h *ThreadsService) SendPubSubMessage(msg pb.BlockMessage) error {
 	if !h.online {
 		return ErrOffline
 	}
@@ -328,8 +338,8 @@ func (h *ThreadsService) SendMessage(msg pb.BlockMessage) error {
 	}
 }
 
-// handleMessageAck handles a message acknowledgement from a peer
-func (h *ThreadsService) handleMessageAck(env *pb.Envelope) (*pb.Envelope, error) {
+// handlePubSubMessageAck handles a message acknowledgement from a peer
+func (h *ThreadsService) handlePubSubMessageAck(env *pb.Envelope) (*pb.Envelope, error) {
 	tenv := new(pb.ThreadEnvelopeAck)
 	err := ptypes.UnmarshalAny(env.Message.Payload, tenv)
 	if err != nil {
