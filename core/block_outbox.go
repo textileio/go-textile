@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 )
@@ -106,19 +107,37 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 
 // handle handles a single message
 func (q *BlockOutbox) handle(msg pb.BlockMessage) error {
-	err := q.service().SendMessage(msg)
-	if err != nil {
-		log.Debugf("send block message direct to %s failed: %s", msg.Peer, err)
+	online := q.service().online
+	var connected bool
+	var err error
+	if online {
+		// 1) attempt to send the message directly to the recipient
+		connected, err = ipfs.SwarmConnected(q.node(), msg.Peer)
+		if err != nil {
+			return err
+		}
+		if connected {
+			log.Debugf("sending block message direct to %s", msg.Peer)
+			err = q.service().SendMessage(nil, msg.Peer, msg.Env)
+		}
+	}
 
-		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-		contact := q.datastore.Peers().Get(msg.Peer)
-		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("sending block message for %s to inbox(es)", msg.Peer)
+	if !connected || err != nil {
+		// 2) attempt to reach the peer via pubsub
+		if online {
+			log.Debugf("publishing block message to %s", msg.Peer)
+			err = q.service().SendPubSubMessage(msg)
+		}
 
-			// add an inbox request for message delivery
-			err = q.cafeOutbox.AddForInbox(msg.Peer, msg.Env, contact.Inboxes)
-			if err != nil {
-				return err
+		// 3) add offline inbox requests
+		if !online || err != nil {
+			contact := q.datastore.Peers().Get(msg.Peer)
+			if contact != nil && len(contact.Inboxes) > 0 {
+				log.Debugf("sending block message for %s to %s", msg.Peer, contact.Inboxes)
+				err = q.cafeOutbox.AddForInbox(msg.Peer, msg.Env, contact.Inboxes)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

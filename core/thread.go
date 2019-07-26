@@ -713,7 +713,7 @@ func (t *Thread) sendWelcome() error {
 		if err != nil {
 			return err
 		}
-		env, err := t.service().NewEnvelope(t.Id, ndata, sig)
+		env, err := t.service().NewEnvelope(t.Id, ndata, ciphertext, sig)
 		if err != nil {
 			return err
 		}
@@ -749,7 +749,7 @@ func (t *Thread) post(index *pb.Block) error {
 	if err != nil {
 		return err
 	}
-	env, err := t.service().NewEnvelope(t.Id, ndata, sig)
+	env, err := t.service().NewEnvelope(t.Id, ndata, ciphertext, sig)
 	if err != nil {
 		return err
 	}
