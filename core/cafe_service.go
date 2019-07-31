@@ -222,6 +222,13 @@ func (h *CafeService) Register(cafeId string, token string) (*pb.CafeSession, er
 }
 
 // Deregister removes this peer from a cafe
+// @todo: This method needs to fail if the remote does not receive the de-register
+// request, but also should be "forced" in the case where a cafe is down.
+// The user should be kept in the loop, i.e.,
+// 1) "failed to de-register, try again?"
+// 2) "nope, still failing, the cafe may be down, force delete this session?"
+// 3) "ok, deleted"
+// Perhaps de-registering and session deleting need to be split.
 func (h *CafeService) Deregister(cafeId string) error {
 	_, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION, &pb.CafeDeregistration{
@@ -229,7 +236,7 @@ func (h *CafeService) Deregister(cafeId string) error {
 		}, nil, false)
 	})
 	if err != nil {
-		return err
+		log.Errorf("error de-registering from cafe %s: %s", cafeId, err)
 	}
 
 	// cleanup
