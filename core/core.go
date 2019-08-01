@@ -564,13 +564,13 @@ func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
 // FlushBlocks flushes the block message outbox
 func (t *Textile) FlushBlocks() {
 	query := fmt.Sprintf("status=%d", pb.Block_QUEUED)
-	pending := t.datastore.Blocks().List("", -1, query)
-	sort.SliceStable(pending.Items, func(i, j int) bool {
-		return util.ProtoTime(pending.Items[i].Date).Before(
-			util.ProtoTime(pending.Items[j].Date))
+	queued := t.datastore.Blocks().List("", -1, query)
+	sort.SliceStable(queued.Items, func(i, j int) bool {
+		return util.ProtoTime(queued.Items[i].Date).Before(
+			util.ProtoTime(queued.Items[j].Date))
 	})
 	wg := sync.WaitGroup{}
-	for _, block := range pending.Items {
+	for _, block := range queued.Items {
 		if t.datastore.CafeRequests().SyncGroupComplete(block.Id) {
 			wg.Add(1)
 			go func(block *pb.Block) {
@@ -588,6 +588,18 @@ func (t *Textile) FlushBlocks() {
 				thread := t.Thread(block.Thread)
 				if thread == nil {
 					return
+				}
+
+				// if this is not a join, ensure it will hava at least one parent
+				if block.Type != pb.Block_JOIN {
+					heads, err := thread.Heads()
+					if err != nil {
+						log.Warningf("error getting heads: %s", err)
+						return
+					}
+					if len(heads) == 0 {
+						return
+					}
 				}
 
 				err := thread.post(block)

@@ -22,8 +22,8 @@ var ErrThreadInviteNotFound = fmt.Errorf("thread invite not found")
 
 // AddInvite creates an invite for each of the target address's peers
 func (t *Textile) AddInvite(threadId string, address string) error {
-	thrd := t.Thread(threadId)
-	if thrd == nil {
+	thread := t.Thread(threadId)
+	if thread == nil {
 		return ErrThreadNotFound
 	}
 
@@ -34,7 +34,7 @@ func (t *Textile) AddInvite(threadId string, address string) error {
 
 	var err error
 	for _, p := range peers {
-		_, err = thrd.AddInvite(p)
+		_, err = thread.AddInvite(p)
 		if err != nil {
 			return err
 		}
@@ -45,12 +45,12 @@ func (t *Textile) AddInvite(threadId string, address string) error {
 
 // AddExternalInvite generates a new external invite link to a thread
 func (t *Textile) AddExternalInvite(threadId string) (*pb.ExternalInvite, error) {
-	thrd := t.Thread(threadId)
-	if thrd == nil {
+	thread := t.Thread(threadId)
+	if thread == nil {
 		return nil, ErrThreadNotFound
 	}
 
-	hash, key, err := thrd.AddExternalInvite()
+	hash, key, err := thread.AddExternalInvite()
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multih
 	if err != nil {
 		return nil, err
 	}
-	if thrd := t.Thread(id.Pretty()); thrd != nil {
+	if thread := t.Thread(id.Pretty()); thread != nil {
 		// thread exists, aborting
 		return nil, nil
 	}
