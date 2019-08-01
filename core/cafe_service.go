@@ -222,25 +222,13 @@ func (h *CafeService) Register(cafeId string, token string) (*pb.CafeSession, er
 }
 
 // Deregister removes this peer from a cafe
-// @todo: This method needs to fail if the remote does not receive the de-register
-// request, but also should be "forced" in the case where a cafe is down.
-// The user should be kept in the loop, i.e.,
-// 1) "failed to de-register, try again?"
-// 2) "nope, still failing, the cafe may be down, force delete this session?"
-// 3) "ok, deleted"
-// Perhaps de-registering and session deleting need to be split.
 func (h *CafeService) Deregister(cafeId string) error {
-	_, err := h.sendCafeRequest(cafeId, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION, &pb.CafeDeregistration{
-			Token: session.Access,
-		}, nil, false)
-	})
-	if err != nil {
-		log.Errorf("error de-registering from cafe %s: %s", cafeId, err)
-	}
+	// @todo: We need to send a retryable de-register request that can be queued,
+	// @todo: which will unblock callers. This will require a new request type, target can be the token.
+	// @todo: Perhaps registration should also move this way.
 
 	// cleanup
-	err = h.datastore.CafeRequests().DeleteByCafe(cafeId)
+	err := h.datastore.CafeRequests().DeleteByCafe(cafeId)
 	if err != nil {
 		return err
 	}
@@ -1541,8 +1529,9 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 				return
 			}
 
-			// delete pending block
-			err = h.datastore.Blocks().Delete(req.SyncGroup)
+			// delete queued block
+			// @todo: Uncomment this when sync can only be handled by a single cafe session
+			//err = h.datastore.Blocks().Delete(req.SyncGroup)
 		} else {
 			err = h.datastore.CafeRequests().AddAttempt(id)
 		}

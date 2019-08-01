@@ -8,6 +8,9 @@ import (
 
 // AddContact calls core AddContact
 func (m *Mobile) AddContact(contact []byte) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -17,13 +20,21 @@ func (m *Mobile) AddContact(contact []byte) error {
 		return err
 	}
 
+	err := m.node.AddContact(model)
+	if err != nil {
+		return err
+	}
+
 	m.node.FlushCafes()
 
-	return m.node.AddContact(model)
+	return nil
 }
 
 // Contact calls core Contact
 func (m *Mobile) Contact(address string) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -38,6 +49,9 @@ func (m *Mobile) Contact(address string) ([]byte, error) {
 
 // Contacts calls core Contacts
 func (m *Mobile) Contacts() ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -47,17 +61,28 @@ func (m *Mobile) Contacts() ([]byte, error) {
 
 // RemoveContact calls core RemoveContact
 func (m *Mobile) RemoveContact(address string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
+	err := m.node.RemoveContact(address)
+	if err != nil {
+		return err
+	}
+
 	m.node.FlushCafes()
 
-	return m.node.RemoveContact(address)
+	return nil
 }
 
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(address string) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -72,6 +97,9 @@ func (m *Mobile) ContactThreads(address string) ([]byte, error) {
 
 // SearchContacts calls core SearchContacts
 func (m *Mobile) SearchContacts(query []byte, options []byte) (*SearchHandle, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}

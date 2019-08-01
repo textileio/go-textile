@@ -17,14 +17,17 @@ import (
 // RegisterCafe is the async flavor of registerCafe
 func (m *Mobile) RegisterCafe(id string, token string, cb Callback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		cb.Call(m.registerCafe(id, token))
 	}()
 }
 
 // registerCafe calls core RegisterCafe
 func (m *Mobile) registerCafe(id string, token string) error {
-	if !m.node.Started() {
-		return core.ErrStopped
+	if !m.node.Online() {
+		return core.ErrOffline
 	}
 
 	_, err := m.node.RegisterCafe(id, token)
@@ -40,14 +43,17 @@ func (m *Mobile) registerCafe(id string, token string) error {
 // DeegisterCafe is the async flavor of deregisterCafe
 func (m *Mobile) DeregisterCafe(id string, cb Callback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		cb.Call(m.deregisterCafe(id))
 	}()
 }
 
 // deregisterCafe calls core DeregisterCafe
 func (m *Mobile) deregisterCafe(id string) error {
-	if !m.node.Started() {
-		return core.ErrStopped
+	if !m.node.Online() {
+		return core.ErrOffline
 	}
 
 	err := m.node.DeregisterCafe(id)
@@ -63,14 +69,17 @@ func (m *Mobile) deregisterCafe(id string) error {
 // RefreshCafeSession is the async flavor of refreshCafeSession
 func (m *Mobile) RefreshCafeSession(id string, cb ProtoCallback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		cb.Call(m.refreshCafeSession(id))
 	}()
 }
 
 // refreshCafeSession calls core RefreshCafeSession
 func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
+	if !m.node.Online() {
+		return nil, core.ErrOffline
 	}
 
 	session, err := m.node.RefreshCafeSession(id)
@@ -87,11 +96,15 @@ func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
 
 // CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMessages() error {
-	if !m.node.Started() {
-		return core.ErrOffline
-	}
-
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
+		if !m.node.Online() {
+			log.Warning("check messages called offline")
+			return
+		}
+
 		err := m.node.CheckCafeMessages()
 		if err != nil {
 			log.Errorf("error checking cafe inbox: %s", err)
@@ -105,6 +118,9 @@ func (m *Mobile) CheckCafeMessages() error {
 
 // CafeSession calls core CafeSession
 func (m *Mobile) CafeSession(id string) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -126,6 +142,9 @@ func (m *Mobile) CafeSession(id string) ([]byte, error) {
 
 // CafeSessions calls core CafeSessions
 func (m *Mobile) CafeSessions() ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -139,6 +158,9 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 
 // CafeRequests paginates new requests
 func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -149,6 +171,9 @@ func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
 
 // CafeRequestPending marks a request as pending
 func (m *Mobile) CafeRequestPending(id string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -166,6 +191,9 @@ func (m *Mobile) CafeRequestPending(id string) error {
 
 // CafeRequestNotPending marks a request as not pending (new)
 func (m *Mobile) CafeRequestNotPending(id string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -177,6 +205,9 @@ func (m *Mobile) CafeRequestNotPending(id string) error {
 
 // CompleteCafeRequest marks a request as complete
 func (m *Mobile) CompleteCafeRequest(id string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -193,13 +224,11 @@ func (m *Mobile) CompleteCafeRequest(id string) error {
 
 // FailCafeRequest deletes a request
 func (m *Mobile) FailCafeRequest(id string, reason string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
-	}
-
-	err := m.node.Datastore().CafeRequests().DeleteByGroup(id)
-	if err != nil {
-		return err
 	}
 
 	status := m.cafeSyncGroupStatus(id)
@@ -213,6 +242,9 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 
 // UpdateCafeRequestProgress updates the request with progress info
 func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total int64) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -231,6 +263,9 @@ func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total i
 // WriteCafeRequest is the async version of writeCafeRequest
 func (m *Mobile) WriteCafeRequest(group string, cb ProtoCallback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		cb.Call(m.writeCafeRequest(group))
 	}()
 }
@@ -435,16 +470,17 @@ func (m *Mobile) deleteCafeRequestBody(id string) error {
 
 // handleCafeRequestDone handles clean up after a request is complete/failed
 func (m *Mobile) handleCafeRequestDone(id string, status *pb.CafeSyncGroupStatus) error {
-	if status.Error != "" {
+	if status.ErrorId != "" {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_FAILED, status)
 
-		// delete pending blocks
-		syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
-		err := m.node.Datastore().Blocks().Delete(syncGroup)
-		if err != nil {
-			return err
-		}
-		err = m.node.Datastore().CafeRequests().DeleteByGroup(id)
+		// delete queued block
+		// @todo: Uncomment this when sync can only be handled by a single cafe session
+		//syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
+		//err := m.node.Datastore().Blocks().Delete(syncGroup)
+		//if err != nil {
+		//	return err
+		//}
+		err := m.node.Datastore().CafeRequests().DeleteByGroup(id)
 		if err != nil {
 			return err
 		}

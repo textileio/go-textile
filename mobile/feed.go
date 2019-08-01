@@ -8,6 +8,9 @@ import (
 
 // Feed calls core Feed
 func (m *Mobile) Feed(req []byte) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

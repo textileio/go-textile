@@ -10,6 +10,9 @@ import (
 
 // Profile calls core Profile
 func (m *Mobile) Profile() ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -24,6 +27,9 @@ func (m *Mobile) Profile() ([]byte, error) {
 
 // Name calls core Name
 func (m *Mobile) Name() (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -33,6 +39,9 @@ func (m *Mobile) Name() (string, error) {
 
 // SetName calls core SetName
 func (m *Mobile) SetName(username string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Online() {
 		return core.ErrOffline
 	}
@@ -49,6 +58,9 @@ func (m *Mobile) SetName(username string) error {
 
 // Avatar calls core Avatar
 func (m *Mobile) Avatar() (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -59,6 +71,9 @@ func (m *Mobile) Avatar() (string, error) {
 // SetAvatar adds the image at pth to the account thread and calls core SetAvatar
 func (m *Mobile) SetAvatar(pth string, cb ProtoCallback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		hash, err := m.setAvatar(pth)
 		if err != nil {
 			cb.Call(nil, err)
@@ -70,6 +85,10 @@ func (m *Mobile) SetAvatar(pth string, cb ProtoCallback) {
 }
 
 func (m *Mobile) setAvatar(pth string) (mh.Multihash, error) {
+	if !m.node.Online() {
+		return nil, core.ErrOffline
+	}
+
 	thrd := m.node.AccountThread()
 	if thrd == nil {
 		return nil, fmt.Errorf("account thread not found")

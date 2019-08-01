@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"sync"
+
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/multiformats/go-multihash"
@@ -90,6 +92,7 @@ type Mobile struct {
 	node      *core.Textile
 	messenger Messenger
 	listener  *broadcast.Listener
+	mux       sync.Mutex
 }
 
 // InitRepo calls core InitRepo
@@ -143,6 +146,9 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if err := m.node.Start(); err != nil {
 		if err == core.ErrStarted {
 			return nil
@@ -203,6 +209,9 @@ func (m *Mobile) Start() error {
 
 // Stop the mobile node
 func (m *Mobile) Stop() error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if err := m.node.Stop(); err != nil && err != core.ErrStopped {
 		return err
 	}
@@ -212,6 +221,9 @@ func (m *Mobile) Stop() error {
 
 // Online returns core Online
 func (m *Mobile) Online() bool {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	return m.node.Online()
 }
 
@@ -227,6 +239,9 @@ func (m *Mobile) GitSummary() string {
 
 // Summary calls core Summary
 func (m *Mobile) Summary() ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

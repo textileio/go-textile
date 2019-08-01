@@ -7,6 +7,9 @@ import (
 
 // Notifications call core Notifications
 func (m *Mobile) Notifications(offset string, limit int) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -16,6 +19,9 @@ func (m *Mobile) Notifications(offset string, limit int) ([]byte, error) {
 
 // CountUnreadNotifications calls core CountUnreadNotifications
 func (m *Mobile) CountUnreadNotifications() int {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return 0
 	}
@@ -25,6 +31,9 @@ func (m *Mobile) CountUnreadNotifications() int {
 
 // ReadNotification calls core ReadNotification
 func (m *Mobile) ReadNotification(id string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -34,6 +43,9 @@ func (m *Mobile) ReadNotification(id string) error {
 
 // ReadAllNotifications calls core ReadAllNotifications
 func (m *Mobile) ReadAllNotifications() error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -43,6 +55,9 @@ func (m *Mobile) ReadAllNotifications() error {
 
 // AcceptInviteViaNotification call core AcceptInviteViaNotification
 func (m *Mobile) AcceptInviteViaNotification(id string) (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
@@ -59,6 +74,9 @@ func (m *Mobile) AcceptInviteViaNotification(id string) (string, error) {
 
 // IgnoreInviteViaNotification call core IgnoreInviteViaNotification
 func (m *Mobile) IgnoreInviteViaNotification(id string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
