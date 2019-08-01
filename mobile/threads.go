@@ -11,6 +11,9 @@ import (
 
 // AddThread adds a new thread with the given name
 func (m *Mobile) AddThread(config []byte) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -42,6 +45,9 @@ func (m *Mobile) AddThread(config []byte) ([]byte, error) {
 
 // AddOrUpdateThread calls core AddOrUpdateThread
 func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Online() {
 		return core.ErrOffline
 	}
@@ -63,6 +69,9 @@ func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
 
 // RenameThread call core RenameThread
 func (m *Mobile) RenameThread(id string, name string) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -79,6 +88,9 @@ func (m *Mobile) RenameThread(id string, name string) error {
 
 // Thread calls core Thread
 func (m *Mobile) Thread(id string) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -96,6 +108,9 @@ func (m *Mobile) Thread(id string) ([]byte, error) {
 
 // Threads lists all threads
 func (m *Mobile) Threads() ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -117,6 +132,9 @@ func (m *Mobile) Threads() ([]byte, error) {
 
 // ThreadPeers calls core ThreadPeers
 func (m *Mobile) ThreadPeers(id string) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -131,6 +149,9 @@ func (m *Mobile) ThreadPeers(id string) ([]byte, error) {
 
 // RemoveThread call core RemoveThread
 func (m *Mobile) RemoveThread(id string) (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -147,6 +168,9 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 
 // SnapshotThreads calls core SnapshotThreads
 func (m *Mobile) SnapshotThreads() error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -163,6 +187,9 @@ func (m *Mobile) SnapshotThreads() error {
 
 // SearchThreadSnapshots calls core SearchThreadSnapshots
 func (m *Mobile) SearchThreadSnapshots(query []byte, options []byte) (*SearchHandle, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}

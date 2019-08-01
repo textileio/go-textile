@@ -4,6 +4,9 @@ import "github.com/textileio/go-textile/core"
 
 // AddComment adds a comment targeted at the given block
 func (m *Mobile) AddComment(blockId string, body string) (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

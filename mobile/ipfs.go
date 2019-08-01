@@ -9,6 +9,9 @@ import (
 
 // PeerId returns the ipfs peer id
 func (m *Mobile) PeerId() (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -23,14 +26,17 @@ func (m *Mobile) PeerId() (string, error) {
 // DataAtPath is the async version of dataAtPath
 func (m *Mobile) DataAtPath(pth string, cb DataCallback) {
 	go func() {
+		m.mux.Lock()
+		defer m.mux.Unlock()
+
 		cb.Call(m.dataAtPath(pth))
 	}()
 }
 
 // dataAtPath calls core DataAtPath
 func (m *Mobile) dataAtPath(pth string) ([]byte, string, error) {
-	if !m.node.Online() {
-		return nil, "", core.ErrOffline
+	if !m.node.Started() {
+		return nil, "", core.ErrStopped
 	}
 
 	data, err := m.node.DataAtPath(pth)

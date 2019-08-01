@@ -10,6 +10,9 @@ import (
 
 // AddSchema adds a new schema via schema mill
 func (m *Mobile) AddSchema(node []byte) ([]byte, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

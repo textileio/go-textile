@@ -4,6 +4,9 @@ import "github.com/textileio/go-textile/core"
 
 // AddFlag adds a flag targeted at the given block
 func (m *Mobile) AddFlag(blockId string) (string, error) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
