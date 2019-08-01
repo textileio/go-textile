@@ -125,12 +125,14 @@ func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeR
 
 	// add a request for each session
 	sessions := q.datastore.CafeSessions().List().Items
+	group := settings.Group
 	var err error
 	for _, session := range sessions {
 		if settings.Cafe != "" && settings.Cafe != session.Id {
 			continue
 		}
 		// all possible request types are for our own peer
+		settings.Group = fmt.Sprintf("%s-%s", group, session.Id)
 		err = q.add(peerId, target, session.Cafe, rtype, settings)
 		if err != nil {
 			return err

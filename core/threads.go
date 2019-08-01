@@ -350,7 +350,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	// notify peers
 	addr, err := thread.leave()
 	if err != nil {
-		return nil, err
+		log.Errorf("error leaving thread %s: %s", id, err)
 	}
 
 	// delete backups

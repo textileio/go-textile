@@ -197,11 +197,6 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 		return core.ErrStopped
 	}
 
-	err := m.node.Datastore().CafeRequests().DeleteByGroup(id)
-	if err != nil {
-		return err
-	}
-
 	status := m.cafeSyncGroupStatus(id)
 	status.Error = reason
 	status.ErrorId = id
@@ -435,10 +430,10 @@ func (m *Mobile) deleteCafeRequestBody(id string) error {
 
 // handleCafeRequestDone handles clean up after a request is complete/failed
 func (m *Mobile) handleCafeRequestDone(id string, status *pb.CafeSyncGroupStatus) error {
-	if status.Error != "" {
+	if status.ErrorId != "" {
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_FAILED, status)
 
-		// delete pending blocks
+		// delete queued block
 		syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
 		err := m.node.Datastore().Blocks().Delete(syncGroup)
 		if err != nil {
