@@ -1530,7 +1530,8 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 			}
 
 			// delete queued block
-			err = h.datastore.Blocks().Delete(req.SyncGroup)
+			// @todo: Uncomment this when sync can only be handled by a single cafe session
+			//err = h.datastore.Blocks().Delete(req.SyncGroup)
 		} else {
 			err = h.datastore.CafeRequests().AddAttempt(id)
 		}

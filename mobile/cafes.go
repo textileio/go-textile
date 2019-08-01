@@ -474,12 +474,13 @@ func (m *Mobile) handleCafeRequestDone(id string, status *pb.CafeSyncGroupStatus
 		m.notify(pb.MobileEventType_CAFE_SYNC_GROUP_FAILED, status)
 
 		// delete queued block
-		syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
-		err := m.node.Datastore().Blocks().Delete(syncGroup)
-		if err != nil {
-			return err
-		}
-		err = m.node.Datastore().CafeRequests().DeleteByGroup(id)
+		// @todo: Uncomment this when sync can only be handled by a single cafe session
+		//syncGroup := m.node.Datastore().CafeRequests().GetSyncGroup(id)
+		//err := m.node.Datastore().Blocks().Delete(syncGroup)
+		//if err != nil {
+		//	return err
+		//}
+		err := m.node.Datastore().CafeRequests().DeleteByGroup(id)
 		if err != nil {
 			return err
 		}
