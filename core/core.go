@@ -13,13 +13,15 @@ import (
 	"time"
 
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/corerepo"
+	corenode "github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	"github.com/ipfs/go-metrics-interface"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/textileio/go-textile/broadcast"
@@ -32,6 +34,7 @@ import (
 	"github.com/textileio/go-textile/service"
 	"github.com/textileio/go-textile/util"
 	logger "github.com/whyrusleeping/go-logging"
+	"go.uber.org/fx"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -81,14 +84,15 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	context           oldcmds.Context
 	repoPath          string
+	pinCode           string
 	config            *config.Config
 	account           *keypair.Full
-	cancel            context.CancelFunc
+	ctx               context.Context
+	stop              func() error
 	node              *core.IpfsNode
-	datastore         repo.Datastore
 	started           bool
+	datastore         repo.Datastore
 	loadedThreads     []*Thread
 	online            chan struct{}
 	done              chan struct{}
@@ -103,7 +107,7 @@ type Textile struct {
 	cafeOutboxHandler CafeOutboxHandler
 	cafeInbox         *CafeInbox
 	cancelSync        *broadcast.Broadcaster
-	mux               sync.Mutex
+	mux               *sync.Mutex
 	writer            io.Writer
 }
 
@@ -216,13 +220,15 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 
 	node := &Textile{
 		repoPath:          conf.RepoPath,
+		pinCode:           conf.PinCode,
 		updates:           make(chan *pb.AccountUpdate, 10),
 		threadUpdates:     broadcast.NewBroadcaster(10),
 		notifications:     make(chan *pb.Notification, 10),
 		cafeOutboxHandler: conf.CafeOutboxHandler,
+		mux:               new(sync.Mutex),
 	}
 
-	node.config, err = config.Read(conf.RepoPath)
+	node.config, err = config.Read(node.repoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -233,18 +239,18 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	if conf.Debug {
 		logLevel = getTextileDebugLevels()
 	}
-	node.writer, err = setLogLevels(conf.RepoPath, logLevel, node.config.Logs.LogToDisk)
+	node.writer, err = setLogLevels(node.repoPath, logLevel, node.config.Logs.LogToDisk)
 	if err != nil {
 		return nil, err
 	}
 
 	// run all minor repo migrations if needed
-	err = repo.MigrateUp(conf.RepoPath, conf.PinCode, false)
+	err = repo.MigrateUp(node.repoPath, node.pinCode, false)
 	if err != nil {
 		return nil, err
 	}
 
-	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
+	sqliteDb, err := db.Create(node.repoPath, node.pinCode)
 	if err != nil {
 		return nil, err
 	}
@@ -262,8 +268,8 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 // Start creates an ipfs node and starts textile services
 func (t *Textile) Start() error {
 	t.mux.Lock()
-	defer t.mux.Unlock()
 	if t.started {
+		t.mux.Unlock()
 		return ErrStarted
 	}
 	log.Info("starting node...")
@@ -343,15 +349,20 @@ func (t *Textile) Start() error {
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	err = t.createIPFS(false)
+	err = t.createNode()
 	if err != nil {
 		return err
 	}
 	go func() {
-		defer close(t.online)
-		err := t.createIPFS(true)
+		defer func() {
+			close(t.online)
+			t.mux.Unlock()
+			t.runJobs()
+		}()
+
+		err = t.node.Bootstrap(bootstrap.DefaultBootstrapConfig)
 		if err != nil {
-			log.Errorf("error creating ipfs node: %s", err)
+			log.Errorf("error bootstrapping ipfs node: %s", err)
 			return
 		}
 
@@ -369,8 +380,6 @@ func (t *Textile) Start() error {
 			}()
 		}
 
-		go t.runJobs()
-
 		err = ipfs.PrintSwarmAddrs(t.node)
 		if err != nil {
 			log.Errorf(err.Error())
@@ -385,8 +394,6 @@ func (t *Textile) Start() error {
 		for _, p := range boots {
 			t.node.Peerstore.AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 		}
-
-		go t.cafeOutbox.Flush()
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
@@ -437,7 +444,7 @@ func (t *Textile) Stop() error {
 	}
 
 	// close ipfs node
-	err = t.node.Close()
+	err = t.stop()
 	if err != nil {
 		return err
 	}
@@ -644,8 +651,8 @@ func (t *Textile) cafeService() *CafeService {
 	return t.cafe
 }
 
-// createIPFS creates an IPFS node
-func (t *Textile) createIPFS(online bool) error {
+// createNode constructs an IpfsNode
+func (t *Textile) createNode() error {
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
 		return err
@@ -656,30 +663,61 @@ func (t *Textile) createIPFS(online bool) error {
 		routing = libp2p.DHTClientOption
 	}
 
-	cctx, _ := context.WithCancel(context.Background())
-	nd, err := core.NewNode(cctx, &core.BuildCfg{
+	cfg := &core.BuildCfg{
 		Repo:      rep,
 		Permanent: true, // temporary way to signify that node is permanent
-		Online:    online,
+		Online:    true,
 		ExtraOpts: map[string]bool{
 			"pubsub": true,
 			"ipnsps": true,
 			"mplex":  true,
 		},
 		Routing: routing,
-	})
-	if err != nil {
+	}
+
+	ctx := context.Background()
+	ctx = metrics.CtxScope(ctx, "ipfs")
+
+	n := &core.IpfsNode{}
+	t.ctx = ctx
+
+	app := fx.New(
+		corenode.IPFS(ctx, cfg),
+
+		fx.NopLogger,
+		fx.Extract(n),
+	)
+
+	var once sync.Once
+	var stopErr error
+	t.stop = func() error {
+		once.Do(func() {
+			stopErr = app.Stop(context.Background())
+		})
+		return stopErr
+	}
+	n.IsOnline = cfg.Online
+	n.IsDaemon = true
+
+	go func() {
+		// Note that some services use contexts to signal shutting down, which is
+		// very suboptimal. This needs to be here until that's addressed somehow
+		<-ctx.Done()
+		err := t.stop()
+		if err != nil {
+			log.Error("failure on stop: ", err)
+		}
+	}()
+
+	if app.Err() != nil {
+		return app.Err()
+	}
+
+	if err := app.Start(ctx); err != nil {
 		return err
 	}
-	nd.IsDaemon = true
 
-	if t.node != nil {
-		err = t.node.Close()
-		if err != nil {
-			return err
-		}
-	}
-	t.node = nd
+	t.node = n
 
 	return nil
 }
@@ -719,6 +757,9 @@ func (t *Textile) runJobs() {
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
 	t.cafeOutbox.Flush()
 	err := t.cafeInbox.CheckMessages()
 	if err != nil {
@@ -825,7 +866,7 @@ func (t *Textile) touchDatastore() error {
 	if err := t.datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
 
-		sqliteDB, err := db.Create(t.repoPath, "")
+		sqliteDB, err := db.Create(t.repoPath, t.pinCode)
 		if err != nil {
 			return err
 		}

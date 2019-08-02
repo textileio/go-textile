@@ -96,7 +96,11 @@ type CafeOutbox struct {
 }
 
 // NewCafeOutbox creates a new outbox queue
-func NewCafeOutbox(node func() *core.IpfsNode, datastore repo.Datastore, handler CafeOutboxHandler, flushBlocks func()) *CafeOutbox {
+func NewCafeOutbox(
+	node func() *core.IpfsNode,
+	datastore repo.Datastore,
+	handler CafeOutboxHandler,
+	flushBlocks func()) *CafeOutbox {
 	return &CafeOutbox{
 		node:        node,
 		datastore:   datastore,

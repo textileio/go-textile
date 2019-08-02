@@ -146,6 +146,9 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
 	if err := m.node.Start(); err != nil {
 		if err == core.ErrStarted {
 			return nil
@@ -209,9 +212,13 @@ func (m *Mobile) Stop() error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	if err := m.node.Stop(); err != nil && err != core.ErrStopped {
+	if err := m.node.Stop(); err != nil {
+		if err == core.ErrStopped {
+			return nil
+		}
 		return err
 	}
+
 	m.notify(pb.MobileEventType_NODE_STOP, nil)
 	return nil
 }

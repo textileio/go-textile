@@ -58,8 +58,8 @@ func (m *Mobile) Avatar() (string, error) {
 
 // SetAvatar adds the image at pth to the account thread and calls core SetAvatar
 func (m *Mobile) SetAvatar(pth string, cb ProtoCallback) {
+	m.mux.Lock()
 	go func() {
-		m.mux.Lock()
 		defer m.mux.Unlock()
 
 		hash, err := m.setAvatar(pth)
