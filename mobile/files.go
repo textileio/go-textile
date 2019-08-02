@@ -117,9 +117,6 @@ func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb Pro
 
 // Files calls core Files
 func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

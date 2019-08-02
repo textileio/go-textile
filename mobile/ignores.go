@@ -4,9 +4,6 @@ import "github.com/textileio/go-textile/core"
 
 // AddIgnore adds an ignore targeted at the given block and unpins any associated target data
 func (m *Mobile) AddIgnore(blockId string) (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

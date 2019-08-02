@@ -8,9 +8,6 @@ import (
 
 // AddInvite call core AddInvite
 func (m *Mobile) AddInvite(threadId string, address string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -27,9 +24,6 @@ func (m *Mobile) AddInvite(threadId string, address string) error {
 
 // AddExternalInvite generates a new external invite link to a thread
 func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -46,17 +40,11 @@ func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
 
 // Invites calls core Invites
 func (m *Mobile) Invites() ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	return proto.Marshal(m.node.Invites())
 }
 
 // AcceptInvite calls core AcceptInvite
 func (m *Mobile) AcceptInvite(id string) (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
@@ -73,9 +61,6 @@ func (m *Mobile) AcceptInvite(id string) (string, error) {
 
 // AcceptExternalInvite calls core AcceptExternalInvite
 func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
@@ -97,9 +82,6 @@ func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 
 // IgnoreInvite calls core IgnoreInvite
 func (m *Mobile) IgnoreInvite(id string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}

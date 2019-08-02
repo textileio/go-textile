@@ -7,9 +7,6 @@ import (
 
 // AddMessage adds a message to a thread
 func (m *Mobile) AddMessage(threadId string, body string) (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -31,9 +28,6 @@ func (m *Mobile) AddMessage(threadId string, body string) (string, error) {
 
 // Messages calls core Messages
 func (m *Mobile) Messages(offset string, limit int, threadId string) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

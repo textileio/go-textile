@@ -10,9 +10,6 @@ import (
 
 // Profile calls core Profile
 func (m *Mobile) Profile() ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -27,9 +24,6 @@ func (m *Mobile) Profile() ([]byte, error) {
 
 // Name calls core Name
 func (m *Mobile) Name() (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -39,9 +33,6 @@ func (m *Mobile) Name() (string, error) {
 
 // SetName calls core SetName
 func (m *Mobile) SetName(username string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Online() {
 		return core.ErrOffline
 	}
@@ -58,9 +49,6 @@ func (m *Mobile) SetName(username string) error {
 
 // Avatar calls core Avatar
 func (m *Mobile) Avatar() (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

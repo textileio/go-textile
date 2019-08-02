@@ -9,9 +9,6 @@ import (
 
 // PeerId returns the ipfs peer id
 func (m *Mobile) PeerId() (string, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

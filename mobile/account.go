@@ -11,9 +11,6 @@ import (
 
 // Address returns account address
 func (m *Mobile) Address() string {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return ""
 	}
@@ -22,9 +19,6 @@ func (m *Mobile) Address() string {
 
 // Seed returns account seed
 func (m *Mobile) Seed() string {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return ""
 	}
@@ -33,9 +27,6 @@ func (m *Mobile) Seed() string {
 
 // Encrypt calls core Encrypt
 func (m *Mobile) Encrypt(input []byte) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -44,9 +35,6 @@ func (m *Mobile) Encrypt(input []byte) ([]byte, error) {
 
 // Decrypt call core Decrypt
 func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -55,9 +43,6 @@ func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
 
 // AccountThread calls core AccountThread
 func (m *Mobile) AccountThread() ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -76,9 +61,6 @@ func (m *Mobile) AccountThread() ([]byte, error) {
 
 // AccountContact calls core AccountContact
 func (m *Mobile) AccountContact() ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -93,9 +75,6 @@ func (m *Mobile) AccountContact() ([]byte, error) {
 
 // SyncAccount calls core SyncAccount
 func (m *Mobile) SyncAccount(options []byte) (*SearchHandle, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}

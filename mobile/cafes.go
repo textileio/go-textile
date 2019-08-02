@@ -118,9 +118,6 @@ func (m *Mobile) CheckCafeMessages() error {
 
 // CafeSession calls core CafeSession
 func (m *Mobile) CafeSession(id string) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -142,9 +139,6 @@ func (m *Mobile) CafeSession(id string) ([]byte, error) {
 
 // CafeSessions calls core CafeSessions
 func (m *Mobile) CafeSessions() ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -158,9 +152,6 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 
 // CafeRequests paginates new requests
 func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -171,9 +162,6 @@ func (m *Mobile) CafeRequests(limit int) ([]byte, error) {
 
 // CafeRequestPending marks a request as pending
 func (m *Mobile) CafeRequestPending(id string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -191,9 +179,6 @@ func (m *Mobile) CafeRequestPending(id string) error {
 
 // CafeRequestNotPending marks a request as not pending (new)
 func (m *Mobile) CafeRequestNotPending(id string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -205,9 +190,6 @@ func (m *Mobile) CafeRequestNotPending(id string) error {
 
 // CompleteCafeRequest marks a request as complete
 func (m *Mobile) CompleteCafeRequest(id string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -224,9 +206,6 @@ func (m *Mobile) CompleteCafeRequest(id string) error {
 
 // FailCafeRequest deletes a request
 func (m *Mobile) FailCafeRequest(id string, reason string) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
@@ -242,9 +221,6 @@ func (m *Mobile) FailCafeRequest(id string, reason string) error {
 
 // UpdateCafeRequestProgress updates the request with progress info
 func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total int64) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if !m.node.Started() {
 		return core.ErrStopped
 	}

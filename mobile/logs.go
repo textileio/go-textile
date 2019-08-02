@@ -7,9 +7,6 @@ import (
 
 // SetLogLevel calls core SetLogLevel
 func (m *Mobile) SetLogLevel(level []byte) error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	mlevel := new(pb.LogLevel)
 	if err := proto.Unmarshal(level, mlevel); err != nil {
 		return err
