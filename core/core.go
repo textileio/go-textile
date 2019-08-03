@@ -133,7 +133,7 @@ func InitRepo(conf InitConfig) error {
 	if conf.Debug {
 		logLevel = getTextileDebugLevels()
 	}
-	_, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk)
+	_, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk, !conf.IsMobile)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,8 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	if conf.Debug {
 		logLevel = getTextileDebugLevels()
 	}
-	node.writer, err = setLogLevels(node.repoPath, logLevel, node.config.Logs.LogToDisk)
+	node.writer, err = setLogLevels(node.repoPath, logLevel,
+		node.config.Logs.LogToDisk, !node.config.IsMobile)
 	if err != nil {
 		return nil, err
 	}
@@ -578,8 +579,8 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 }
 
 // SetLogLevel provides node scoped access to the logging system
-func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
-	_, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk)
+func (t *Textile) SetLogLevel(level *pb.LogLevel, color bool) error {
+	_, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk, color)
 	return err
 }
 
@@ -929,7 +930,7 @@ func (t *Textile) runConditionalGC() {
 }
 
 // setLogLevels hijacks the ipfs logging system, putting output to files
-func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, error) {
+func setLogLevels(repoPath string, level *pb.LogLevel, disk bool, color bool) (io.Writer, error) {
 	var writer io.Writer
 	if disk {
 		writer = &lumberjack.Logger{
@@ -942,8 +943,15 @@ func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, er
 		writer = os.Stdout
 	}
 	backendFile := logger.NewLogBackend(writer, "", 0)
-	backendFile.Color = true
 	logger.SetBackend(backendFile)
+
+	var format string
+	if color {
+		format = logging.LogFormats["color"]
+	} else {
+		format = logging.LogFormats["nocolor"]
+	}
+	logger.SetFormatter(logger.MustStringFormatter(format))
 	logging.SetAllLoggers(logger.ERROR)
 
 	var err error

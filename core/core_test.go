@@ -57,7 +57,7 @@ func TestSetLogLevel(t *testing.T) {
 		"tex-datastore": pb.LogLevel_INFO,
 		"tex-service":   pb.LogLevel_DEBUG,
 	}}
-	if err := vars.node.SetLogLevel(logLevel); err != nil {
+	if err := vars.node.SetLogLevel(logLevel, true); err != nil {
 		t.Fatalf("set log levels failed: %s", err)
 	}
 }
