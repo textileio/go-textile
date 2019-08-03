@@ -43,9 +43,11 @@ func (t *Thread) handleFlagBlock(block *pb.ThreadBlock) (handleResult, error) {
 	var res handleResult
 
 	msg := new(pb.ThreadFlag)
-	err := ptypes.UnmarshalAny(block.Payload, msg)
-	if err != nil {
-		return res, err
+	if block.Payload != nil {
+		err := ptypes.UnmarshalAny(block.Payload, msg)
+		if err != nil {
+			return res, err
+		}
 	}
 
 	if !t.readable(t.config.Account.Address) {

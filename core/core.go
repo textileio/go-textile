@@ -942,6 +942,7 @@ func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, er
 		writer = os.Stdout
 	}
 	backendFile := logger.NewLogBackend(writer, "", 0)
+	backendFile.Color = true
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(logger.ERROR)
 

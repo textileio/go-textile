@@ -699,7 +699,7 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 }
 
 func TestMobile_AcceptExternalInvite(t *testing.T) {
-	_, err := testVars.mobile1.AcceptExternalInvite(testVars.invite.Id, testVars.invite.Key)
+	_, err := testVars.mobile2.AcceptExternalInvite(testVars.invite.Id, testVars.invite.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
