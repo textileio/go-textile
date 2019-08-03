@@ -777,15 +777,15 @@ func (t *Textile) runJobs() {
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
-	//t.lock.Lock()
-	//defer t.lock.Unlock()
-	//
-	//t.cafeOutbox.Flush()
-	//err := t.cafeInbox.CheckMessages()
-	//if err != nil {
-	//	log.Errorf("error checking messages: %s", err)
-	//}
-	//t.blockDownloads.Flush()
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	t.cafeOutbox.Flush(false)
+	err := t.cafeInbox.CheckMessages()
+	if err != nil {
+		log.Errorf("error checking messages: %s", err)
+	}
+	t.blockDownloads.Flush()
 }
 
 // threadByBlock returns the thread owning the given block

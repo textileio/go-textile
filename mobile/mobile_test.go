@@ -781,6 +781,10 @@ func TestMobile_Stop(t *testing.T) {
 		t.Fatalf("stop mobile node failed: %s", err)
 	}
 	t.Log("---> NODE STOPPED")
+
+	if callbacks != 3 {
+		t.Fatalf("expected 3 callbacks, got %d", callbacks)
+	}
 }
 
 func TestMobile_StopAgain(t *testing.T) {
@@ -792,7 +796,7 @@ func TestMobile_StopAgain(t *testing.T) {
 
 func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
-	//_ = testVars.mobile2.Stop()
+	_ = testVars.mobile2.Stop()
 	testVars.mobile2 = nil
 	_ = os.RemoveAll(testVars.repoPath1)
 	_ = os.RemoveAll(testVars.repoPath2)
