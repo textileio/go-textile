@@ -24,8 +24,8 @@ import (
 
 // AddFile adds an outgoing files block
 func (t *Thread) AddFiles(node ipld.Node, target string, caption string, keys map[string]string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.writable(t.config.Account.Address) {
 		return nil, ErrNotWritable

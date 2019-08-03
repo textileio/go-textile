@@ -22,9 +22,9 @@ func (m *Mobile) PeerId() (string, error) {
 
 // DataAtPath is the async version of dataAtPath
 func (m *Mobile) DataAtPath(pth string, cb DataCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.dataAtPath(pth))
 	}()

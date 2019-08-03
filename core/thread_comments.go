@@ -10,8 +10,8 @@ import (
 
 // AddComment adds an outgoing comment block
 func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable

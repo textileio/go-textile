@@ -77,7 +77,7 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, view)
 }
@@ -112,7 +112,7 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -142,7 +142,7 @@ func (a *api) renameThreads(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -238,7 +238,7 @@ func (a *api) rmThreads(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }

@@ -8,8 +8,8 @@ import (
 
 // AddLike adds an outgoing like block
 func (t *Thread) AddLike(target string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable

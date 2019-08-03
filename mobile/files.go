@@ -63,9 +63,9 @@ func fileConfigOptions(opts ...fileConfigOption) *fileConfigSettings {
 
 // AddData adds raw data to a thread
 func (m *Mobile) AddData(data string, threadId string, caption string, cb ProtoCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		decoded, err := base64.StdEncoding.DecodeString(data)
 		if err != nil {
@@ -85,9 +85,9 @@ func (m *Mobile) AddData(data string, threadId string, caption string, cb ProtoC
 // AddFiles builds a directory from paths (comma separated) and adds it to the thread
 // Note: paths can be file system paths, IPFS hashes, or an existing file hash that may need decryption.
 func (m *Mobile) AddFiles(paths string, threadId string, caption string, cb ProtoCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		hash, err := m.addFiles(util.SplitString(paths, ","), threadId, caption)
 		if err != nil {
@@ -101,9 +101,9 @@ func (m *Mobile) AddFiles(paths string, threadId string, caption string, cb Prot
 
 // ShareFiles adds an existing file DAG to a thread via its top level hash (data)
 func (m *Mobile) ShareFiles(data string, threadId string, caption string, cb ProtoCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		hash, err := m.shareFiles(data, threadId, caption)
 		if err != nil {
@@ -131,9 +131,9 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 
 // FileContent is the async version of fileContent
 func (m *Mobile) FileContent(hash string, cb DataCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.fileContent(hash))
 	}()
@@ -168,9 +168,9 @@ type img struct {
 
 // ImageFileContentForMinWidth is the async version of imageFileContentForMinWidth
 func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb DataCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.imageFileContentForMinWidth(pth, minWidth))
 	}()

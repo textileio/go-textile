@@ -8,8 +8,8 @@ import (
 
 // AddFlag adds an outgoing flag block targeted at another block to flag
 func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable

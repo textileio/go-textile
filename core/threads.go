@@ -229,12 +229,15 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		return err
 	}
 	if util.EqualStringSlices(xheads, heads) {
-		t.cafeOutbox.Flush()
+		t.FlushCafes()
 		return nil
 	}
 
 	// handle the thread tail in the background
+	stopLock.Lock()
 	go func() {
+		defer stopLock.Unlock()
+
 		leaves := nthread.followParents(heads)
 		err = nthread.handleHead(heads, leaves)
 		if err != nil {
@@ -250,7 +253,7 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 		}
 
 		// flush cafe queue _at the very end_
-		t.cafeOutbox.Flush()
+		t.cafeOutbox.Flush(false)
 	}()
 
 	return nil

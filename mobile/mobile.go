@@ -92,7 +92,7 @@ type Mobile struct {
 	node      *core.Textile
 	messenger Messenger
 	listener  *broadcast.Listener
-	mux       sync.Mutex
+	lock      sync.Mutex
 }
 
 // InitRepo calls core InitRepo
@@ -146,9 +146,6 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-
 	if err := m.node.Start(); err != nil {
 		if err == core.ErrStarted {
 			return nil
@@ -209,8 +206,8 @@ func (m *Mobile) Start() error {
 
 // Stop the mobile node
 func (m *Mobile) Stop() error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
+	m.lock.Lock()
+	defer m.lock.Unlock() // ensure the stop event can fire
 
 	if err := m.node.Stop(); err != nil {
 		if err == core.ErrStopped {

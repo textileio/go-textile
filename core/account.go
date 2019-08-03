@@ -79,6 +79,9 @@ func (t *Textile) SyncAccount(options *pb.QueryOptions) (*broadcast.Broadcaster,
 
 // maybeSyncAccount runs SyncAccount if it has not been run in the last kSyncAccountFreq
 func (t *Textile) maybeSyncAccount() {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	if t.cancelSync != nil {
 		t.cancelSync.Close()
 		t.cancelSync = nil

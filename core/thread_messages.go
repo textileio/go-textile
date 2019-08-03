@@ -10,8 +10,8 @@ import (
 
 // AddMessage adds an outgoing message block
 func (t *Thread) AddMessage(target string, body string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.writable(t.config.Account.Address) {
 		return nil, ErrNotWritable

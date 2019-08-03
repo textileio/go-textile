@@ -16,9 +16,9 @@ import (
 
 // RegisterCafe is the async flavor of registerCafe
 func (m *Mobile) RegisterCafe(id string, token string, cb Callback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.registerCafe(id, token))
 	}()
@@ -42,9 +42,9 @@ func (m *Mobile) registerCafe(id string, token string) error {
 
 // DeegisterCafe is the async flavor of deregisterCafe
 func (m *Mobile) DeregisterCafe(id string, cb Callback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.deregisterCafe(id))
 	}()
@@ -68,9 +68,9 @@ func (m *Mobile) deregisterCafe(id string) error {
 
 // RefreshCafeSession is the async flavor of refreshCafeSession
 func (m *Mobile) RefreshCafeSession(id string, cb ProtoCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.refreshCafeSession(id))
 	}()
@@ -96,9 +96,9 @@ func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
 
 // CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMessages() error {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		if !m.node.Online() {
 			log.Warning("check messages called offline")
@@ -238,9 +238,9 @@ func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total i
 
 // WriteCafeRequest is the async version of writeCafeRequest
 func (m *Mobile) WriteCafeRequest(group string, cb ProtoCallback) {
-	m.mux.Lock()
+	m.node.Lock()
 	go func() {
-		defer m.mux.Unlock()
+		defer m.node.Unlock()
 
 		cb.Call(m.writeCafeRequest(group))
 	}()

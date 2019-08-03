@@ -9,8 +9,8 @@ import (
 
 // leave creates an outgoing leave block
 func (t *Thread) leave() (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.readable(t.config.Account.Address) {
 		return nil, ErrNotReadable

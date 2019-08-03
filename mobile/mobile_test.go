@@ -792,7 +792,7 @@ func TestMobile_StopAgain(t *testing.T) {
 
 func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
-	_ = testVars.mobile2.Stop()
+	//_ = testVars.mobile2.Stop()
 	testVars.mobile2 = nil
 	_ = os.RemoveAll(testVars.repoPath1)
 	_ = os.RemoveAll(testVars.repoPath2)

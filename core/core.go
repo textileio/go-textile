@@ -107,7 +107,7 @@ type Textile struct {
 	cafeOutboxHandler CafeOutboxHandler
 	cafeInbox         *CafeInbox
 	cancelSync        *broadcast.Broadcaster
-	mux               *sync.Mutex
+	lock              sync.Mutex
 	writer            io.Writer
 }
 
@@ -225,7 +225,6 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		threadUpdates:     broadcast.NewBroadcaster(10),
 		notifications:     make(chan *pb.Notification, 10),
 		cafeOutboxHandler: conf.CafeOutboxHandler,
-		mux:               new(sync.Mutex),
 	}
 
 	node.config, err = config.Read(node.repoPath)
@@ -265,11 +264,15 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	return node, nil
 }
 
+// stopLock is used to block shutdown - workers must grab a lock before Stop does,
+// which is why Stop is first blocked by the Textile.lock
+var stopLock = sync.Mutex{}
+
 // Start creates an ipfs node and starts textile services
 func (t *Textile) Start() error {
-	t.mux.Lock()
+	t.lock.Lock()
 	if t.started {
-		t.mux.Unlock()
+		t.lock.Unlock()
 		return ErrStarted
 	}
 	log.Info("starting node...")
@@ -356,7 +359,7 @@ func (t *Textile) Start() error {
 	go func() {
 		defer func() {
 			close(t.online)
-			t.mux.Unlock()
+			t.lock.Unlock()
 			t.runJobs()
 		}()
 
@@ -420,8 +423,10 @@ func (t *Textile) Start() error {
 
 // Stop destroys the ipfs node and shutsdown textile services
 func (t *Textile) Stop() error {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	stopLock.Lock()
+	defer stopLock.Unlock()
 	if !t.started {
 		return ErrStopped
 	}
@@ -480,6 +485,16 @@ func (t *Textile) Online() bool {
 		return false
 	}
 	return t.started && t.node.IsOnline
+}
+
+// Lock textile
+func (t *Textile) Lock() {
+	t.lock.Lock()
+}
+
+// Unlock textile
+func (t *Textile) Unlock() {
+	t.lock.Unlock()
 }
 
 // Mobile returns whether or not node is configured for a mobile device
@@ -583,11 +598,11 @@ func (t *Textile) FlushBlocks() {
 			go func(block *pb.Block) {
 				var posted bool
 				defer func() {
-					go t.blockOutbox.Flush()
+					t.blockOutbox.Flush()
 					if posted {
-						go t.cafeOutbox.Flush()
+						go t.cafeOutbox.Flush(true)
 					} else if t.cafeOutbox.handler != nil {
-						go t.cafeOutbox.handler.Flush()
+						t.cafeOutbox.handler.Flush()
 					}
 					wg.Done()
 				}()
@@ -638,7 +653,11 @@ func (t *Textile) FlushBlocks() {
 
 // FlushCafes flushes the cafe request outbox
 func (t *Textile) FlushCafes() {
-	go t.cafeOutbox.Flush()
+	stopLock.Lock()
+	go func() {
+		defer stopLock.Unlock()
+		t.cafeOutbox.Flush(false)
+	}()
 }
 
 // threadsService returns the threads service
@@ -736,16 +755,16 @@ func (t *Textile) runJobs() {
 
 	go t.flushQueues()
 	t.maybeSyncAccount()
-	t.runGC()
+
+	if t.Mobile() {
+		t.runConditionalGC()
+	} else {
+		t.runPeriodicGC()
+	}
 
 	for {
 		select {
 		case <-tick.C:
-			if err := t.touchDatastore(); err != nil {
-				log.Error(err.Error())
-				return
-			}
-
 			go t.flushQueues()
 			t.maybeSyncAccount()
 
@@ -757,15 +776,15 @@ func (t *Textile) runJobs() {
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	t.cafeOutbox.Flush()
-	err := t.cafeInbox.CheckMessages()
-	if err != nil {
-		log.Errorf("error checking messages: %s", err)
-	}
-	t.blockDownloads.Flush()
+	//t.lock.Lock()
+	//defer t.lock.Unlock()
+	//
+	//t.cafeOutbox.Flush()
+	//err := t.cafeInbox.CheckMessages()
+	//if err != nil {
+	//	log.Errorf("error checking messages: %s", err)
+	//}
+	//t.blockDownloads.Flush()
 }
 
 // threadByBlock returns the thread owning the given block
@@ -876,8 +895,8 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// runGC periodically runs repo blockstore GC
-func (t *Textile) runGC() {
+// runPeriodicGC periodically runs repo blockstore GC
+func (t *Textile) runPeriodicGC() {
 	errc := make(chan error)
 	go func() {
 		errc <- corerepo.PeriodicGC(t.node.Context(), t.node)
@@ -899,6 +918,14 @@ func (t *Textile) runGC() {
 			}
 		}
 	}()
+}
+
+// runConditionalGC runs repo blockstore GC once, if needed
+func (t *Textile) runConditionalGC() {
+	err := corerepo.ConditionalGC(t.node.Context(), t.node, 0)
+	if err != nil {
+		log.Errorf("error running conditional gc: %s", err)
+	}
 }
 
 // setLogLevels hijacks the ipfs logging system, putting output to files

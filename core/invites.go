@@ -240,7 +240,9 @@ func (t *Textile) handleThreadAdd(plaintext []byte, parents []string) (mh.Multih
 	}
 
 	// handle the thread tail in the background
+	stopLock.Lock()
 	go func() {
+		defer stopLock.Unlock()
 		// follow parents, we don't care about the thread leaves because this is
 		// the first update
 		_ = thread.followParents(parents)

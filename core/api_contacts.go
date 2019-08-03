@@ -38,7 +38,7 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -98,7 +98,7 @@ func (a *api) rmContacts(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }

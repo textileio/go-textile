@@ -11,8 +11,8 @@ import (
 
 // AddIgnore adds an outgoing ignore block targeted at another block to ignore
 func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable
