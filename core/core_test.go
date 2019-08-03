@@ -80,11 +80,6 @@ func TestTextile_API_Addr(t *testing.T) {
 	}
 }
 
-func TestTextile_API_Health(t *testing.T) {
-	addr := "http://" + vars.node.ApiAddr() + "/health"
-	util.TestURL(t, addr)
-}
-
 func TestTextile_API_Stop(t *testing.T) {
 	if err := vars.node.StopApi(); err != nil {
 		t.Errorf("stop api failed: %s", err)
