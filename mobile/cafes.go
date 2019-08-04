@@ -238,10 +238,7 @@ func (m *Mobile) UpdateCafeRequestProgress(id string, transferred int64, total i
 
 // WriteCafeRequest is the async version of writeCafeRequest
 func (m *Mobile) WriteCafeRequest(group string, cb ProtoCallback) {
-	m.node.Lock()
 	go func() {
-		defer m.node.Unlock()
-
 		cb.Call(m.writeCafeRequest(group))
 	}()
 }

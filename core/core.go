@@ -265,10 +265,6 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	return node, nil
 }
 
-// stopLock is used to block shutdown - workers must grab a lock before Stop does,
-// which is why Stop is first blocked by the Textile.lock
-var stopLock = sync.Mutex{}
-
 // Start creates an ipfs node and starts textile services
 func (t *Textile) Start() error {
 	t.lock.Lock()
@@ -422,12 +418,41 @@ func (t *Textile) Start() error {
 	return t.addAccountThread()
 }
 
+type loggingMutex struct {
+	n string
+	l sync.Mutex
+}
+
+func (s *loggingMutex) Lock(src string) {
+	log.Debugf("%s lock acquired (src=%s)", s.n, src)
+	s.l.Lock()
+}
+
+func (s *loggingMutex) Unlock(src string) {
+	log.Debugf("%s lock released (src=%s)", s.n, src)
+	s.l.Unlock()
+}
+
+// stopLock is used to block shutdown. Workers must acquire a lock before Stop does,
+// which is why Stop is first blocked by the main lock
+var stopLock = loggingMutex{n: "stop"}
+
+// flushLock is leveraged by external RequestHandlers that need to lock while handling
+// requests in case Stop is called before they are complete. Because flush may result
+// in stop locks being acquired, Stop must first acquire a flush lock
+var flushLock = loggingMutex{n: "flush"}
+
 // Stop destroys the ipfs node and shutsdown textile services
 func (t *Textile) Stop() error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	stopLock.Lock()
-	defer stopLock.Unlock()
+
+	flushLock.Lock("Stop")
+	defer flushLock.Unlock("Stop")
+
+	stopLock.Lock("Stop")
+	defer stopLock.Unlock("Stop")
+
 	if !t.started {
 		return ErrStopped
 	}
@@ -488,14 +513,24 @@ func (t *Textile) Online() bool {
 	return t.started && t.node.IsOnline
 }
 
-// Lock textile
+// Lock locks the main textile lock
 func (t *Textile) Lock() {
 	t.lock.Lock()
 }
 
-// Unlock textile
+// Unlock unlocks the main textile lock
 func (t *Textile) Unlock() {
 	t.lock.Unlock()
+}
+
+// FlushLock locks the flush lock
+func (t *Textile) FlushLock() {
+	flushLock.Lock("external")
+}
+
+// FlushUnlock unlocks the flush lock
+func (t *Textile) FlushUnlock() {
+	flushLock.Unlock("external")
 }
 
 // Mobile returns whether or not node is configured for a mobile device
@@ -654,9 +689,9 @@ func (t *Textile) FlushBlocks() {
 
 // FlushCafes flushes the cafe request outbox
 func (t *Textile) FlushCafes() {
-	stopLock.Lock()
+	stopLock.Lock("FlushCafes")
 	go func() {
-		defer stopLock.Unlock()
+		defer stopLock.Unlock("FlushCafes")
 		t.cafeOutbox.Flush(false)
 	}()
 }

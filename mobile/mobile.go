@@ -225,6 +225,16 @@ func (m *Mobile) Online() bool {
 	return m.node.Online()
 }
 
+// FlushLock locks the flush lock
+func (m *Mobile) FlushLock() {
+	m.node.FlushLock()
+}
+
+// FlushUnlock unlocks the flush lock
+func (m *Mobile) FlushUnlock() {
+	m.node.FlushUnlock()
+}
+
 // Version returns common Version
 func (m *Mobile) Version() string {
 	return "v" + common.Version
