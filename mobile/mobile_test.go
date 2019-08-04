@@ -2,8 +2,10 @@ package mobile
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -99,6 +101,18 @@ func (tm *testMessenger) Notify(event *Event) {
 			return
 		}
 		printSyncGroupStatus(status)
+	}
+}
+
+type testProtoCallback struct{}
+
+var callbacks uint32
+
+func (pc *testProtoCallback) Call(msg []byte, err error) {
+	atomic.AddUint32(&callbacks, 1)
+	fmt.Println(fmt.Sprintf("+++ CALLBACK (num=%d)", callbacks))
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 
@@ -332,7 +346,7 @@ func TestMobile_Messages(t *testing.T) {
 func TestMobile_AddData(t *testing.T) {
 	input := "howdy"
 
-	conf, err := proto.Marshal(&pb.AddThreadConfig{
+	thrd, err := addTestThread(testVars.mobile1, &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
 		Name: "what",
 		Schema: &pb.AddThreadConfig_Schema{
@@ -342,16 +356,7 @@ func TestMobile_AddData(t *testing.T) {
 		Sharing: pb.Thread_SHARED,
 	})
 	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := testVars.mobile1.AddThread(conf)
-	if err != nil {
 		t.Fatalf("add thread failed: %s", err)
-	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal(res, thrd)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	_, err = testVars.mobile1.addData([]byte(input), thrd.Id, "caption")
@@ -649,7 +654,7 @@ func TestMobile_AddInvite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conf, err := proto.Marshal(&pb.AddThreadConfig{
+	thrd, err := addTestThread(testVars.mobile2, &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
 		Name: "test2",
 		Schema: &pb.AddThreadConfig_Schema{
@@ -659,16 +664,7 @@ func TestMobile_AddInvite(t *testing.T) {
 		Sharing: pb.Thread_SHARED,
 	})
 	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := testVars.mobile2.AddThread(conf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	thrd := new(pb.Thread)
-	err = proto.Unmarshal([]byte(res), thrd)
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("add thread failed: %s", err)
 	}
 
 	contact1, err := testVars.mobile1.Contact(testVars.mobile1.Address())
@@ -703,7 +699,7 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 }
 
 func TestMobile_AcceptExternalInvite(t *testing.T) {
-	_, err := testVars.mobile1.AcceptExternalInvite(testVars.invite.Id, testVars.invite.Key)
+	_, err := testVars.mobile2.AcceptExternalInvite(testVars.invite.Id, testVars.invite.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -760,9 +756,34 @@ func TestMobile_SearchContacts(t *testing.T) {
 }
 
 func TestMobile_Stop(t *testing.T) {
-	err := testVars.mobile1.Stop()
+	thrd, err := addTestThread(testVars.mobile1, &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_BLOB,
+		},
+	})
+	if err != nil {
+		t.Fatalf("add thread failed: %s", err)
+	}
+
+	t.Log("---> ADDING DATA")
+	testVars.mobile1.AddData(base64.StdEncoding.EncodeToString([]byte(ksuid.New().String())),
+		thrd.Id, "", &testProtoCallback{})
+	testVars.mobile1.AddData(base64.StdEncoding.EncodeToString([]byte(ksuid.New().String())),
+		thrd.Id, "", &testProtoCallback{})
+	testVars.mobile1.AddData(base64.StdEncoding.EncodeToString([]byte(ksuid.New().String())),
+		thrd.Id, "", &testProtoCallback{})
+
+	t.Log("---> STOPPING NODE")
+	err = testVars.mobile1.Stop()
 	if err != nil {
 		t.Fatalf("stop mobile node failed: %s", err)
+	}
+	t.Log("---> NODE STOPPED")
+
+	if callbacks != 3 {
+		t.Fatalf("expected 3 callbacks, got %d", callbacks)
 	}
 }
 

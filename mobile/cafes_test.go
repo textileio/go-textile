@@ -209,11 +209,11 @@ func addTestData(m *Mobile) error {
 
 /*
 Handle the request queue.
-  1. List some requests
-  2. Write the HTTP request for each
-  3. Handle them (set to pending, send to cafe)
-  4. Delete failed (reties not handled here)
-  5. Set successful to complete
+ 1. List some requests
+ 2. Write the HTTP request for each
+ 3. Handle them (set to pending, send to cafe)
+ 4. Delete failed (reties not handled here)
+ 5. Set successful to complete
 */
 func flushCafeRequests(limit int) (int, error) {
 	var count int

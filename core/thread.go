@@ -106,7 +106,7 @@ type Thread struct {
 	blockDownloads *BlockDownloads
 	addPeer        func(*pb.Peer) error
 	pushUpdate     func(*pb.Block, string)
-	mux            sync.Mutex
+	lock           sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config

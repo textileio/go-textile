@@ -21,11 +21,15 @@ type BlockOutbox struct {
 	node       func() *core.IpfsNode
 	datastore  repo.Datastore
 	cafeOutbox *CafeOutbox
-	mux        sync.Mutex
+	lock       sync.Mutex
 }
 
 // NewBlockOutbox creates a new outbox queue
-func NewBlockOutbox(service func() *ThreadsService, node func() *core.IpfsNode, datastore repo.Datastore, cafeOutbox *CafeOutbox) *BlockOutbox {
+func NewBlockOutbox(
+	service func() *ThreadsService,
+	node func() *core.IpfsNode,
+	datastore repo.Datastore,
+	cafeOutbox *CafeOutbox) *BlockOutbox {
 	return &BlockOutbox{
 		service:    service,
 		node:       node,
@@ -47,8 +51,8 @@ func (q *BlockOutbox) Add(peerId string, env *pb.Envelope) error {
 
 // Flush processes pending messages
 func (q *BlockOutbox) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	log.Debug("flushing block messages")
 
 	if q.service() == nil {

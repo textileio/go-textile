@@ -92,11 +92,15 @@ type CafeOutbox struct {
 	datastore   repo.Datastore
 	handler     CafeOutboxHandler
 	flushBlocks func()
-	mux         sync.Mutex
+	lock        sync.Mutex
 }
 
 // NewCafeOutbox creates a new outbox queue
-func NewCafeOutbox(node func() *core.IpfsNode, datastore repo.Datastore, handler CafeOutboxHandler, flushBlocks func()) *CafeOutbox {
+func NewCafeOutbox(
+	node func() *core.IpfsNode,
+	datastore repo.Datastore,
+	handler CafeOutboxHandler,
+	flushBlocks func()) *CafeOutbox {
 	return &CafeOutbox{
 		node:        node,
 		datastore:   datastore,
@@ -168,16 +172,18 @@ func (q *CafeOutbox) AddForInbox(peerId string, env *pb.Envelope, inboxes []*pb.
 }
 
 // Flush processes pending requests
-func (q *CafeOutbox) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+func (q *CafeOutbox) Flush(skipBlocks bool) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	log.Debug("flushing cafe outbox")
 
 	if q.handler == nil {
 		return
 	}
 	q.handler.Flush()
-	q.flushBlocks()
+	if !skipBlocks {
+		q.flushBlocks()
+	}
 
 	// clean up
 	err := q.datastore.CafeRequests().DeleteCompleteSyncGroups()

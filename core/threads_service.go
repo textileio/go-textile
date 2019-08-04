@@ -229,12 +229,19 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 			return nil, err
 		}
 
-		go thread.cafeOutbox.Flush()
+		stopLock.Lock("ThreadsService.Handle")
+		go func() {
+			defer stopLock.Unlock("ThreadsService.Handle")
+			thread.cafeOutbox.Flush(false)
+		}()
 		return reply()
 	}
 
 	// handle the thread tail in the background
+	stopLock.Lock("ThreadsService.Handle")
 	go func() {
+		defer stopLock.Unlock("ThreadsService.Handle")
+
 		leaves := thread.followParents(bnode.parents)
 		err = thread.handleHead([]string{nhash}, leaves)
 		if err != nil {
@@ -250,7 +257,7 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 		}
 
 		// flush cafe queue _at the very end_
-		thread.cafeOutbox.Flush()
+		thread.cafeOutbox.Flush(false)
 	}()
 
 	return reply()

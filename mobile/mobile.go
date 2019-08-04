@@ -92,7 +92,7 @@ type Mobile struct {
 	node      *core.Textile
 	messenger Messenger
 	listener  *broadcast.Listener
-	mux       sync.Mutex
+	lock      sync.Mutex
 }
 
 // InitRepo calls core InitRepo
@@ -206,12 +206,16 @@ func (m *Mobile) Start() error {
 
 // Stop the mobile node
 func (m *Mobile) Stop() error {
-	m.mux.Lock()
-	defer m.mux.Unlock()
+	m.lock.Lock()
+	defer m.lock.Unlock() // ensure the stop event can fire
 
-	if err := m.node.Stop(); err != nil && err != core.ErrStopped {
+	if err := m.node.Stop(); err != nil {
+		if err == core.ErrStopped {
+			return nil
+		}
 		return err
 	}
+
 	m.notify(pb.MobileEventType_NODE_STOP, nil)
 	return nil
 }
@@ -219,6 +223,16 @@ func (m *Mobile) Stop() error {
 // Online returns core Online
 func (m *Mobile) Online() bool {
 	return m.node.Online()
+}
+
+// FlushLock locks the flush lock
+func (m *Mobile) FlushLock() {
+	m.node.FlushLock()
+}
+
+// FlushUnlock unlocks the flush lock
+func (m *Mobile) FlushUnlock() {
+	m.node.FlushUnlock()
 }
 
 // Version returns common Version

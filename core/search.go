@@ -13,7 +13,7 @@ import (
 type queryResultSet struct {
 	options *pb.QueryOptions
 	items   map[string]*pb.QueryResult
-	mux     sync.Mutex
+	lock    sync.Mutex
 }
 
 // newQueryResultSet returns a new queryResultSet
@@ -26,8 +26,8 @@ func newQueryResultSet(options *pb.QueryOptions) *queryResultSet {
 
 // Add only adds a result to the set if it's newer than last
 func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
-	s.mux.Lock()
-	defer s.mux.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	var added []*pb.QueryResult
 	for _, i := range items {
@@ -49,8 +49,8 @@ func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
 
 // List returns the items as a slice
 func (s *queryResultSet) List() []*pb.QueryResult {
-	s.mux.Lock()
-	defer s.mux.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	var list []*pb.QueryResult
 	for _, i := range s.items {
@@ -62,8 +62,8 @@ func (s *queryResultSet) List() []*pb.QueryResult {
 
 // Full returns whether or not the number of results meets or exceeds limit
 func (s *queryResultSet) Full() bool {
-	s.mux.Lock()
-	defer s.mux.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	return len(s.items) >= int(s.options.Limit)
 }

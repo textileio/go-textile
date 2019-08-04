@@ -10,8 +10,8 @@ import (
 
 // announce creates an outgoing announce block
 func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.readable(t.config.Account.Address) {
 		return nil, ErrNotReadable

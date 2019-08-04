@@ -57,7 +57,7 @@ func TestSetLogLevel(t *testing.T) {
 		"tex-datastore": pb.LogLevel_INFO,
 		"tex-service":   pb.LogLevel_DEBUG,
 	}}
-	if err := vars.node.SetLogLevel(logLevel); err != nil {
+	if err := vars.node.SetLogLevel(logLevel, true); err != nil {
 		t.Fatalf("set log levels failed: %s", err)
 	}
 }
@@ -78,11 +78,6 @@ func TestTextile_API_Addr(t *testing.T) {
 		t.Error("get api address failed")
 		return
 	}
-}
-
-func TestTextile_API_Health(t *testing.T) {
-	addr := "http://" + vars.node.ApiAddr() + "/health"
-	util.TestURL(t, addr)
 }
 
 func TestTextile_API_Stop(t *testing.T) {

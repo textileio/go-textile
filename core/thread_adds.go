@@ -10,8 +10,8 @@ import (
 // AddInvite creates an outgoing add block, which is sent directly to the recipient
 // and does not become part of the hash chain
 func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.shareable(t.config.Account.Address, p.Address) {
 		return nil, ErrNotShareable
@@ -63,8 +63,8 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 // AddExternalInvite creates an add block, which can be retrieved by any peer
 // and does not become part of the hash chain
 func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{

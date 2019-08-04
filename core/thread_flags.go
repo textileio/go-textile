@@ -8,8 +8,8 @@ import (
 
 // AddFlag adds an outgoing flag block targeted at another block to flag
 func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable
@@ -43,9 +43,11 @@ func (t *Thread) handleFlagBlock(block *pb.ThreadBlock) (handleResult, error) {
 	var res handleResult
 
 	msg := new(pb.ThreadFlag)
-	err := ptypes.UnmarshalAny(block.Payload, msg)
-	if err != nil {
-		return res, err
+	if block.Payload != nil {
+		err := ptypes.UnmarshalAny(block.Payload, msg)
+		if err != nil {
+			return res, err
+		}
 	}
 
 	if !t.readable(t.config.Account.Address) {

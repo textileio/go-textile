@@ -58,27 +58,27 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 			return nil, err
 		}
 	}
-	mux := new(sync.Mutex)
+	lock := new(sync.Mutex)
 	return &SQLiteDatastore{
-		config:             NewConfigStore(conn, mux, dbPath),
-		peers:              NewPeerStore(conn, mux),
-		files:              NewFileStore(conn, mux),
-		threads:            NewThreadStore(conn, mux),
-		threadPeers:        NewThreadPeerStore(conn, mux),
-		blocks:             NewBlockStore(conn, mux),
-		blockMessages:      NewBlockMessageStore(conn, mux),
-		invites:            NewInviteStore(conn, mux),
-		notifications:      NewNotificationStore(conn, mux),
-		cafeSessions:       NewCafeSessionStore(conn, mux),
-		cafeRequests:       NewCafeRequestStore(conn, mux),
-		cafeMessages:       NewCafeMessageStore(conn, mux),
-		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
-		cafeClients:        NewCafeClientStore(conn, mux),
-		cafeTokens:         NewCafeTokenStore(conn, mux),
-		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
-		cafeClientMessages: NewCafeClientMessageStore(conn, mux),
+		config:             NewConfigStore(conn, lock, dbPath),
+		peers:              NewPeerStore(conn, lock),
+		files:              NewFileStore(conn, lock),
+		threads:            NewThreadStore(conn, lock),
+		threadPeers:        NewThreadPeerStore(conn, lock),
+		blocks:             NewBlockStore(conn, lock),
+		blockMessages:      NewBlockMessageStore(conn, lock),
+		invites:            NewInviteStore(conn, lock),
+		notifications:      NewNotificationStore(conn, lock),
+		cafeSessions:       NewCafeSessionStore(conn, lock),
+		cafeRequests:       NewCafeRequestStore(conn, lock),
+		cafeMessages:       NewCafeMessageStore(conn, lock),
+		cafeClientNonces:   NewCafeClientNonceStore(conn, lock),
+		cafeClients:        NewCafeClientStore(conn, lock),
+		cafeTokens:         NewCafeTokenStore(conn, lock),
+		cafeClientThreads:  NewCafeClientThreadStore(conn, lock),
+		cafeClientMessages: NewCafeClientMessageStore(conn, lock),
 		db:                 conn,
-		lock:               mux,
+		lock:               lock,
 	}, nil
 }
 

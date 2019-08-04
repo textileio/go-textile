@@ -12,5 +12,5 @@ func (m *Mobile) SetLogLevel(level []byte) error {
 		return err
 	}
 
-	return m.node.SetLogLevel(mlevel)
+	return m.node.SetLogLevel(mlevel, false)
 }

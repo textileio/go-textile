@@ -31,6 +31,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
 	github.com/ipfs/go-merkledag v0.2.0
+	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-path v0.0.7
 	github.com/ipfs/go-unixfs v0.2.0
 	github.com/ipfs/interface-go-ipfs-core v0.1.0
@@ -58,6 +59,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0
+	go.uber.org/fx v1.9.0
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
 	google.golang.org/appengine v1.4.0 // indirect

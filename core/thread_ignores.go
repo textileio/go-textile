@@ -11,8 +11,8 @@ import (
 
 // AddIgnore adds an outgoing ignore block targeted at another block to ignore
 func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.annotatable(t.config.Account.Address) {
 		return nil, ErrNotAnnotatable
@@ -57,9 +57,11 @@ func (t *Thread) handleIgnoreBlock(bnode *blockNode, block *pb.ThreadBlock) (han
 	var res handleResult
 
 	msg := new(pb.ThreadIgnore)
-	err := ptypes.UnmarshalAny(block.Payload, msg)
-	if err != nil {
-		return res, err
+	if block.Payload != nil {
+		err := ptypes.UnmarshalAny(block.Payload, msg)
+		if err != nil {
+			return res, err
+		}
 	}
 
 	if !t.readable(t.config.Account.Address) {
@@ -78,7 +80,7 @@ func (t *Thread) handleIgnoreBlock(bnode *blockNode, block *pb.ThreadBlock) (han
 
 	// cleanup
 	target = strings.Replace(target, "ignore-", "", 1)
-	err = t.datastore.Notifications().DeleteByBlock(target)
+	err := t.datastore.Notifications().DeleteByBlock(target)
 	if err != nil {
 		return res, err
 	}

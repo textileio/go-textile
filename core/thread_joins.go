@@ -10,8 +10,8 @@ import (
 
 // join creates an outgoing join block
 func (t *Thread) join(inviter string) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if !t.readable(t.config.Account.Address) {
 		return nil, ErrNotReadable

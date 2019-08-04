@@ -20,10 +20,10 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	os.RemoveAll(path.Join("./", "datastore"))
-	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
+	_ = os.RemoveAll(path.Join("./", "datastore"))
+	_ = os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "letmein")
-	testDB.config.Init("letmein")
+	_ = testDB.config.Init("letmein")
 
 	w, err := wallet.WalletFromEntropy(128)
 	if err != nil {
@@ -40,7 +40,7 @@ func setup() {
 }
 
 func teardown() {
-	os.RemoveAll(path.Join("./", "datastore"))
+	_ = os.RemoveAll(path.Join("./", "datastore"))
 }
 
 func TestConfigDB_Create(t *testing.T) {

@@ -35,7 +35,7 @@ func (a *api) createInvites(g *gin.Context) {
 		}
 		g.Status(http.StatusCreated)
 
-		go a.node.cafeOutbox.Flush()
+		a.node.FlushCafes()
 		return
 	}
 
@@ -45,7 +45,7 @@ func (a *api) createInvites(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, invite)
 }
@@ -112,7 +112,7 @@ func (a *api) acceptInvites(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, block)
 }
@@ -134,7 +134,7 @@ func (a *api) ignoreInvites(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.String(http.StatusOK, "ok")
 }

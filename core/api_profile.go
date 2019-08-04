@@ -48,7 +48,7 @@ func (a *api) setName(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.JSON(http.StatusCreated, "ok")
 }
@@ -68,7 +68,7 @@ func (a *api) setAvatar(g *gin.Context) {
 		return
 	}
 
-	go a.node.cafeOutbox.Flush()
+	a.node.FlushCafes()
 
 	g.JSON(http.StatusCreated, "ok")
 }
