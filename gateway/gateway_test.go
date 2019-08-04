@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/go-textile/core"
 	. "github.com/textileio/go-textile/gateway"
 	"github.com/textileio/go-textile/keypair"
-	"github.com/textileio/go-textile/util"
 )
 
 var repoPath = "testdata/.textile"
@@ -42,11 +41,6 @@ func TestGateway_Addr(t *testing.T) {
 		t.Error("get gateway address failed")
 		return
 	}
-}
-
-func TestGateway_Health(t *testing.T) {
-	addr := "http://" + Host.Addr() + "/health"
-	util.TestURL(t, addr)
 }
 
 func TestGateway_Stop(t *testing.T) {
