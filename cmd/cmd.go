@@ -903,6 +903,12 @@ The response contains a base58 encoded version of the random bytes token.`).Alia
 
 	// ================================
 
+	hideGlobalsFlagsFor(
+		daemonCmd,
+		initCmd,
+		walletCmd,
+	)
+
 	// commands
 	cmd := kingpin.MustParse(appCmd.Parse(os.Args[1:]))
 	for key, value := range cmds {
@@ -1187,4 +1193,24 @@ func getRepo(repo string) (string, error) {
 		repo = filepath.Join(appDir, "repo")
 	}
 	return repo, nil
+}
+
+func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {
+
+	m := map[string]bool{}
+	for _, c := range cmds {
+		m[c.Model().Name] = true
+	}
+
+	appCmd.PreAction(func(ctx *kingpin.ParseContext) error {
+		if ctx.SelectedCommand == nil {
+			return nil
+		}
+		if m[ctx.String()] {
+			for _, r := range appCmd.Model().Flags {
+				appCmd.GetFlag(r.Name).Hidden();
+			}
+		}
+		return nil
+	})
 }
