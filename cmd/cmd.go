@@ -1208,7 +1208,9 @@ func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {
 		}
 		if m[ctx.String()] {
 			for _, r := range appCmd.Model().Flags {
-				appCmd.GetFlag(r.Name).Hidden();
+				if r.Name != "help" {
+					appCmd.GetFlag(r.Name).Hidden();
+				}
 			}
 		}
 		return nil
