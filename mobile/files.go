@@ -131,10 +131,7 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 
 // FileContent is the async version of fileContent
 func (m *Mobile) FileContent(hash string, cb DataCallback) {
-	m.node.Lock()
 	go func() {
-		defer m.node.Unlock()
-
 		cb.Call(m.fileContent(hash))
 	}()
 }
@@ -168,10 +165,7 @@ type img struct {
 
 // ImageFileContentForMinWidth is the async version of imageFileContentForMinWidth
 func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int, cb DataCallback) {
-	m.node.Lock()
 	go func() {
-		defer m.node.Unlock()
-
 		cb.Call(m.imageFileContentForMinWidth(pth, minWidth))
 	}()
 }
