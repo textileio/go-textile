@@ -423,35 +423,46 @@ type loggingMutex struct {
 	l sync.Mutex
 }
 
-func (s *loggingMutex) Lock(src string) {
-	log.Debugf("%s lock acquired (src=%s)", s.n, src)
-	s.l.Lock()
+func (lm *loggingMutex) Lock(src string) {
+	log.Debugf("%s lock acquired (src=%s)", lm.n, src)
+	lm.l.Lock()
 }
 
-func (s *loggingMutex) Unlock(src string) {
-	log.Debugf("%s lock released (src=%s)", s.n, src)
-	s.l.Unlock()
+func (lm *loggingMutex) Unlock(src string) {
+	log.Debugf("%s lock released (src=%s)", lm.n, src)
+	lm.l.Unlock()
 }
 
-// stopLock is used to block shutdown. Workers must acquire a lock before Stop does,
-// which is why Stop is first blocked by the main lock
-var stopLock = loggingMutex{n: "stop"}
+type loggingWaitGroup struct {
+	n  string
+	wg sync.WaitGroup
+}
 
-// flushLock is leveraged by external RequestHandlers that need to lock while handling
-// requests in case Stop is called before they are complete. Because flush may result
-// in stop locks being acquired, Stop must first acquire a flush lock
-var flushLock = loggingMutex{n: "flush"}
+func (lwg *loggingWaitGroup) Add(delta int, src string) {
+	log.Debugf("%s wait added delta %d (src=%s)", lwg.n, delta, src)
+	lwg.wg.Add(delta)
+}
+
+func (lwg *loggingWaitGroup) Done(src string) {
+	log.Debugf("%s wait done (src=%s)", lwg.n, src)
+	lwg.wg.Done()
+}
+
+func (lwg *loggingWaitGroup) Wait(src string) {
+	log.Debugf("%s waiting (src=%s)", lwg.n, src)
+	lwg.wg.Wait()
+}
+
+// stopGroup is used to block shutdown. Workers must add to the wait group counter
+// before Stop blocks on wait.
+var stopGroup = loggingWaitGroup{n: "stop"}
 
 // Stop destroys the ipfs node and shutsdown textile services
 func (t *Textile) Stop() error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	flushLock.Lock("Stop")
-	defer flushLock.Unlock("Stop")
-
-	stopLock.Lock("Stop")
-	defer stopLock.Unlock("Stop")
+	stopGroup.Wait("Stop")
 
 	if !t.started {
 		return ErrStopped
@@ -513,24 +524,14 @@ func (t *Textile) Online() bool {
 	return t.started && t.node.IsOnline
 }
 
-// Lock locks the main textile lock
-func (t *Textile) Lock() {
-	t.lock.Lock()
+// WaitAdd add delta wait to the stop wait group
+func (t *Textile) WaitAdd(delta int, src string) {
+	stopGroup.Add(delta, src)
 }
 
-// Unlock unlocks the main textile lock
-func (t *Textile) Unlock() {
-	t.lock.Unlock()
-}
-
-// FlushLock locks the flush lock
-func (t *Textile) FlushLock() {
-	flushLock.Lock("external")
-}
-
-// FlushUnlock unlocks the flush lock
-func (t *Textile) FlushUnlock() {
-	flushLock.Unlock("external")
+// WaitDone marks a wait as done in the stop wait group
+func (t *Textile) WaitDone(src string) {
+	stopGroup.Done(src)
 }
 
 // Mobile returns whether or not node is configured for a mobile device
@@ -689,9 +690,9 @@ func (t *Textile) FlushBlocks() {
 
 // FlushCafes flushes the cafe request outbox
 func (t *Textile) FlushCafes() {
-	stopLock.Lock("FlushCafes")
+	stopGroup.Add(1, "FlushCafes")
 	go func() {
-		defer stopLock.Unlock("FlushCafes")
+		defer stopGroup.Done("FlushCafes")
 		t.cafeOutbox.Flush(false)
 	}()
 }

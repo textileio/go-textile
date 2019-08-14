@@ -208,7 +208,7 @@ func TestMobile_StopAndStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("attempt to start a running node failed: %s", err)
 	}
-	err = testVars.mobile1.Stop()
+	err = testVars.mobile1.stop()
 	if err != nil {
 		t.Fatalf("stop mobile node failed: %s", err)
 	}
@@ -776,7 +776,7 @@ func TestMobile_Stop(t *testing.T) {
 		thrd.Id, "", &testProtoCallback{})
 
 	t.Log("---> STOPPING NODE")
-	err = testVars.mobile1.Stop()
+	err = testVars.mobile1.stop()
 	if err != nil {
 		t.Fatalf("stop mobile node failed: %s", err)
 	}
@@ -788,7 +788,7 @@ func TestMobile_Stop(t *testing.T) {
 }
 
 func TestMobile_StopAgain(t *testing.T) {
-	err := testVars.mobile1.Stop()
+	err := testVars.mobile1.stop()
 	if err != nil {
 		t.Fatalf("stop mobile node again should not return error: %s", err)
 	}
@@ -796,7 +796,7 @@ func TestMobile_StopAgain(t *testing.T) {
 
 func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
-	_ = testVars.mobile2.Stop()
+	_ = testVars.mobile2.stop()
 	testVars.mobile2 = nil
 	_ = os.RemoveAll(testVars.repoPath1)
 	_ = os.RemoveAll(testVars.repoPath2)

@@ -234,9 +234,9 @@ func (t *Textile) AddOrUpdateThread(thread *pb.Thread) error {
 	}
 
 	// handle the thread tail in the background
-	stopLock.Lock("AddOrUpdateThread")
+	stopGroup.Add(1, "AddOrUpdateThread")
 	go func() {
-		defer stopLock.Unlock("AddOrUpdateThread")
+		defer stopGroup.Done("AddOrUpdateThread")
 
 		leaves := nthread.followParents(heads)
 		err = nthread.handleHead(heads, leaves)

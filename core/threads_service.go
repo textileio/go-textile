@@ -229,18 +229,18 @@ func (h *ThreadsService) Handle(env *pb.Envelope, pid peer.ID) (*pb.Envelope, er
 			return nil, err
 		}
 
-		stopLock.Lock("ThreadsService.Handle")
+		stopGroup.Add(1, "ThreadsService.Handle")
 		go func() {
-			defer stopLock.Unlock("ThreadsService.Handle")
+			defer stopGroup.Done("ThreadsService.Handle")
 			thread.cafeOutbox.Flush(false)
 		}()
 		return reply()
 	}
 
 	// handle the thread tail in the background
-	stopLock.Lock("ThreadsService.Handle")
+	stopGroup.Add(1, "ThreadsService.Handle")
 	go func() {
-		defer stopLock.Unlock("ThreadsService.Handle")
+		defer stopGroup.Done("ThreadsService.Handle")
 
 		leaves := thread.followParents(bnode.parents)
 		err = thread.handleHead([]string{nhash}, leaves)

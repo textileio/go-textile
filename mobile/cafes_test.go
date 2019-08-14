@@ -17,8 +17,9 @@ import (
 )
 
 var cafesTestVars = struct {
-	mobilePath  string
-	mobile      *Mobile
+	mobilePath string
+	mobile     *Mobile
+
 	cafePath    string
 	cafe        *core.Textile
 	cafeApiPort string
@@ -155,7 +156,7 @@ func TestMobile_HandleCafeRequests(t *testing.T) {
 }
 
 func TestMobile_TeardownCafes(t *testing.T) {
-	_ = cafesTestVars.mobile.Stop()
+	_ = cafesTestVars.mobile.stop()
 	_ = cafesTestVars.cafe.Stop()
 	cafesTestVars.mobile = nil
 	cafesTestVars.cafe = nil
