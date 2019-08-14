@@ -16,9 +16,9 @@ import (
 
 // RegisterCafe is the async flavor of registerCafe
 func (m *Mobile) RegisterCafe(id string, token string, cb Callback) {
-	m.node.Lock()
+	m.node.WaitAdd(1, "Mobile.RegisterCafe")
 	go func() {
-		defer m.node.Unlock()
+		defer m.node.WaitDone("Mobile.RegisterCafe")
 
 		cb.Call(m.registerCafe(id, token))
 	}()
@@ -42,9 +42,9 @@ func (m *Mobile) registerCafe(id string, token string) error {
 
 // DeegisterCafe is the async flavor of deregisterCafe
 func (m *Mobile) DeregisterCafe(id string, cb Callback) {
-	m.node.Lock()
+	m.node.WaitAdd(1, "Mobile.DeregisterCafe")
 	go func() {
-		defer m.node.Unlock()
+		defer m.node.WaitDone("Mobile.DeregisterCafe")
 
 		cb.Call(m.deregisterCafe(id))
 	}()
@@ -68,9 +68,9 @@ func (m *Mobile) deregisterCafe(id string) error {
 
 // RefreshCafeSession is the async flavor of refreshCafeSession
 func (m *Mobile) RefreshCafeSession(id string, cb ProtoCallback) {
-	m.node.Lock()
+	m.node.WaitAdd(1, "Mobile.RefreshCafeSession")
 	go func() {
-		defer m.node.Unlock()
+		defer m.node.WaitDone("Mobile.RefreshCafeSession")
 
 		cb.Call(m.refreshCafeSession(id))
 	}()
@@ -96,9 +96,9 @@ func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
 
 // CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMessages() error {
-	m.node.Lock()
+	m.node.WaitAdd(1, "Mobile.CheckCafeMessages")
 	go func() {
-		defer m.node.Unlock()
+		defer m.node.WaitDone("Mobile.CheckCafeMessages")
 
 		if !m.node.Online() {
 			log.Warning("check messages called offline")

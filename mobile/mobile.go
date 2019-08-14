@@ -1,8 +1,6 @@
 package mobile
 
 import (
-	"sync"
-
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/multiformats/go-multihash"
@@ -92,7 +90,6 @@ type Mobile struct {
 	node      *core.Textile
 	messenger Messenger
 	listener  *broadcast.Listener
-	lock      sync.Mutex
 }
 
 // InitRepo calls core InitRepo
@@ -205,10 +202,14 @@ func (m *Mobile) Start() error {
 }
 
 // Stop the mobile node
-func (m *Mobile) Stop() error {
-	m.lock.Lock()
-	defer m.lock.Unlock() // ensure the stop event can fire
+func (m *Mobile) Stop(cb Callback) {
+	go func() {
+		cb.Call(m.stop())
+	}()
+}
 
+// stop is the sync version of Stop
+func (m *Mobile) stop() error {
 	if err := m.node.Stop(); err != nil {
 		if err == core.ErrStopped {
 			return nil
@@ -225,14 +226,14 @@ func (m *Mobile) Online() bool {
 	return m.node.Online()
 }
 
-// FlushLock locks the flush lock
-func (m *Mobile) FlushLock() {
-	m.node.FlushLock()
+// WaitAdd calls core WaitAdd
+func (m *Mobile) WaitAdd(delta int, src string) {
+	m.node.WaitAdd(delta, src)
 }
 
-// FlushUnlock unlocks the flush lock
-func (m *Mobile) FlushUnlock() {
-	m.node.FlushUnlock()
+// WaitDone marks a wait as done in the stop wait group
+func (m *Mobile) WaitDone(src string) {
+	m.node.WaitDone(src)
 }
 
 // Version returns common Version
