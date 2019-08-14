@@ -418,21 +418,6 @@ func (t *Textile) Start() error {
 	return t.addAccountThread()
 }
 
-type loggingMutex struct {
-	n string
-	l sync.Mutex
-}
-
-func (lm *loggingMutex) Lock(src string) {
-	log.Debugf("%s lock acquired (src=%s)", lm.n, src)
-	lm.l.Lock()
-}
-
-func (lm *loggingMutex) Unlock(src string) {
-	log.Debugf("%s lock released (src=%s)", lm.n, src)
-	lm.l.Unlock()
-}
-
 type loggingWaitGroup struct {
 	n  string
 	wg sync.WaitGroup
