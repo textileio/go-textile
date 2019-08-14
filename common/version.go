@@ -4,4 +4,4 @@ package common
 var GitCommit, GitBranch, GitState, GitSummary, BuildDate string
 
 // Version is the current application's version literal
-const Version = "0.6.9"
+const Version = "0.6.11"
