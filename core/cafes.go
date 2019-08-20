@@ -28,25 +28,25 @@ func (t *Textile) RegisterCafe(id string, token string) (*pb.CafeSession, error)
 		return nil, err
 	}
 
-	err = t.updatePeerInboxes()
+	err = t.UpdatePeerInboxes()
 	if err != nil {
 		return nil, err
 	}
 
 	// sync all blocks and files target
-	err = t.cafeRequestThreadsContent(session.Id)
+	err = t.CafeRequestThreadsContent(session.Id)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		_, err = thrd.annouce(nil)
+		_, err = thrd.Annouce(nil)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = t.publishPeer()
+	err = t.PublishPeer()
 	if err != nil {
 		return nil, err
 	}
@@ -72,19 +72,19 @@ func (t *Textile) DeregisterCafe(id string) error {
 		return err
 	}
 
-	err = t.updatePeerInboxes()
+	err = t.UpdatePeerInboxes()
 	if err != nil {
 		return err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		_, err := thrd.annouce(nil)
+		_, err := thrd.Annouce(nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	return t.publishPeer()
+	return t.PublishPeer()
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
@@ -111,8 +111,8 @@ func (t *Textile) CafeSessions() *pb.CafeSessionList {
 	return t.datastore.CafeSessions().List()
 }
 
-// cafeRequestThreadContent sync the entire thread conents (blocks and files) to the given cafe
-func (t *Textile) cafeRequestThreadsContent(cafe string) error {
+// CafeRequestThreadContent sync the entire thread conents (blocks and files) to the given cafe
+func (t *Textile) CafeRequestThreadsContent(cafe string) error {
 	for _, thrd := range t.loadedThreads {
 		blocks := t.Blocks("", -1, fmt.Sprintf("threadId='%s'", thrd.Id))
 		for _, b := range blocks.Items {

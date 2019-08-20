@@ -9,7 +9,7 @@ import (
 )
 
 // announce creates an outgoing announce block
-func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
+func (t *Thread) Annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 

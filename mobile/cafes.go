@@ -1,16 +1,22 @@
 package mobile
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"mime/multipart"
+	"net/http"
 	"os"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	icid "github.com/ipfs/go-cid"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/util"
 )
 
@@ -24,39 +30,99 @@ func (m *Mobile) RegisterCafe(id string, token string, cb Callback) {
 	}()
 }
 
-// registerCafe calls core RegisterCafe
-func (m *Mobile) registerCafe(id string, token string) error {
-	if !m.node.Online() {
-		return core.ErrOffline
+// registerCafe calls gets a new session from the given host
+func (m *Mobile) registerCafe(host string, token string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
 	}
 
-	_, err := m.node.RegisterCafe(id, token)
+	url := fmt.Sprintf("%s/api/%s/sessions/challenge/?account_addr=%s",
+		host, core.CafeApiVersion, m.Address())
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Basic "+token)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = errorCheck(res)
 	if err != nil {
 		return err
 	}
 
-	m.node.FlushCafes()
-
-	return nil
-}
-
-// DeegisterCafe is the async flavor of deregisterCafe
-func (m *Mobile) DeregisterCafe(id string, cb Callback) {
-	m.node.WaitAdd(1, "Mobile.DeregisterCafe")
-	go func() {
-		defer m.node.WaitDone("Mobile.DeregisterCafe")
-
-		cb.Call(m.deregisterCafe(id))
-	}()
-}
-
-// deregisterCafe calls core DeregisterCafe
-func (m *Mobile) deregisterCafe(id string) error {
-	if !m.node.Online() {
-		return core.ErrOffline
+	snonce := new(pb.CafeClientNonce)
+	err = jsonpb.Unmarshal(res.Body, snonce)
+	if err != nil {
+		return err
 	}
 
-	err := m.node.DeregisterCafe(id)
+	// complete the challenge
+	nonce := ksuid.New().String()
+	sig, err := m.Sign([]byte(snonce.Value + nonce))
+	if err != nil {
+		return err
+	}
+
+	pid := m.node.Ipfs().Identity.Pretty()
+	url = fmt.Sprintf("%s/api/%s/sessions/%s/?account_addr=%s&challenge=%s&nonce=%s",
+		host, core.CafeApiVersion, pid, m.Address(), snonce.Value, nonce)
+	req, err = http.NewRequest(http.MethodPost, url, bytes.NewReader(sig))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Basic "+token)
+	res, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = errorCheck(res)
+	if err != nil {
+		return err
+	}
+
+	session := new(pb.CafeSession)
+	err = jsonpb.Unmarshal(res.Body, session)
+	if err != nil {
+		return err
+	}
+
+	// return existing session
+	if x := m.node.Datastore().CafeSessions().Get(session.Id); x != nil {
+		return nil
+	}
+
+	err = m.node.Datastore().CafeSessions().AddOrUpdate(session)
+	if err != nil {
+		return err
+	}
+
+	err = m.node.UpdatePeerInboxes()
+	if err != nil {
+		return err
+	}
+
+	// sync all blocks and files target
+	err = m.node.CafeRequestThreadsContent(session.Id)
+	if err != nil {
+		return err
+	}
+
+	for _, thrd := range m.node.Threads() {
+		_, err = thrd.Annouce(nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = m.node.PublishPeer()
+	if err != nil {
+		return err
+	}
+
+	err = m.node.SnapshotThreads()
 	if err != nil {
 		return err
 	}
@@ -76,44 +142,237 @@ func (m *Mobile) RefreshCafeSession(id string, cb ProtoCallback) {
 	}()
 }
 
-// refreshCafeSession calls core RefreshCafeSession
+// refreshCafeSession refreshes the session with the given id
 func (m *Mobile) refreshCafeSession(id string) ([]byte, error) {
-	if !m.node.Online() {
-		return nil, core.ErrOffline
+	if !m.node.Started() {
+		return nil, core.ErrStopped
 	}
 
-	session, err := m.node.RefreshCafeSession(id)
+	session := m.node.Datastore().CafeSessions().Get(id)
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	pid := m.node.Ipfs().Identity.Pretty()
+	url := fmt.Sprintf("%s/api/%s/sessions/%s/refresh", session.Cafe.Url, core.CafeApiVersion, pid)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(session.Access)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Basic "+session.Refresh)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	err = errorCheck(res)
 	if err != nil {
 		return nil, err
 	}
 
-	bytes, err := proto.Marshal(session)
+	session = new(pb.CafeSession)
+	err = jsonpb.Unmarshal(res.Body, session)
 	if err != nil {
 		return nil, err
 	}
-	return bytes, nil
+
+	err = m.node.Datastore().CafeSessions().AddOrUpdate(session)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(session)
 }
 
-// CheckCafeMessages calls core CheckCafeMessages
-func (m *Mobile) CheckCafeMessages() error {
+// DeegisterCafe is the async flavor of deregisterCafe
+func (m *Mobile) DeregisterCafe(id string, cb Callback) {
+	m.node.WaitAdd(1, "Mobile.DeregisterCafe")
+	go func() {
+		defer m.node.WaitDone("Mobile.DeregisterCafe")
+
+		cb.Call(m.deregisterCafe(id))
+	}()
+}
+
+// deregisterCafe deletes the session with the given id
+func (m *Mobile) deregisterCafe(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	session := m.node.Datastore().CafeSessions().Get(id)
+	if session == nil {
+		return nil
+	}
+
+	pid := m.node.Ipfs().Identity.Pretty()
+	url := fmt.Sprintf("%s/api/%s/sessions/%s", session.Cafe.Url, core.CafeApiVersion, pid)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Basic "+session.Access)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = errorCheck(res)
+	if err != nil {
+		return err
+	}
+
+	// cleanup
+	err = m.node.Datastore().CafeRequests().DeleteByCafe(session.Id)
+	if err != nil {
+		return err
+	}
+	err = m.node.Datastore().CafeSessions().Delete(session.Id)
+	if err != nil {
+		return err
+	}
+
+	err = m.node.UpdatePeerInboxes()
+	if err != nil {
+		return err
+	}
+
+	for _, thrd := range m.node.Threads() {
+		_, err := thrd.Annouce(nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = m.node.PublishPeer()
+	if err != nil {
+		return err
+	}
+
+	m.node.FlushCafes()
+
+	return nil
+}
+
+// CheckCafeMessages is the async flavor of checkCafeMessages
+func (m *Mobile) CheckCafeMessages(cb Callback) {
 	m.node.WaitAdd(1, "Mobile.CheckCafeMessages")
 	go func() {
 		defer m.node.WaitDone("Mobile.CheckCafeMessages")
 
-		if !m.node.Online() {
-			log.Warning("check messages called offline")
-			return
-		}
-
-		err := m.node.CheckCafeMessages()
-		if err != nil {
-			log.Errorf("error checking cafe inbox: %s", err)
-		}
-
-		m.node.FlushCafes()
+		cb.Call(m.checkCafeMessages())
 	}()
+}
+
+// checkCafeMessages queries all sessions for new messages
+func (m *Mobile) checkCafeMessages() error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	// get active cafe sessions
+	sessions := m.node.Datastore().CafeSessions().List().Items
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, s := range sessions {
+		err = m.checkSessionMessages(s)
+		if err != nil {
+			return err
+		}
+	}
+
+	m.node.FlushCafes()
 
 	return nil
+}
+
+// checkSessionMessages checks a session for new messages
+func (m *Mobile) checkSessionMessages(session *pb.CafeSession) error {
+	pid := m.node.Ipfs().Identity.Pretty()
+	url := fmt.Sprintf("%s/api/%s/inbox/%s", session.Cafe.Url, core.CafeApiVersion, pid)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Basic "+session.Access)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = errorCheck(res)
+	if err != nil {
+		return err
+	}
+
+	msgs := new(pb.CafeMessages)
+	err = jsonpb.Unmarshal(res.Body, msgs)
+	if err != nil {
+		return err
+	}
+
+	// save messages to inbox
+	for _, msg := range msgs.Messages {
+		err = m.node.Inbox().Add(msg)
+		if err != nil {
+			if !db.ConflictError(err) {
+				return err
+			}
+		}
+	}
+
+	m.node.Inbox().Flush()
+
+	// delete them from the remote so that more can be fetched
+	if len(msgs.Messages) > 0 {
+		return m.deleteCafeMessages(session.Id)
+	}
+	return nil
+}
+
+// deleteCafeMessages deletes a page of cafe messages
+func (m *Mobile) deleteCafeMessages(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	session := m.node.Datastore().CafeSessions().Get(id)
+	if session == nil {
+		return nil
+	}
+
+	pid := m.node.Ipfs().Identity.Pretty()
+	url := fmt.Sprintf("%s/api/%s/inbox/%s", session.Cafe.Url, core.CafeApiVersion, pid)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Basic "+session.Access)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = errorCheck(res)
+	if err != nil {
+		return err
+	}
+
+	ack := new(pb.CafeDeleteMessagesAck)
+	err = jsonpb.Unmarshal(res.Body, ack)
+	if err != nil {
+		return err
+	}
+
+	if !ack.More {
+		return nil
+	}
+
+	// apparently there are more new messages waiting...
+	return m.checkSessionMessages(session)
 }
 
 // CafeSession calls core CafeSession
@@ -130,11 +389,11 @@ func (m *Mobile) CafeSession(id string) ([]byte, error) {
 		return nil, nil
 	}
 
-	bytes, err := proto.Marshal(session)
+	res, err := proto.Marshal(session)
 	if err != nil {
 		return nil, err
 	}
-	return bytes, nil
+	return res, nil
 }
 
 // CafeSessions calls core CafeSessions
@@ -143,11 +402,11 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 		return nil, core.ErrStopped
 	}
 
-	bytes, err := proto.Marshal(m.node.CafeSessions())
+	res, err := proto.Marshal(m.node.CafeSessions())
 	if err != nil {
 		return nil, err
 	}
-	return bytes, nil
+	return res, nil
 }
 
 // CafeRequests paginates new requests
@@ -467,4 +726,18 @@ func (m *Mobile) handleCafeRequestDone(id string, status *pb.CafeSyncGroupStatus
 	m.node.FlushBlocks()
 
 	return m.deleteCafeRequestBody(id)
+}
+
+// errorCheck returns an error encoded in the response
+func errorCheck(res *http.Response) error {
+	if res.StatusCode >= http.StatusBadRequest {
+		decoder := json.NewDecoder(res.Body)
+		e := new(core.CafeError)
+		err := decoder.Decode(e)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf(e.Error)
+	}
+	return nil
 }

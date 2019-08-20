@@ -3,19 +3,269 @@ package core
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"time"
 
+	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/jwt"
+	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
+
+// GET /sessions/challenge/?account_addr=<address> (header=>token)
+func (c *cafeApi) getSessionChallenge(g *gin.Context) {
+	addr := g.Query("account_addr")
+	accnt, err := keypair.Parse(addr)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
+		return
+	}
+	if _, err := accnt.Sign([]byte{0x00}); err == nil {
+		// we don't want to handle account seeds, just addresses
+		log.Warning(errInvalidAddress)
+		c.abort(g, http.StatusBadRequest, fmt.Errorf(errInvalidAddress))
+		return
+	}
+
+	// generate a new random nonce
+	nonce := &pb.CafeClientNonce{
+		Value:   ksuid.New().String(),
+		Address: addr,
+		Date:    ptypes.TimestampNow(),
+	}
+	err = c.node.datastore.CafeClientNonces().Add(nonce)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	pbJSON(g, http.StatusOK, nonce)
+}
+
+// POST /sessions/:pid/?account_addr=<address>&challenge=<challenge>&n=<nonce> (header=>token, body=sig)
+func (c *cafeApi) createSession(g *gin.Context) {
+	// are we open?
+	if !c.node.cafe.open {
+		log.Warning("cafe is not open")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	addr := g.Query("account_addr")
+	accnt, err := keypair.Parse(addr)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
+		return
+	}
+
+	pid, err := peer.IDB58Decode(g.Param("pid"))
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
+		return
+	}
+
+	// check nonce
+	snonce := c.node.datastore.CafeClientNonces().Get(g.Query("challenge"))
+	if snonce == nil {
+		log.Warning("challenge not found")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	if snonce.Address != accnt.Address() {
+		log.Warning("invalid address")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	buf := bodyPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bodyPool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err = buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
+		return
+	}
+	sig := buf.Bytes()
+
+	payload := []byte(g.Query("challenge") + g.Query("nonce"))
+	err = accnt.Verify(payload, sig)
+	if err != nil {
+		log.Warning("verification failed")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	now := ptypes.TimestampNow()
+	client := &pb.CafeClient{
+		Id:      pid.Pretty(),
+		Address: accnt.Address(),
+		Created: now,
+		Seen:    now,
+		Token:   g.GetString("token"),
+	}
+	err = c.node.datastore.CafeClients().Add(client)
+	if err != nil {
+		// check if already exists
+		client = c.node.datastore.CafeClients().Get(pid.Pretty())
+		if client == nil {
+			err = fmt.Errorf("get or create client failed")
+			log.Warning(err)
+			c.abort(g, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	session, err := jwt.NewSession(
+		c.node.node.PrivateKey,
+		pid,
+		c.node.cafe.Protocol(),
+		defaultSessionDuration,
+		c.node.cafe.info,
+	)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = c.node.datastore.CafeClientNonces().Delete(snonce.Value)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	pbJSON(g, http.StatusCreated, session)
+}
+
+// POST /sessions/refresh/:pid (header=>refresh, body=access)
+func (c *cafeApi) refreshSession(g *gin.Context) {
+	// are we _still_ open?
+	if !c.node.cafe.open {
+		log.Warning("cafe is not open")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	buf := bodyPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bodyPool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err := buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		log.Warning(err)
+		c.abort(g, http.StatusBadRequest, err)
+		return
+	}
+
+	// ensure access and refresh are a valid pair
+	access, _ := njwt.Parse(string(buf.Bytes()), c.verifyKeyFunc)
+	if access == nil {
+		log.Warning("error parsing access token")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	refresh, _ := njwt.Parse(g.GetString("token"), c.verifyKeyFunc)
+	if refresh == nil {
+		log.Warning("error parsing refresh token")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	accessClaims, err := jwt.ParseClaims(access.Claims)
+	if err != nil {
+		log.Warning("error parsing access claims")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	refreshClaims, err := jwt.ParseClaims(refresh.Claims)
+	if err != nil {
+		log.Warning("error parsing refresh claims")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	if refreshClaims.Id[1:] != accessClaims.Id {
+		log.Warning("token id mismatch")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+	if refreshClaims.Subject != accessClaims.Subject {
+		log.Warning("token subject mismatch ")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	// get a new session
+	spid, err := peer.IDB58Decode(accessClaims.Subject)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+	session, err := jwt.NewSession(
+		c.node.node.PrivateKey,
+		spid,
+		c.node.cafe.Protocol(),
+		defaultSessionDuration,
+		c.node.cafe.info,
+	)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	pbJSON(g, http.StatusCreated, session)
+}
+
+// DELETE /sessions/:pid (header=>access)
+func (c *cafeApi) deleteSession(g *gin.Context) {
+	pid := g.GetString("from")
+	err := c.node.datastore.CafeClientThreads().DeleteByClient(pid)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = c.node.datastore.CafeClientMessages().DeleteByClient(pid, -1)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = c.node.datastore.CafeClients().Delete(pid)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	g.Status(http.StatusNoContent)
+}
 
 func (c *cafeApi) store(g *gin.Context) {
 	var err error
@@ -100,6 +350,7 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 
 	client := c.node.datastore.CafeClients().Get(from)
 	if client == nil {
+		log.Warning("client not found")
 		c.abort(g, http.StatusForbidden, nil)
 		return
 	}
@@ -124,6 +375,7 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 		Ciphertext: buf.Bytes(),
 	})
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
@@ -139,12 +391,14 @@ func (c *cafeApi) unstoreThread(g *gin.Context) {
 
 	client := c.node.datastore.CafeClients().Get(from)
 	if client == nil {
+		log.Warning("client not found")
 		c.abort(g, http.StatusForbidden, nil)
 		return
 	}
 
 	err := c.node.datastore.CafeClientThreads().Delete(id, client.Id)
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
@@ -152,6 +406,59 @@ func (c *cafeApi) unstoreThread(g *gin.Context) {
 	log.Debugf("unstored thread %s", id)
 
 	g.Status(http.StatusNoContent)
+}
+
+func (c *cafeApi) checkMessages(g *gin.Context) {
+	client := c.node.datastore.CafeClients().Get(g.GetString("from"))
+	if client == nil {
+		log.Warning("client not found")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	err := c.node.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now())
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	res := &pb.CafeMessages{
+		Messages: make([]*pb.CafeMessage, 0),
+	}
+	msgs := c.node.datastore.CafeClientMessages().ListByClient(client.Id, inboxMessagePageSize)
+	for _, msg := range msgs {
+		res.Messages = append(res.Messages, &pb.CafeMessage{
+			Id:   msg.Id,
+			Peer: msg.Peer,
+			Date: msg.Date,
+		})
+	}
+
+	pbJSON(g, http.StatusOK, res)
+}
+
+func (c *cafeApi) deleteMessages(g *gin.Context) {
+	client := c.node.datastore.CafeClients().Get(g.GetString("from"))
+	if client == nil {
+		log.Warning("client not found")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	// delete the most recent page
+	err := c.node.datastore.CafeClientMessages().DeleteByClient(client.Id, inboxMessagePageSize)
+	if err != nil {
+		log.Warning(err)
+		c.abort(g, http.StatusInternalServerError, err)
+		return
+	}
+
+	// check for more
+	remaining := c.node.datastore.CafeClientMessages().CountByClient(client.Id)
+
+	res := &pb.CafeDeleteMessagesAck{More: remaining > 0}
+	pbJSON(g, http.StatusOK, res)
 }
 
 func (c *cafeApi) deliverMessage(g *gin.Context) {
@@ -238,6 +545,7 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 		Date:   ptypes.TimestampNow(),
 	})
 	if err != nil {
+		log.Warning(err)
 		c.abort(g, http.StatusInternalServerError, err)
 		return
 	}
@@ -309,6 +617,7 @@ func (c *cafeApi) search(g *gin.Context) {
 
 			payload, err := proto.Marshal(rpmes)
 			if err != nil {
+				log.Warning(err)
 				c.abort(g, http.StatusInternalServerError, err)
 				return false
 			}

@@ -20,13 +20,12 @@ var cafesTestVars = struct {
 	mobilePath string
 	mobile     *Mobile
 
-	cafePath    string
-	cafe        *core.Textile
-	cafeApiPort string
+	cafePath string
+	cafe     *core.Textile
+	token    string
 }{
-	mobilePath:  "./testdata/.textile3",
-	cafePath:    "./testdata/.textile4",
-	cafeApiPort: "5000",
+	mobilePath: "./testdata/.textile3",
+	cafePath:   "./testdata/.textile4",
 }
 
 func TestMobile_SetupCafes(t *testing.T) {
@@ -43,8 +42,8 @@ func TestMobile_SetupCafes(t *testing.T) {
 		RepoPath:    cafesTestVars.cafePath,
 		Debug:       true,
 		SwarmPorts:  "4001",
-		CafeApiAddr: "0.0.0.0:" + cafesTestVars.cafeApiPort,
-		CafeURL:     "http://127.0.0.1:" + cafesTestVars.cafeApiPort,
+		CafeApiAddr: "0.0.0.0:5000",
+		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}, true)
 	if err != nil {
@@ -67,13 +66,63 @@ func TestMobile_RegisterCafe(t *testing.T) {
 	cafeID := cafesTestVars.cafe.Ipfs().Identity
 	cafesTestVars.mobile.node.Ipfs().Peerstore.AddAddrs(
 		cafeID, cafesTestVars.cafe.Ipfs().PeerHost.Addrs(), peerstore.PermanentAddrTTL)
-	err = cafesTestVars.mobile.registerCafe(cafeID.Pretty(), token)
+	err = cafesTestVars.mobile.registerCafe("http://127.0.0.1:5000", token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cafesTestVars.token = token
+}
+
+func TestMobile_DeregisterCafe(t *testing.T) {
+	res, err := cafesTestVars.mobile.CafeSessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions := new(pb.CafeSessionList)
+	err = proto.Unmarshal(res, sessions)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = cafesTestVars.mobile.deregisterCafe(sessions.Items[0].Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMobile_ReregisterCafe(t *testing.T) {
+	err := cafesTestVars.mobile.registerCafe("http://127.0.0.1:5000", cafesTestVars.token)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// add some data
 	err = addTestData(cafesTestVars.mobile)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMobile_RefreshCafeSession(t *testing.T) {
+	res, err := cafesTestVars.mobile.CafeSessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions := new(pb.CafeSessionList)
+	err = proto.Unmarshal(res, sessions)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = cafesTestVars.mobile.refreshCafeSession(sessions.Items[0].Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMobile_CheckCafeMessages(t *testing.T) {
+	err := cafesTestVars.mobile.checkCafeMessages()
 	if err != nil {
 		t.Fatal(err)
 	}

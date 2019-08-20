@@ -31,13 +31,13 @@ func (t *Textile) SetName(name string) error {
 	}
 
 	for _, thrd := range t.loadedThreads {
-		_, err = thrd.annouce(nil)
+		_, err = thrd.Annouce(nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	return t.publishPeer()
+	return t.PublishPeer()
 }
 
 // Avatar returns profile avatar
@@ -66,11 +66,11 @@ func (t *Textile) SetAvatar() error {
 	}
 
 	for _, thrd := range t.loadedThreads {
-		_, err = thrd.annouce(nil)
+		_, err = thrd.Annouce(nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	return t.publishPeer()
+	return t.PublishPeer()
 }

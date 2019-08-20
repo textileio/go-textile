@@ -281,7 +281,7 @@ func (t *Textile) RenameThread(id string, name string) error {
 		return err
 	}
 
-	_, err = thread.annouce(&pb.ThreadAnnounce{Name: trimmed})
+	_, err = thread.Annouce(&pb.ThreadAnnounce{Name: trimmed})
 	return err
 }
 
@@ -553,7 +553,7 @@ func (t *Textile) addAccountThread() error {
 
 	// add existing contacts
 	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
-		_, err = thread.annouce(&pb.ThreadAnnounce{Peer: p})
+		_, err = thread.Annouce(&pb.ThreadAnnounce{Peer: p})
 		if err != nil {
 			return err
 		}

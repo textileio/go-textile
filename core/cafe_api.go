@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"sync"
@@ -11,8 +12,11 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/jwt"
 	"github.com/textileio/go-textile/pb"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // CafeApiVersion is the cafe api version
@@ -92,6 +96,14 @@ func (c *cafeApi) start() {
 	// v1 routes
 	v1 := router.Group("/api/v1")
 
+	sessions := v1.Group("/sessions")
+	{
+		sessions.GET("/challenge", c.validateChallengeToken, c.getSessionChallenge)
+		sessions.POST("/:pid", c.validateChallengeToken, c.createSession)
+		sessions.POST("/:pid/refresh", c.validateToken, c.refreshSession)
+		sessions.DELETE("/:pid", c.validateToken, c.deleteSession)
+	}
+
 	store := v1.Group("/store", c.validateToken)
 	{
 		store.PUT("", c.store)
@@ -106,6 +118,8 @@ func (c *cafeApi) start() {
 
 	inbox := v1.Group("/inbox")
 	{
+		inbox.GET("/:pid", c.validateToken, c.checkMessages)
+		inbox.DELETE("/:pid", c.validateToken, c.deleteMessages)
 		inbox.POST("/:from/:to", c.deliverMessage)
 	}
 
@@ -157,24 +171,72 @@ func (c *cafeApi) stop() error {
 func (c *cafeApi) validateToken(g *gin.Context) {
 	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
 	if len(auth) < 2 {
+		log.Warning("missing token")
 		c.abort(g, http.StatusUnauthorized, nil)
 		return
 	}
 	token := auth[1]
 
+	var subject *string
+	pid, err := peer.IDB58Decode(g.Param("pid"))
+	if err == nil {
+		tmp := pid.Pretty()
+		subject = &tmp
+	}
+
 	protocol := string(c.node.cafe.Protocol())
-	claims, err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil)
+	refreshing := strings.Contains(g.Request.URL.Path, "refresh")
+	claims, err := jwt.Validate(token, c.verifyKeyFunc, refreshing, protocol, subject)
 	if err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:
+			log.Warning("bad or expired token")
 			c.abort(g, http.StatusUnauthorized, nil)
 		case jwt.ErrInvalid:
+			log.Warning("invalid token")
 			c.abort(g, http.StatusForbidden, nil)
 		}
 		return
 	}
 
 	g.Set("from", claims.Subject)
+	g.Set("token", token)
+}
+
+// validateChallengeToken aborts the request if the token is invalid
+func (c *cafeApi) validateChallengeToken(g *gin.Context) {
+	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
+	if len(auth) < 2 {
+		log.Warning("missing token pass")
+		c.abort(g, http.StatusUnauthorized, nil)
+		return
+	}
+	token := auth[1]
+
+	// does the provided token match?
+	// dev tokens are actually base58(id+token)
+	plainBytes, err := base58.FastBase58Decoding(token)
+	if err != nil || len(plainBytes) < 44 {
+		log.Warning("error decoding token pass")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	encodedToken := c.node.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
+	if encodedToken == nil {
+		log.Warning("token not found")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword(encodedToken.Value, plainBytes[12:])
+	if err != nil {
+		log.Warning("bad token pass")
+		c.abort(g, http.StatusForbidden, nil)
+		return
+	}
+
+	g.Set("token", encodedToken.Id)
 }
 
 // verifyKeyFunc returns the correct key for token verification
@@ -182,11 +244,16 @@ func (c *cafeApi) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 	return c.node.Ipfs().PrivateKey.GetPublic(), nil
 }
 
+// CafeError represents a cafe request error
+type CafeError struct {
+	Error string `json:"error"`
+}
+
 // abort aborts the request with the given status code and error
 func (c *cafeApi) abort(g *gin.Context, status int, err error) {
 	if err != nil {
-		g.AbortWithStatusJSON(status, gin.H{
-			"error": err.Error(),
+		g.AbortWithStatusJSON(status, CafeError{
+			Error: err.Error(),
 		})
 	} else {
 		g.AbortWithStatus(status)
