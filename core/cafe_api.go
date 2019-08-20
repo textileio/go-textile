@@ -100,7 +100,7 @@ func (c *cafeApi) start() {
 	{
 		sessions.GET("/challenge", c.validateChallengeToken, c.getSessionChallenge)
 		sessions.POST("/:pid", c.validateChallengeToken, c.createSession)
-		sessions.POST("/refresh/:pid", c.validateToken, c.refreshSession)
+		sessions.POST("/:pid/refresh", c.validateToken, c.refreshSession)
 		sessions.DELETE("/:pid", c.validateToken, c.deleteSession)
 	}
 
@@ -185,7 +185,8 @@ func (c *cafeApi) validateToken(g *gin.Context) {
 	}
 
 	protocol := string(c.node.cafe.Protocol())
-	claims, err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, subject)
+	refreshing := strings.Contains(g.Request.URL.Path, "refresh")
+	claims, err := jwt.Validate(token, c.verifyKeyFunc, refreshing, protocol, subject)
 	if err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:
@@ -243,11 +244,16 @@ func (c *cafeApi) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 	return c.node.Ipfs().PrivateKey.GetPublic(), nil
 }
 
+// CafeError represents a cafe request error
+type CafeError struct {
+	Error string `json:"error"`
+}
+
 // abort aborts the request with the given status code and error
 func (c *cafeApi) abort(g *gin.Context, status int, err error) {
 	if err != nil {
-		g.AbortWithStatusJSON(status, gin.H{
-			"error": err.Error(),
+		g.AbortWithStatusJSON(status, CafeError{
+			Error: err.Error(),
 		})
 	} else {
 		g.AbortWithStatus(status)

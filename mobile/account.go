@@ -25,6 +25,22 @@ func (m *Mobile) Seed() string {
 	return m.node.Account().Seed()
 }
 
+// Sign calls core Sign
+func (m *Mobile) Sign(input []byte) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+	return m.node.Sign(input)
+}
+
+// Verify calls core verify
+func (m *Mobile) Verify(input []byte, sig []byte) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+	return m.node.Verify(input, sig)
+}
+
 // Encrypt calls core Encrypt
 func (m *Mobile) Encrypt(input []byte) ([]byte, error) {
 	if !m.node.Started() {

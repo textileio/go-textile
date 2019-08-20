@@ -124,21 +124,25 @@ func MigrateRepo(config *MigrateConfig) error {
 
 // Create a gomobile compatible wrapper around Textile
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
+	mobile := &Mobile{
+		RepoPath:  config.RepoPath,
+		messenger: messenger,
+	}
+
 	node, err := core.NewTextile(core.RunConfig{
 		RepoPath:          config.RepoPath,
 		CafeOutboxHandler: config.CafeOutboxHandler,
+		CheckMessages:     mobile.checkCafeMessages,
 		Debug:             config.Debug,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &Mobile{
-		RepoPath:  config.RepoPath,
-		node:      node,
-		messenger: messenger,
-		listener:  node.ThreadUpdateListener(),
-	}, nil
+	mobile.node = node
+	mobile.listener = node.ThreadUpdateListener()
+
+	return mobile, nil
 }
 
 // Start the mobile node

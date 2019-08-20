@@ -79,6 +79,7 @@ type RunConfig struct {
 	PinCode           string
 	RepoPath          string
 	CafeOutboxHandler CafeOutboxHandler
+	CheckMessages     func() error
 	Debug             bool
 }
 
@@ -106,6 +107,7 @@ type Textile struct {
 	cafeOutbox        *CafeOutbox
 	cafeOutboxHandler CafeOutboxHandler
 	cafeInbox         *CafeInbox
+	checkMessages     func() error
 	cancelSync        *broadcast.Broadcaster
 	lock              sync.Mutex
 	writer            io.Writer
@@ -225,6 +227,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		threadUpdates:     broadcast.NewBroadcaster(10),
 		notifications:     make(chan *pb.Notification, 10),
 		cafeOutboxHandler: conf.CafeOutboxHandler,
+		checkMessages:     conf.CheckMessages,
 	}
 
 	node.config, err = config.Read(node.repoPath)
@@ -534,6 +537,11 @@ func (t *Textile) Datastore() repo.Datastore {
 	return t.datastore
 }
 
+// Inbox returns the cafe inbox
+func (t *Textile) Inbox() *CafeInbox {
+	return t.cafeInbox
+}
+
 // Writer returns the output writer (logger / stdout)
 func (t *Textile) Writer() io.Writer {
 	return t.writer
@@ -802,7 +810,12 @@ func (t *Textile) flushQueues() {
 	defer t.lock.Unlock()
 
 	t.cafeOutbox.Flush(false)
-	err := t.cafeInbox.CheckMessages()
+	var err error
+	if t.checkMessages != nil {
+		err = t.checkMessages()
+	} else {
+		err = t.cafeInbox.CheckMessages()
+	}
 	if err != nil {
 		log.Errorf("error checking messages: %s", err)
 	}
@@ -844,7 +857,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		BlockOutbox:    t.blockOutbox,
 		BlockDownloads: t.blockDownloads,
 		CafeOutbox:     t.cafeOutbox,
-		AddPeer:        t.addPeer,
+		AddPeer:        t.AddPeer,
 		PushUpdate:     t.sendThreadUpdate,
 	})
 	if err != nil {

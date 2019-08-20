@@ -21,8 +21,8 @@ func (t *Textile) PeerUser(id string) *pb.User {
 	}
 }
 
-// addPeer adds or updates a peer
-func (t *Textile) addPeer(peer *pb.Peer) error {
+// AddPeer adds or updates a peer
+func (t *Textile) AddPeer(peer *pb.Peer) error {
 	x := t.datastore.Peers().Get(peer.Id)
 	if x != nil && (peer.Updated == nil || util.ProtoTsIsNewer(x.Updated, peer.Updated)) {
 		return nil
@@ -53,15 +53,15 @@ func (t *Textile) addPeer(peer *pb.Peer) error {
 		return fmt.Errorf("account thread not found")
 	}
 
-	_, err = thrd.annouce(&pb.ThreadAnnounce{Peer: peer})
+	_, err = thrd.Annouce(&pb.ThreadAnnounce{Peer: peer})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// publishPeer publishes this peer's info to the cafe network
-func (t *Textile) publishPeer() error {
+// PublishPeer publishes this peer's info to the cafe network
+func (t *Textile) PublishPeer() error {
 	self := t.datastore.Peers().Get(t.node.Identity.Pretty())
 	if self == nil {
 		return nil
@@ -79,8 +79,8 @@ func (t *Textile) publishPeer() error {
 	return nil
 }
 
-// updatePeerInboxes sets own peer inboxes from the current cafe sessions
-func (t *Textile) updatePeerInboxes() error {
+// UpdatePeerInboxes sets own peer inboxes from the current cafe sessions
+func (t *Textile) UpdatePeerInboxes() error {
 	var inboxes []*pb.Cafe
 	for _, session := range t.datastore.CafeSessions().List().Items {
 		inboxes = append(inboxes, session.Cafe)

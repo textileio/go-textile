@@ -272,7 +272,7 @@ func (h *CafeService) CheckMessages(cafeId string) error {
 		}
 	}
 
-	go h.inbox.Flush()
+	h.inbox.Flush()
 
 	// delete them from the remote so that more can be fetched
 	if len(res.Messages) > 0 {
@@ -301,7 +301,7 @@ func (h *CafeService) DeleteMessages(cafeId string) error {
 		return nil
 	}
 
-	// apparently there's more new messages waiting...
+	// apparently there are more new messages waiting...
 	return h.CheckMessages(cafeId)
 }
 

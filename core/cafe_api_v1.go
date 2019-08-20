@@ -52,7 +52,7 @@ func (c *cafeApi) getSessionChallenge(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, gin.H{"challenge": nonce.Value})
+	pbJSON(g, http.StatusOK, nonce)
 }
 
 // POST /sessions/:pid/?account_addr=<address>&challenge=<challenge>&n=<nonce> (header=>token, body=sig)
@@ -107,7 +107,7 @@ func (c *cafeApi) createSession(g *gin.Context) {
 	}
 	sig := buf.Bytes()
 
-	payload := []byte(g.Query("challenge") + g.Query("n"))
+	payload := []byte(g.Query("challenge") + g.Query("nonce"))
 	err = accnt.Verify(payload, sig)
 	if err != nil {
 		log.Warning("verification failed")
@@ -457,7 +457,8 @@ func (c *cafeApi) deleteMessages(g *gin.Context) {
 	// check for more
 	remaining := c.node.datastore.CafeClientMessages().CountByClient(client.Id)
 
-	g.JSON(http.StatusOK, gin.H{"more": remaining > 0})
+	res := &pb.CafeDeleteMessagesAck{More: remaining > 0}
+	pbJSON(g, http.StatusOK, res)
 }
 
 func (c *cafeApi) deliverMessage(g *gin.Context) {

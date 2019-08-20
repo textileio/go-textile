@@ -14,7 +14,7 @@ import (
 func (t *Textile) AddContact(card *pb.Contact) error {
 	var err error
 	for _, peer := range card.Peers {
-		err = t.addPeer(peer)
+		err = t.AddPeer(peer)
 		if err != nil {
 			return err
 		}

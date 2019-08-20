@@ -18,16 +18,13 @@ var cafeVars = struct {
 	nodePath string
 	cafePath string
 
-	cafeApiPort string
-
 	node *Textile
 	cafe *Textile
 
 	token string
 }{
-	nodePath:    "./testdata/.textile3",
-	cafePath:    "./testdata/.textile4",
-	cafeApiPort: "5000",
+	nodePath: "./testdata/.textile3",
+	cafePath: "./testdata/.textile4",
 }
 
 func TestCore_SetupCafes(t *testing.T) {
@@ -44,8 +41,8 @@ func TestCore_SetupCafes(t *testing.T) {
 		RepoPath:    cafeVars.cafePath,
 		Debug:       true,
 		SwarmPorts:  "4001",
-		CafeApiAddr: "0.0.0.0:" + cafeVars.cafeApiPort,
-		CafeURL:     "http://127.0.0.1:" + cafeVars.cafeApiPort,
+		CafeApiAddr: "0.0.0.0:5000",
+		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}, true)
 	if err != nil {
