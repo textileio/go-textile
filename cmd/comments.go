@@ -5,7 +5,7 @@ import (
 )
 
 func CommentAdd(blockID string, commentBody string) error {
-	res, err := executeJsonCmd(http.MethodGet, "blocks/"+blockID+"/comments", params{args: []string{commentBody}}, nil)
+	res, err := executeJsonCmd(http.MethodPost, "blocks/"+blockID+"/comments", params{args: []string{commentBody}}, nil)
 	if err != nil {
 		return err
 	}
