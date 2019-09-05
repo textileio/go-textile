@@ -447,9 +447,6 @@ var stopGroup = loggingWaitGroup{n: "stop"}
 
 // Stop destroys the ipfs node and shutsdown textile services
 func (t *Textile) Stop() error {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
 	stopGroup.Wait("Stop")
 
 	if !t.started {
