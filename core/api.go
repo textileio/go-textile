@@ -84,6 +84,8 @@ func (t *Textile) ApiAddr() string {
 // @license.name MIT License
 // @license.url https://github.com/textileio/go-textile/blob/master/LICENSE
 
+// @securityDefinitions.basic BasicAuth
+// @Security BasicAuth
 // @BasePath /api/v0
 func (a *api) Start() {
 	// Dynamically set the swagger 'host' value

@@ -13,6 +13,12 @@ contact@textile.io
 
 **License:** [MIT License](https://github.com/textileio/go-textile/blob/master/LICENSE)
 
+### Security
+**BasicAuth**  
+
+|basic|*Basic*|
+|---|---|
+
 ### /account
 
 #### GET

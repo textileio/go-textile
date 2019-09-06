@@ -2521,4 +2521,7 @@ paths:
       summary: Check token validity
       tags:
       - tokens
+securityDefinitions:
+  BasicAuth:
+    type: basic
 swagger: "2.0"
