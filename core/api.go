@@ -119,8 +119,20 @@ func (a *api) Start() {
 		router.GET("/docs/*any", swagger.WrapHandler(sfiles.Handler))
 	}
 
+	// If given a passcode use it, else leave API wide open
+	var auth gin.HandlerFunc
+	pincode := a.node.pinCode
+	if pincode != "" {
+		auth = gin.BasicAuth(gin.Accounts{a.node.Account().Address(): pincode})
+	} else {
+		auth = func(c *gin.Context) {
+			// noop handler function
+			c.Next()
+		}
+	}
+
 	// v0 routes
-	v0 := router.Group("/api/v0")
+	v0 := router.Group("/api/v0", auth)
 	{
 		v0.GET("/summary", a.nodeSummary)
 
