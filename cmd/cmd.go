@@ -126,10 +126,12 @@ var (
 	// ================================
 
 	// app
-	appCmd     = kingpin.New("textile", "Textile is a set of tools and trust-less infrastructure for building censorship resistant and privacy preserving applications")
-	apiAddr    = appCmd.Flag("api", "API Address to use").Envar("API").Default("http://127.0.0.1:40600").String()
-	apiVersion = appCmd.Flag("api-version", "API version to use").Envar("API_VERSION").Default("v0").String()
-	logDebug   = appCmd.Flag("debug", "Set the logging level to debug").Bool()
+	appCmd      = kingpin.New("textile", "Textile is a set of tools and trust-less infrastructure for building censorship resistant and privacy preserving applications")
+	apiAddr     = appCmd.Flag("api", "API Address to use").Envar("API").Default("http://127.0.0.1:40600").String()
+	apiVersion  = appCmd.Flag("api-version", "API version to use").Envar("API_VERSION").Default("v0").String()
+	logDebug    = appCmd.Flag("debug", "Set the logging level to debug").Bool()
+	appUsername = appCmd.Flag("username", "Specify the username (address) if required for Basic Auth").Envar("TEXTILE_USERNAME").String()
+	appPassword = appCmd.Flag("password", "Specify the password (pincode) used for datastore encryption and Basic Auth (omit if no auth/encryption is used)").Envar("TEXTILE_PASSWORD").String()
 )
 
 func Run() error {
@@ -639,13 +641,12 @@ There are two types of invites, direct account-to-account and external:
 	// migrate
 	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
 	migrateRepo := migrateCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
-	migratePin := migrateCmd.Flag("pin", "Specify the pin for datastore encryption, omit if no pin was used during init").Short('p').String()
 	cmds[migrateCmd.FullCommand()] = func() error {
 		repo, err := getRepo(*migrateRepo)
 		if err != nil {
 			return err
 		}
-		return Migrate(repo, *migratePin)
+		return Migrate(repo, *appPassword)
 	}
 
 	// ================================
@@ -1054,11 +1055,17 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 		req.Header.Set("Content-Type", pars.ctype)
 	}
 
+	req.SetBasicAuth(*appUsername, *appPassword)
+
 	tr := &http.Transport{}
 	client := &http.Client{Transport: tr}
 	res, err := client.Do(req)
 	cancel := func() {
 		tr.CancelRequest(req)
+	}
+
+	if res.StatusCode == 401 {
+		err = fmt.Errorf("Error: Unauthorized")
 	}
 
 	return res, cancel, err
@@ -1209,7 +1216,7 @@ func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {
 		if m[ctx.String()] {
 			for _, r := range appCmd.Model().Flags {
 				if r.Name != "help" {
-					appCmd.GetFlag(r.Name).Hidden();
+					appCmd.GetFlag(r.Name).Hidden()
 				}
 			}
 		}
