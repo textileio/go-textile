@@ -53,7 +53,7 @@ const kSyncAccountFreq = time.Hour
 type InitConfig struct {
 	Account         *keypair.Full
 	PinCode         string
-	RepoPath        string
+	BaseRepoPath    string
 	SwarmPorts      string
 	ApiAddr         string
 	CafeApiAddr     string
@@ -119,9 +119,19 @@ var ErrStarted = fmt.Errorf("node is started")
 var ErrStopped = fmt.Errorf("node is stopped")
 var ErrOffline = fmt.Errorf("node is offline")
 
+// RepoPath returns the actual location of the configured repo
+func (conf InitConfig) RepoPath() string {
+	return path.Join(conf.BaseRepoPath, conf.Account.Seed())
+}
+
+// RepoExists return whether or not the configured repo already exists
+func (conf InitConfig) RepoExists() bool {
+	return fsrepo.IsInitialized(conf.RepoPath())
+}
+
 // InitRepo initializes a new node repo
 func InitRepo(conf InitConfig) error {
-	if fsrepo.IsInitialized(conf.RepoPath) {
+	if conf.RepoExists() {
 		return repo.ErrRepoExists
 	}
 
@@ -135,18 +145,18 @@ func InitRepo(conf InitConfig) error {
 	if conf.Debug {
 		logLevel = getTextileDebugLevels()
 	}
-	_, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk, !conf.IsMobile)
+	_, err := setLogLevels(conf.RepoPath(), logLevel, conf.LogToDisk, !conf.IsMobile)
 	if err != nil {
 		return err
 	}
 
 	// init repo
-	err = repo.Init(conf.RepoPath, conf.IsMobile, conf.IsServer)
+	err = repo.Init(conf.RepoPath(), conf.IsMobile, conf.IsServer)
 	if err != nil {
 		return err
 	}
 
-	rep, err := fsrepo.Open(conf.RepoPath)
+	rep, err := fsrepo.Open(conf.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -162,7 +172,7 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
-	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
+	sqliteDb, err := db.Create(conf.RepoPath(), conf.PinCode)
 	if err != nil {
 		return err
 	}

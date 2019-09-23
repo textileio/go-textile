@@ -17,8 +17,8 @@ import (
 )
 
 var testVars = struct {
-	repoPath1 string
-	repoPath2 string
+	initConfig1 InitConfig
+	initConfig2 InitConfig
 
 	recovery string
 	seed     string
@@ -33,8 +33,13 @@ var testVars = struct {
 	invite     *pb.ExternalInvite
 	avatar     string
 }{
-	repoPath1: "testdata/.textile1",
-	repoPath2: "testdata/.textile2",
+	initConfig1: InitConfig{
+		BaseRepoPath: "testdata/.textile1",
+	},
+	initConfig2: InitConfig{
+		BaseRepoPath: "testdata/.textile2",
+		Debug:        true,
+	},
 }
 
 type testHandler struct{}
@@ -134,15 +139,12 @@ func TestWalletAccountAt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testVars.seed = accnt.Seed
+	testVars.initConfig1.Seed = accnt.Seed
 }
 
 func TestInitRepo(t *testing.T) {
-	_ = os.RemoveAll(testVars.repoPath1)
-	err := InitRepo(&InitConfig{
-		Seed:     testVars.seed,
-		RepoPath: testVars.repoPath1,
-	})
+	_ = os.RemoveAll(testVars.initConfig1.RepoPath())
+	err := InitRepo(&testVars.initConfig1)
 	if err != nil {
 		t.Fatalf("init mobile repo failed: %s", err)
 	}
@@ -150,7 +152,7 @@ func TestInitRepo(t *testing.T) {
 
 func TestMigrateRepo(t *testing.T) {
 	err := MigrateRepo(&MigrateConfig{
-		RepoPath: testVars.repoPath1,
+		RepoPath: testVars.initConfig1.RepoPath(),
 	})
 	if err != nil {
 		t.Fatalf("migrate mobile repo failed: %s", err)
@@ -159,7 +161,7 @@ func TestMigrateRepo(t *testing.T) {
 
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
-		RepoPath:          testVars.repoPath1,
+		RepoPath:          testVars.initConfig1.RepoPath(),
 		CafeOutboxHandler: &testHandler{},
 	}
 	var err error
@@ -171,7 +173,7 @@ func TestNewTextile(t *testing.T) {
 
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
-		RepoPath:          testVars.repoPath1,
+		RepoPath:          testVars.initConfig1.RepoPath(),
 		CafeOutboxHandler: &testHandler{},
 	}
 	_, err := NewTextile(config, &testMessenger{})
@@ -646,10 +648,7 @@ func TestMobile_Contact(t *testing.T) {
 
 func TestMobile_AddInvite(t *testing.T) {
 	var err error
-	testVars.mobile2, err = createAndStartPeer(InitConfig{
-		RepoPath: testVars.repoPath2,
-		Debug:    true,
-	}, true, &testHandler{}, &testMessenger{})
+	testVars.mobile2, err = createAndStartPeer(testVars.initConfig2, true, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -798,6 +797,6 @@ func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
 	_ = testVars.mobile2.stop()
 	testVars.mobile2 = nil
-	_ = os.RemoveAll(testVars.repoPath1)
-	_ = os.RemoveAll(testVars.repoPath2)
+	_ = os.RemoveAll(testVars.initConfig1.RepoPath())
+	_ = os.RemoveAll(testVars.initConfig2.RepoPath())
 }

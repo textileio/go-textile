@@ -11,8 +11,6 @@ import (
 )
 
 func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandler, messenger Messenger) (*Mobile, error) {
-	_ = os.RemoveAll(conf.RepoPath)
-
 	w, err := wallet.WalletFromWordCount(12)
 	if err != nil {
 		return nil, err
@@ -30,13 +28,15 @@ func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandl
 	}
 	conf.Seed = accnt.Seed
 
+	_ = os.RemoveAll(conf.RepoPath())
+
 	err = InitRepo(&conf)
 	if err != nil {
 		return nil, err
 	}
 
 	node, err := NewTextile(&RunConfig{
-		RepoPath:          conf.RepoPath,
+		RepoPath:          conf.RepoPath(),
 		Debug:             conf.Debug,
 		CafeOutboxHandler: handler,
 	}, messenger)

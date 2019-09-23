@@ -31,20 +31,20 @@ var cafesTestVars = struct {
 func TestMobile_SetupCafes(t *testing.T) {
 	var err error
 	cafesTestVars.mobile, err = createAndStartPeer(InitConfig{
-		RepoPath: cafesTestVars.mobilePath,
-		Debug:    true,
+		BaseRepoPath: cafesTestVars.mobilePath,
+		Debug:        true,
 	}, true, &testHandler{}, &testMessenger{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cafesTestVars.cafe, err = core.CreateAndStartPeer(core.InitConfig{
-		RepoPath:    cafesTestVars.cafePath,
-		Debug:       true,
-		SwarmPorts:  "4001",
-		CafeApiAddr: "0.0.0.0:5000",
-		CafeURL:     "http://127.0.0.1:5000",
-		CafeOpen:    true,
+		BaseRepoPath: cafesTestVars.cafePath,
+		Debug:        true,
+		SwarmPorts:   "4001",
+		CafeApiAddr:  "0.0.0.0:5000",
+		CafeURL:      "http://127.0.0.1:5000",
+		CafeOpen:     true,
 	}, true)
 	if err != nil {
 		t.Fatal(err)
