@@ -9,23 +9,24 @@ import (
 	"github.com/textileio/go-textile/keypair"
 )
 
-var repoPath = "testdata/.textile"
+var initConfig = core.InitConfig{
+	BaseRepoPath: "testdata/.textile",
+	GatewayAddr:  "127.0.0.1:9998",
+}
 
 func TestGateway_Creation(t *testing.T) {
-	_ = os.RemoveAll(repoPath)
+	initConfig.Account = keypair.Random()
 
-	err := core.InitRepo(core.InitConfig{
-		Account:     keypair.Random(),
-		RepoPath:    repoPath,
-		GatewayAddr: "127.0.0.1:9998",
-	})
+	_ = os.RemoveAll(initConfig.RepoPath())
+
+	err := core.InitRepo(initConfig)
 	if err != nil {
 		t.Errorf("init node failed: %s", err)
 		return
 	}
 
 	node, err := core.NewTextile(core.RunConfig{
-		RepoPath: repoPath,
+		RepoPath: initConfig.RepoPath(),
 	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
@@ -48,5 +49,5 @@ func TestGateway_Stop(t *testing.T) {
 	if err != nil {
 		t.Errorf("stop gateway failed: %s", err)
 	}
-	_ = os.RemoveAll(repoPath)
+	_ = os.RemoveAll(initConfig.RepoPath())
 }
