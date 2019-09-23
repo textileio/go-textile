@@ -15,36 +15,36 @@ import (
 )
 
 var cafeVars = struct {
-	nodePath string
-	cafePath string
+	nodeInitConfig InitConfig
+	cafeInitConfig InitConfig
 
 	node *Textile
 	cafe *Textile
 
 	token string
 }{
-	nodePath: "./testdata/.textile3",
-	cafePath: "./testdata/.textile4",
+	nodeInitConfig: InitConfig{
+		BaseRepoPath: "./testdata/.textile3",
+		Debug:        true,
+	},
+	cafeInitConfig: InitConfig{
+		BaseRepoPath: "./testdata/.textile4",
+		Debug:        true,
+		SwarmPorts:   "4001",
+		CafeApiAddr:  "0.0.0.0:5000",
+		CafeURL:      "http://127.0.0.1:5000",
+		CafeOpen:     true,
+	},
 }
 
 func TestCore_SetupCafes(t *testing.T) {
 	var err error
-	cafeVars.node, err = CreateAndStartPeer(InitConfig{
-		RepoPath: cafeVars.nodePath,
-		Debug:    true,
-	}, true)
+	cafeVars.node, err = CreateAndStartPeer(cafeVars.nodeInitConfig, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cafeVars.cafe, err = CreateAndStartPeer(InitConfig{
-		RepoPath:    cafeVars.cafePath,
-		Debug:       true,
-		SwarmPorts:  "4001",
-		CafeApiAddr: "0.0.0.0:5000",
-		CafeURL:     "http://127.0.0.1:5000",
-		CafeOpen:    true,
-	}, true)
+	cafeVars.cafe, err = CreateAndStartPeer(cafeVars.cafeInitConfig, true)
 	if err != nil {
 		t.Fatal(err)
 	}

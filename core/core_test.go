@@ -15,7 +15,7 @@ import (
 )
 
 var vars = struct {
-	repoPath string
+	initConfig InitConfig
 
 	node   *Textile
 	thread *Thread
@@ -24,18 +24,17 @@ var vars = struct {
 
 	schemaHash string
 }{
-	repoPath: "testdata/.textile1",
+	initConfig: InitConfig{
+		BaseRepoPath: "testdata/.textile1",
+		ApiAddr:      fmt.Sprintf("127.0.0.1:9999"),
+		Debug:        true,
+	},
 }
 
 func TestInitRepo(t *testing.T) {
-	_ = os.RemoveAll(vars.repoPath)
-	accnt := keypair.Random()
-	if err := InitRepo(InitConfig{
-		Account:  accnt,
-		RepoPath: vars.repoPath,
-		ApiAddr:  fmt.Sprintf("127.0.0.1:9999"),
-		Debug:    true,
-	}); err != nil {
+	vars.initConfig.Account = keypair.Random()
+	_ = os.RemoveAll(vars.initConfig.RepoPath())
+	if err := InitRepo(vars.initConfig); err != nil {
 		t.Fatalf("init node failed: %s", err)
 	}
 }
@@ -43,7 +42,7 @@ func TestInitRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	var err error
 	vars.node, err = NewTextile(RunConfig{
-		RepoPath: vars.repoPath,
+		RepoPath: vars.initConfig.RepoPath(),
 		Debug:    true,
 	})
 	if err != nil {
