@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/textileio/go-textile/util"
@@ -26,16 +27,38 @@ var vars = struct {
 }{
 	initConfig: InitConfig{
 		BaseRepoPath: "testdata/.textile1",
+		Account:      keypair.Random(),
 		ApiAddr:      fmt.Sprintf("127.0.0.1:9999"),
 		Debug:        true,
 	},
 }
 
-func TestInitRepo(t *testing.T) {
-	vars.initConfig.Account = keypair.Random()
+func TestRepoPath(t *testing.T) {
+	target := path.Join(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Seed())
+	value := vars.initConfig.RepoPath()
+	if target != value {
+		t.Fatalf("repo path incorrect")
+	}
+}
+
+func TestNoRepoExists(t *testing.T) {
 	_ = os.RemoveAll(vars.initConfig.RepoPath())
+	exists := vars.initConfig.RepoExists()
+	if exists {
+		t.Fatalf("repo should not exist but it does")
+	}
+}
+
+func TestInitRepo(t *testing.T) {
 	if err := InitRepo(vars.initConfig); err != nil {
 		t.Fatalf("init node failed: %s", err)
+	}
+}
+
+func TestRepoExists(t *testing.T) {
+	exists := vars.initConfig.RepoExists()
+	if !exists {
+		t.Fatalf("repo should exist but it doesn't")
 	}
 }
 

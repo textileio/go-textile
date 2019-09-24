@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"path"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -142,11 +143,33 @@ func TestWalletAccountAt(t *testing.T) {
 	testVars.initConfig1.Seed = accnt.Seed
 }
 
-func TestInitRepo(t *testing.T) {
+func TestRepoPath(t *testing.T) {
+	target := path.Join(testVars.initConfig1.BaseRepoPath, testVars.initConfig1.Seed)
+	value := testVars.initConfig1.RepoPath()
+	if target != value {
+		t.Fatalf("repo path incorrect")
+	}
+}
+
+func TestNoRepoExists(t *testing.T) {
 	_ = os.RemoveAll(testVars.initConfig1.RepoPath())
+	exists := testVars.initConfig1.RepoExists()
+	if exists {
+		t.Fatalf("repo should not exist but it does")
+	}
+}
+
+func TestInitRepo(t *testing.T) {
 	err := InitRepo(&testVars.initConfig1)
 	if err != nil {
 		t.Fatalf("init mobile repo failed: %s", err)
+	}
+}
+
+func TestRepoExists(t *testing.T) {
+	exists := testVars.initConfig1.RepoExists()
+	if !exists {
+		t.Fatalf("repo should exist but it doesn't")
 	}
 }
 
