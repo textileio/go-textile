@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/textileio/go-textile/util"
@@ -15,7 +16,7 @@ import (
 )
 
 var vars = struct {
-	repoPath string
+	initConfig InitConfig
 
 	node   *Textile
 	thread *Thread
@@ -24,26 +25,47 @@ var vars = struct {
 
 	schemaHash string
 }{
-	repoPath: "testdata/.textile1",
+	initConfig: InitConfig{
+		BaseRepoPath: "testdata/.textile1",
+		Account:      keypair.Random(),
+		ApiAddr:      fmt.Sprintf("127.0.0.1:9999"),
+		Debug:        true,
+	},
+}
+
+func TestRepoPath(t *testing.T) {
+	target := path.Join(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Seed())
+	value := vars.initConfig.RepoPath()
+	if target != value {
+		t.Fatalf("repo path incorrect")
+	}
+}
+
+func TestNoRepoExists(t *testing.T) {
+	_ = os.RemoveAll(vars.initConfig.RepoPath())
+	exists := vars.initConfig.RepoExists()
+	if exists {
+		t.Fatalf("repo should not exist but it does")
+	}
 }
 
 func TestInitRepo(t *testing.T) {
-	_ = os.RemoveAll(vars.repoPath)
-	accnt := keypair.Random()
-	if err := InitRepo(InitConfig{
-		Account:  accnt,
-		RepoPath: vars.repoPath,
-		ApiAddr:  fmt.Sprintf("127.0.0.1:9999"),
-		Debug:    true,
-	}); err != nil {
+	if err := InitRepo(vars.initConfig); err != nil {
 		t.Fatalf("init node failed: %s", err)
+	}
+}
+
+func TestRepoExists(t *testing.T) {
+	exists := vars.initConfig.RepoExists()
+	if !exists {
+		t.Fatalf("repo should exist but it doesn't")
 	}
 }
 
 func TestNewTextile(t *testing.T) {
 	var err error
 	vars.node, err = NewTextile(RunConfig{
-		RepoPath: vars.repoPath,
+		RepoPath: vars.initConfig.RepoPath(),
 		Debug:    true,
 	})
 	if err != nil {

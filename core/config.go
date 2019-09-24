@@ -29,7 +29,7 @@ func GetRandomPort() string {
 
 // applyTextileConfigOptions update textile config w/ init options
 func applyTextileConfigOptions(init InitConfig) error {
-	conf, err := config.Read(init.RepoPath)
+	conf, err := config.Read(init.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.Cafe.Host.NeighborURL = init.CafeNeighborURL
 
 	// write to disk
-	return config.Write(init.RepoPath, conf)
+	return config.Write(init.RepoPath(), conf)
 }
 
 // applySwarmPortConfigOption sets custom swarm ports (tcp and ws)

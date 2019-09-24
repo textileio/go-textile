@@ -458,7 +458,7 @@ Stacks may include:
 		config := core.InitConfig{
 			Account:         account,
 			PinCode:         *initPin, // @todo rename to pin
-			RepoPath:        repo,     // @todo rename to repo
+			BaseRepoPath:    repo,     // @todo rename to repo
 			SwarmPorts:      *initIpfsSwarmPorts,
 			ApiAddr:         *initApiBindAddr,
 			CafeApiAddr:     *initCafeApiBindAddr,

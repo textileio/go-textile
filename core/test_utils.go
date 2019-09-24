@@ -14,15 +14,16 @@ import (
 )
 
 func CreateAndStartPeer(conf InitConfig, wait bool) (*Textile, error) {
-	_ = os.RemoveAll(conf.RepoPath)
-
 	conf.Account = keypair.Random()
+
+	_ = os.RemoveAll(conf.RepoPath())
+
 	err := InitRepo(conf)
 	if err != nil {
 		return nil, err
 	}
 	node, err := NewTextile(RunConfig{
-		RepoPath: conf.RepoPath,
+		RepoPath: conf.RepoPath(),
 		Debug:    conf.Debug,
 	})
 	if err != nil {

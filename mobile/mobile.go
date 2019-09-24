@@ -1,7 +1,10 @@
 package mobile
 
 import (
+	"path"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
@@ -66,10 +69,10 @@ func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, err
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Seed      string
-	RepoPath  string
-	LogToDisk bool
-	Debug     bool
+	Seed         string
+	BaseRepoPath string
+	LogToDisk    bool
+	Debug        bool
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -92,6 +95,16 @@ type Mobile struct {
 	listener  *broadcast.Listener
 }
 
+// RepoPath returns the actual location of the configured repo
+func (conf InitConfig) RepoPath() string {
+	return path.Join(conf.BaseRepoPath, conf.Seed)
+}
+
+// RepoExists return whether or not the configured repo already exists
+func (conf InitConfig) RepoExists() bool {
+	return fsrepo.IsInitialized(conf.RepoPath())
+}
+
 // InitRepo calls core InitRepo
 func InitRepo(config *InitConfig) error {
 	if config.Seed == "" {
@@ -107,11 +120,11 @@ func InitRepo(config *InitConfig) error {
 	}
 
 	return core.InitRepo(core.InitConfig{
-		Account:   accnt,
-		RepoPath:  config.RepoPath,
-		IsMobile:  true,
-		LogToDisk: config.LogToDisk,
-		Debug:     config.Debug,
+		Account:      accnt,
+		BaseRepoPath: config.BaseRepoPath,
+		IsMobile:     true,
+		LogToDisk:    config.LogToDisk,
+		Debug:        config.Debug,
 	})
 }
 
