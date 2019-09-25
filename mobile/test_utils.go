@@ -28,7 +28,12 @@ func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandl
 	}
 	conf.Seed = accnt.Seed
 
-	_ = os.RemoveAll(conf.RepoPath())
+	repoPath, err := conf.RepoPath()
+	if err != nil {
+		return nil, err
+	}
+
+	_ = os.RemoveAll(repoPath)
 
 	err = InitRepo(&conf)
 	if err != nil {
@@ -36,7 +41,7 @@ func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandl
 	}
 
 	node, err := NewTextile(&RunConfig{
-		RepoPath:          conf.RepoPath(),
+		RepoPath:          repoPath,
 		Debug:             conf.Debug,
 		CafeOutboxHandler: handler,
 	}, messenger)
