@@ -331,7 +331,7 @@ An access token is required to register, and should be obtained separately from 
 	// daemon
 	daemonCmd := appCmd.Command("daemon", "Start a node daemon session")
 	daemonBaseRepo := daemonCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
-	daemonAccountSeed := daemonCmd.Flag("account-seed", "Specify an existing account seed").Short('a').String()
+	daemonAccountAddress := daemonCmd.Flag("account-address", "Specify an existing account address").Short('a').String()
 	daemonPin := daemonCmd.Flag("pin", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
 	daemonDocs := daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
 	cmds[daemonCmd.FullCommand()] = func() error {
@@ -339,7 +339,7 @@ An access token is required to register, and should be obtained separately from 
 		if err != nil {
 			return err
 		}
-		repo, err := getRepo(baseRepo, *daemonAccountSeed)
+		repo, err := getRepo(baseRepo, *daemonAccountAddress)
 		if err != nil {
 			return err
 		}
@@ -647,13 +647,13 @@ There are two types of invites, direct account-to-account and external:
 	// migrate
 	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
 	migrateBaseRepo := migrateCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
-	migrateAccountSeed := migrateCmd.Flag("account-seed", "Specify an existing account seed").Short('a').String()
+	migrateAccountAddress := migrateCmd.Flag("account-address", "Specify an existing account address").Short('a').String()
 	cmds[migrateCmd.FullCommand()] = func() error {
 		baseRepo, err := getBaseRepo(*migrateBaseRepo)
 		if err != nil {
 			return err
 		}
-		repo, err := getRepo(baseRepo, *migrateAccountSeed)
+		repo, err := getRepo(baseRepo, *migrateAccountAddress)
 		if err != nil {
 			return err
 		}
@@ -1213,10 +1213,10 @@ func getBaseRepo(baseRepo string) (string, error) {
 	return baseRepo, nil
 }
 
-// Get the full repo path for the user, will use the first
-// directory inside baseRepo if accountSeed isn't provided
-func getRepo(baseRepo string, accountSeed string) (string, error) {
-	if len(accountSeed) == 0 {
+// Get the full repo path for the user, will use the single
+// directory inside baseRepo if accountAddress isn't provided
+func getRepo(baseRepo string, accountAddress string) (string, error) {
+	if len(accountAddress) == 0 {
 		files, err := ioutil.ReadDir(baseRepo)
 		if err != nil {
 			return "", err
@@ -1225,19 +1225,11 @@ func getRepo(baseRepo string, accountSeed string) (string, error) {
 			return "", fmt.Errorf("no account repos initialized in: %s", baseRepo)
 		}
 		if len(files) > 1 {
-			return "", fmt.Errorf("there are multiple accounts initialzed in %s, you should specify account-seed", baseRepo)
+			return "", fmt.Errorf("there are multiple accounts initialzed in %s, you need to specify account-address", baseRepo)
 		}
 		return path.Join(baseRepo, files[0].Name()), nil
 	}
-	kp, err := keypair.Parse(accountSeed)
-	if err != nil {
-		return "", fmt.Errorf("parse account seed failed: %s", err)
-	}
-	account, ok := kp.(*keypair.Full)
-	if !ok {
-		return "", keypair.ErrInvalidKey
-	}
-	return path.Join(baseRepo, account.Address()), nil
+	return path.Join(baseRepo, accountAddress), nil
 }
 
 func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {
