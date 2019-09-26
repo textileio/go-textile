@@ -1,10 +1,7 @@
 package mobile
 
 import (
-	"path"
-
 	"github.com/golang/protobuf/proto"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
@@ -96,36 +93,59 @@ type Mobile struct {
 }
 
 // RepoPath returns the actual location of the configured repo
-func (conf InitConfig) RepoPath() string {
-	return path.Join(conf.BaseRepoPath, conf.Seed)
+func (conf InitConfig) RepoPath() (string, error) {
+	coreConf, err := conf.coreInitConfig()
+	if err != nil {
+		return "", err
+	}
+	return coreConf.RepoPath(), nil
 }
 
 // RepoExists return whether or not the configured repo already exists
-func (conf InitConfig) RepoExists() bool {
-	return fsrepo.IsInitialized(conf.RepoPath())
+func (conf InitConfig) RepoExists() (bool, error) {
+	coreConf, err := conf.coreInitConfig()
+	if err != nil {
+		return false, err
+	}
+	return coreConf.RepoExists(), nil
+}
+
+func (conf InitConfig) account() (*keypair.Full, error) {
+	if conf.Seed == "" {
+		return nil, core.ErrAccountRequired
+	}
+	kp, err := keypair.Parse(conf.Seed)
+	if err != nil {
+		return nil, err
+	}
+	accnt, ok := kp.(*keypair.Full)
+	if !ok {
+		return nil, keypair.ErrInvalidKey
+	}
+	return accnt, nil
+}
+
+func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
+	accnt, err := conf.account()
+	if err != nil {
+		return core.InitConfig{}, err
+	}
+	return core.InitConfig{
+		Account:      accnt,
+		BaseRepoPath: conf.BaseRepoPath,
+		IsMobile:     true,
+		LogToDisk:    conf.LogToDisk,
+		Debug:        conf.Debug,
+	}, nil
 }
 
 // InitRepo calls core InitRepo
 func InitRepo(config *InitConfig) error {
-	if config.Seed == "" {
-		return core.ErrAccountRequired
-	}
-	kp, err := keypair.Parse(config.Seed)
+	coreConf, err := config.coreInitConfig()
 	if err != nil {
 		return err
 	}
-	accnt, ok := kp.(*keypair.Full)
-	if !ok {
-		return keypair.ErrInvalidKey
-	}
-
-	return core.InitRepo(core.InitConfig{
-		Account:      accnt,
-		BaseRepoPath: config.BaseRepoPath,
-		IsMobile:     true,
-		LogToDisk:    config.LogToDisk,
-		Debug:        config.Debug,
-	})
+	return core.InitRepo(coreConf)
 }
 
 // MigrateRepo calls core MigrateRepo

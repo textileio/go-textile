@@ -22,7 +22,6 @@ var testVars = struct {
 	initConfig2 InitConfig
 
 	recovery string
-	seed     string
 
 	mobile1 *Mobile
 	mobile2 *Mobile
@@ -143,17 +142,51 @@ func TestWalletAccountAt(t *testing.T) {
 	testVars.initConfig1.Seed = accnt.Seed
 }
 
+func TestGetConfigAccount(t *testing.T) {
+	accnt, err := testVars.initConfig1.account()
+	if err != nil {
+		t.Fatalf("unable to get account: %s", err)
+	}
+	if accnt.Seed() != testVars.initConfig1.Seed {
+		t.Fatalf("config seed and account seed don't match")
+	}
+}
+
+func TestGetConfigCoreConfig(t *testing.T) {
+	conf, err := testVars.initConfig1.coreInitConfig()
+	if err != nil {
+		t.Fatalf("unable to get core.InitConfig: %s", err)
+	}
+	if conf.Account.Seed() != testVars.initConfig1.Seed {
+		t.Fatalf("config seed and core.InitConfig seed don't match")
+	}
+}
+
 func TestRepoPath(t *testing.T) {
-	target := path.Join(testVars.initConfig1.BaseRepoPath, testVars.initConfig1.Seed)
-	value := testVars.initConfig1.RepoPath()
+	coreConfig, err := testVars.initConfig1.coreInitConfig()
+	if err != nil {
+		t.Fatalf("unable to get core.InitConfig: %s", err)
+	}
+	target := path.Join(coreConfig.BaseRepoPath, coreConfig.Account.Address())
+	value, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
 	if target != value {
 		t.Fatalf("repo path incorrect")
 	}
 }
 
 func TestNoRepoExists(t *testing.T) {
-	_ = os.RemoveAll(testVars.initConfig1.RepoPath())
-	exists := testVars.initConfig1.RepoExists()
+	repoPath, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
+	_ = os.RemoveAll(repoPath)
+	exists, err := testVars.initConfig1.RepoExists()
+	if err != nil {
+		t.Fatalf("unable to check if repo exists: %s", err)
+	}
 	if exists {
 		t.Fatalf("repo should not exist but it does")
 	}
@@ -167,15 +200,22 @@ func TestInitRepo(t *testing.T) {
 }
 
 func TestRepoExists(t *testing.T) {
-	exists := testVars.initConfig1.RepoExists()
+	exists, err := testVars.initConfig1.RepoExists()
+	if err != nil {
+		t.Fatalf("unable to check if repo exists: %s", err)
+	}
 	if !exists {
 		t.Fatalf("repo should exist but it doesn't")
 	}
 }
 
 func TestMigrateRepo(t *testing.T) {
-	err := MigrateRepo(&MigrateConfig{
-		RepoPath: testVars.initConfig1.RepoPath(),
+	repoPath, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
+	err = MigrateRepo(&MigrateConfig{
+		RepoPath: repoPath,
 	})
 	if err != nil {
 		t.Fatalf("migrate mobile repo failed: %s", err)
@@ -183,11 +223,14 @@ func TestMigrateRepo(t *testing.T) {
 }
 
 func TestNewTextile(t *testing.T) {
+	repoPath, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
 	config := &RunConfig{
-		RepoPath:          testVars.initConfig1.RepoPath(),
+		RepoPath:          repoPath,
 		CafeOutboxHandler: &testHandler{},
 	}
-	var err error
 	testVars.mobile1, err = NewTextile(config, &testMessenger{})
 	if err != nil {
 		t.Fatalf("create mobile node failed: %s", err)
@@ -195,11 +238,15 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNewTextileAgain(t *testing.T) {
+	repoPath, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
 	config := &RunConfig{
-		RepoPath:          testVars.initConfig1.RepoPath(),
+		RepoPath:          repoPath,
 		CafeOutboxHandler: &testHandler{},
 	}
-	_, err := NewTextile(config, &testMessenger{})
+	_, err = NewTextile(config, &testMessenger{})
 	if err != nil {
 		t.Fatalf("create mobile node failed: %s", err)
 	}
@@ -820,6 +867,14 @@ func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
 	_ = testVars.mobile2.stop()
 	testVars.mobile2 = nil
-	_ = os.RemoveAll(testVars.initConfig1.RepoPath())
-	_ = os.RemoveAll(testVars.initConfig2.RepoPath())
+	repoPath1, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path 1: %s", err)
+	}
+	repoPath2, err := testVars.initConfig1.RepoPath()
+	if err != nil {
+		t.Fatalf("unable to get repo path 2: %s", err)
+	}
+	_ = os.RemoveAll(repoPath1)
+	_ = os.RemoveAll(repoPath2)
 }

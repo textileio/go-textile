@@ -34,7 +34,7 @@ var vars = struct {
 }
 
 func TestRepoPath(t *testing.T) {
-	target := path.Join(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Seed())
+	target := path.Join(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Address())
 	value := vars.initConfig.RepoPath()
 	if target != value {
 		t.Fatalf("repo path incorrect")

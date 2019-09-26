@@ -52,7 +52,7 @@ func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 		return nil, fmt.Errorf("could not find notification: %s", id)
 	}
 	if notification.Type != pb.Notification_INVITE_RECEIVED {
-		return nil, fmt.Errorf(fmt.Sprintf("notification type is not invite"))
+		return nil, fmt.Errorf("notification type is not invite")
 	}
 
 	hash, err := t.AcceptInvite(notification.Block)
@@ -72,10 +72,10 @@ func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 func (t *Textile) IgnoreInviteViaNotification(id string) error {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
-		return fmt.Errorf(fmt.Sprintf("could not find notification: %s", id))
+		return fmt.Errorf("could not find notification: %s", id)
 	}
 	if notification.Type != pb.Notification_INVITE_RECEIVED {
-		return fmt.Errorf(fmt.Sprintf("notification type is not invite"))
+		return fmt.Errorf("notification type is not invite")
 	}
 
 	err := t.IgnoreInvite(notification.Block)

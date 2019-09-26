@@ -12,7 +12,7 @@ func Migrate(repoPath string, pinCode string) error {
 		PinCode:  pinCode,
 		RepoPath: repoPath,
 	}); err != nil {
-		return fmt.Errorf(fmt.Sprintf("migrate repo: %s", err))
+		return fmt.Errorf("migrate repo: %s", err)
 	}
 	fmt.Println("Repo was successfully migrated")
 	return nil

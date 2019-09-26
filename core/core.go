@@ -121,7 +121,7 @@ var ErrOffline = fmt.Errorf("node is offline")
 
 // RepoPath returns the actual location of the configured repo
 func (conf InitConfig) RepoPath() string {
-	return path.Join(conf.BaseRepoPath, conf.Account.Seed())
+	return path.Join(conf.BaseRepoPath, conf.Account.Address())
 }
 
 // RepoExists return whether or not the configured repo already exists

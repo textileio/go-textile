@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -329,11 +330,16 @@ An access token is required to register, and should be obtained separately from 
 
 	// daemon
 	daemonCmd := appCmd.Command("daemon", "Start a node daemon session")
-	daemonRepo := daemonCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
+	daemonBaseRepo := daemonCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
+	daemonAccountAddress := daemonCmd.Flag("account-address", "Specify an existing account address").Short('a').String()
 	daemonPin := daemonCmd.Flag("pin", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
 	daemonDocs := daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
 	cmds[daemonCmd.FullCommand()] = func() error {
-		repo, err := getRepo(*daemonRepo)
+		baseRepo, err := getBaseRepo(*daemonBaseRepo)
+		if err != nil {
+			return err
+		}
+		repo, err := getRepo(baseRepo, *daemonAccountAddress)
 		if err != nil {
 			return err
 		}
@@ -425,9 +431,9 @@ Stacks may include:
 
 	// init
 	initCmd := appCmd.Command("init", "Configure textile to use the account by creating a local repository to house its data")
+	initBaseRepo := initCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
 	initAccountSeed := initCmd.Arg("account-seed", "The account seed to use, if you do not have one, refer to: textile wallet --help").Required().String()
 	initPin := initCmd.Flag("pin", "Specify a pin for datastore encryption").Short('p').String()
-	initRepo := initCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
 	initIpfsServerMode := initCmd.Flag("server", "Apply IPFS server profile").Bool()
 	initIpfsSwarmPorts := initCmd.Flag("swarm-ports", "Set the swarm ports (TCP,WS). A random TCP port is chosen by default").String()
 	initLogFiles := initCmd.Flag("log-files", "If true, writes logs to rolling files, if false, writes logs to stdout").Default("false").Bool()
@@ -442,7 +448,7 @@ Stacks may include:
 	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
 		if err != nil {
-			return fmt.Errorf(fmt.Sprintf("parse account seed failed: %s", err))
+			return fmt.Errorf("parse account seed failed: %s", err)
 		}
 
 		account, ok := kp.(*keypair.Full)
@@ -450,7 +456,7 @@ Stacks may include:
 			return keypair.ErrInvalidKey
 		}
 
-		repo, err := getRepo(*initRepo)
+		baseRepo, err := getBaseRepo(*initBaseRepo)
 		if err != nil {
 			return err
 		}
@@ -458,7 +464,7 @@ Stacks may include:
 		config := core.InitConfig{
 			Account:         account,
 			PinCode:         *initPin, // @todo rename to pin
-			BaseRepoPath:    repo,     // @todo rename to repo
+			BaseRepoPath:    baseRepo,
 			SwarmPorts:      *initIpfsSwarmPorts,
 			ApiAddr:         *initApiBindAddr,
 			CafeApiAddr:     *initCafeApiBindAddr,
@@ -640,9 +646,14 @@ There are two types of invites, direct account-to-account and external:
 
 	// migrate
 	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
-	migrateRepo := migrateCmd.Flag("repo", "Specify a custom repository path").Short('r').String()
+	migrateBaseRepo := migrateCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
+	migrateAccountAddress := migrateCmd.Flag("account-address", "Specify an existing account address").Short('a').String()
 	cmds[migrateCmd.FullCommand()] = func() error {
-		repo, err := getRepo(*migrateRepo)
+		baseRepo, err := getBaseRepo(*migrateBaseRepo)
+		if err != nil {
+			return err
+		}
+		repo, err := getRepo(baseRepo, *migrateAccountAddress)
 		if err != nil {
 			return err
 		}
@@ -1182,24 +1193,43 @@ func output(val interface{}) {
 	fmt.Println(val)
 }
 
-// Get the repo path for the user, will create it if missing
+// Get the base repo path for the user, will create it if missing
 // Unless provided, it defaults to ~/.textile/repo
-func getRepo(repo string) (string, error) {
-	if len(repo) == 0 {
+func getBaseRepo(baseRepo string) (string, error) {
+	if len(baseRepo) == 0 {
 		// get homedir
 		home, err := homedir.Dir()
 		if err != nil {
-			return "", fmt.Errorf(fmt.Sprintf("get homedir failed: %s", err))
+			return "", fmt.Errorf("get homedir failed: %s", err)
 		}
 
 		// ensure app folder is created
 		appDir := filepath.Join(home, ".textile")
 		if err := os.MkdirAll(appDir, 0755); err != nil {
-			return "", fmt.Errorf(fmt.Sprintf("create repo directory failed: %s", err))
+			return "", fmt.Errorf("create repo directory failed: %s", err)
 		}
-		repo = filepath.Join(appDir, "repo")
+		baseRepo = filepath.Join(appDir, "repo")
 	}
-	return repo, nil
+	return baseRepo, nil
+}
+
+// Get the full repo path for the user, will use the single
+// directory inside baseRepo if accountAddress isn't provided
+func getRepo(baseRepo string, accountAddress string) (string, error) {
+	if len(accountAddress) == 0 {
+		files, err := ioutil.ReadDir(baseRepo)
+		if err != nil {
+			return "", err
+		}
+		if len(files) == 0 {
+			return "", fmt.Errorf("no account repos initialized in: %s", baseRepo)
+		}
+		if len(files) > 1 {
+			return "", fmt.Errorf("there are multiple accounts initialzed in %s, you need to specify account-address", baseRepo)
+		}
+		return path.Join(baseRepo, files[0].Name()), nil
+	}
+	return path.Join(baseRepo, accountAddress), nil
 }
 
 func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {

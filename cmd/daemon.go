@@ -27,7 +27,7 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 		Debug:    debug,
 	})
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("create node failed: %s", err))
+		return fmt.Errorf("create node failed: %s", err)
 	}
 
 	gateway.Host = &gateway.Gateway{
@@ -36,7 +36,7 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 
 	err = startNode(docs)
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("start node failed: %s", err))
+		return fmt.Errorf("start node failed: %s", err)
 	}
 	printSplash()
 
