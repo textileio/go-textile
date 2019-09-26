@@ -3,11 +3,13 @@
 
 package pb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
-import timestamp "github.com/golang/protobuf/ptypes/timestamp"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type QueryOptions_FilterType int32
 
@@ -31,6 +33,7 @@ var QueryOptions_FilterType_name = map[int32]string{
 	0: "NO_FILTER",
 	1: "HIDE_OLDER",
 }
+
 var QueryOptions_FilterType_value = map[string]int32{
 	"NO_FILTER":  0,
 	"HIDE_OLDER": 1,
@@ -39,8 +42,9 @@ var QueryOptions_FilterType_value = map[string]int32{
 func (x QueryOptions_FilterType) String() string {
 	return proto.EnumName(QueryOptions_FilterType_name, int32(x))
 }
+
 func (QueryOptions_FilterType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{0, 0}
+	return fileDescriptor_5c6ac9b241082464, []int{0, 0}
 }
 
 type Query_Type int32
@@ -54,6 +58,7 @@ var Query_Type_name = map[int32]string{
 	0: "THREAD_SNAPSHOTS",
 	1: "CONTACTS",
 }
+
 var Query_Type_value = map[string]int32{
 	"THREAD_SNAPSHOTS": 0,
 	"CONTACTS":         1,
@@ -62,8 +67,9 @@ var Query_Type_value = map[string]int32{
 func (x Query_Type) String() string {
 	return proto.EnumName(Query_Type_name, int32(x))
 }
+
 func (Query_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{1, 0}
+	return fileDescriptor_5c6ac9b241082464, []int{1, 0}
 }
 
 type PubSubQuery_ResponseType int32
@@ -77,6 +83,7 @@ var PubSubQuery_ResponseType_name = map[int32]string{
 	0: "P2P",
 	1: "PUBSUB",
 }
+
 var PubSubQuery_ResponseType_value = map[string]int32{
 	"P2P":    0,
 	"PUBSUB": 1,
@@ -85,8 +92,9 @@ var PubSubQuery_ResponseType_value = map[string]int32{
 func (x PubSubQuery_ResponseType) String() string {
 	return proto.EnumName(PubSubQuery_ResponseType_name, int32(x))
 }
+
 func (PubSubQuery_ResponseType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{2, 0}
+	return fileDescriptor_5c6ac9b241082464, []int{2, 0}
 }
 
 type QueryOptions struct {
@@ -105,16 +113,17 @@ func (m *QueryOptions) Reset()         { *m = QueryOptions{} }
 func (m *QueryOptions) String() string { return proto.CompactTextString(m) }
 func (*QueryOptions) ProtoMessage()    {}
 func (*QueryOptions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{0}
+	return fileDescriptor_5c6ac9b241082464, []int{0}
 }
+
 func (m *QueryOptions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryOptions.Unmarshal(m, b)
 }
 func (m *QueryOptions) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_QueryOptions.Marshal(b, m, deterministic)
 }
-func (dst *QueryOptions) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryOptions.Merge(dst, src)
+func (m *QueryOptions) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryOptions.Merge(m, src)
 }
 func (m *QueryOptions) XXX_Size() int {
 	return xxx_messageInfo_QueryOptions.Size(m)
@@ -182,16 +191,17 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{1}
+	return fileDescriptor_5c6ac9b241082464, []int{1}
 }
+
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
 }
 func (m *Query) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Query.Marshal(b, m, deterministic)
 }
-func (dst *Query) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Query.Merge(dst, src)
+func (m *Query) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Query.Merge(m, src)
 }
 func (m *Query) XXX_Size() int {
 	return xxx_messageInfo_Query.Size(m)
@@ -254,16 +264,17 @@ func (m *PubSubQuery) Reset()         { *m = PubSubQuery{} }
 func (m *PubSubQuery) String() string { return proto.CompactTextString(m) }
 func (*PubSubQuery) ProtoMessage()    {}
 func (*PubSubQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{2}
+	return fileDescriptor_5c6ac9b241082464, []int{2}
 }
+
 func (m *PubSubQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PubSubQuery.Unmarshal(m, b)
 }
 func (m *PubSubQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PubSubQuery.Marshal(b, m, deterministic)
 }
-func (dst *PubSubQuery) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PubSubQuery.Merge(dst, src)
+func (m *PubSubQuery) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PubSubQuery.Merge(m, src)
 }
 func (m *PubSubQuery) XXX_Size() int {
 	return xxx_messageInfo_PubSubQuery.Size(m)
@@ -337,16 +348,17 @@ func (m *QueryResult) Reset()         { *m = QueryResult{} }
 func (m *QueryResult) String() string { return proto.CompactTextString(m) }
 func (*QueryResult) ProtoMessage()    {}
 func (*QueryResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{3}
+	return fileDescriptor_5c6ac9b241082464, []int{3}
 }
+
 func (m *QueryResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryResult.Unmarshal(m, b)
 }
 func (m *QueryResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_QueryResult.Marshal(b, m, deterministic)
 }
-func (dst *QueryResult) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryResult.Merge(dst, src)
+func (m *QueryResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryResult.Merge(m, src)
 }
 func (m *QueryResult) XXX_Size() int {
 	return xxx_messageInfo_QueryResult.Size(m)
@@ -397,16 +409,17 @@ func (m *QueryResults) Reset()         { *m = QueryResults{} }
 func (m *QueryResults) String() string { return proto.CompactTextString(m) }
 func (*QueryResults) ProtoMessage()    {}
 func (*QueryResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{4}
+	return fileDescriptor_5c6ac9b241082464, []int{4}
 }
+
 func (m *QueryResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryResults.Unmarshal(m, b)
 }
 func (m *QueryResults) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_QueryResults.Marshal(b, m, deterministic)
 }
-func (dst *QueryResults) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryResults.Merge(dst, src)
+func (m *QueryResults) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryResults.Merge(m, src)
 }
 func (m *QueryResults) XXX_Size() int {
 	return xxx_messageInfo_QueryResults.Size(m)
@@ -443,16 +456,17 @@ func (m *PubSubQueryResults) Reset()         { *m = PubSubQueryResults{} }
 func (m *PubSubQueryResults) String() string { return proto.CompactTextString(m) }
 func (*PubSubQueryResults) ProtoMessage()    {}
 func (*PubSubQueryResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{5}
+	return fileDescriptor_5c6ac9b241082464, []int{5}
 }
+
 func (m *PubSubQueryResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PubSubQueryResults.Unmarshal(m, b)
 }
 func (m *PubSubQueryResults) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PubSubQueryResults.Marshal(b, m, deterministic)
 }
-func (dst *PubSubQueryResults) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PubSubQueryResults.Merge(dst, src)
+func (m *PubSubQueryResults) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PubSubQueryResults.Merge(m, src)
 }
 func (m *PubSubQueryResults) XXX_Size() int {
 	return xxx_messageInfo_PubSubQueryResults.Size(m)
@@ -489,16 +503,17 @@ func (m *ContactQuery) Reset()         { *m = ContactQuery{} }
 func (m *ContactQuery) String() string { return proto.CompactTextString(m) }
 func (*ContactQuery) ProtoMessage()    {}
 func (*ContactQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{6}
+	return fileDescriptor_5c6ac9b241082464, []int{6}
 }
+
 func (m *ContactQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContactQuery.Unmarshal(m, b)
 }
 func (m *ContactQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ContactQuery.Marshal(b, m, deterministic)
 }
-func (dst *ContactQuery) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ContactQuery.Merge(dst, src)
+func (m *ContactQuery) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ContactQuery.Merge(m, src)
 }
 func (m *ContactQuery) XXX_Size() int {
 	return xxx_messageInfo_ContactQuery.Size(m)
@@ -534,16 +549,17 @@ func (m *ThreadSnapshotQuery) Reset()         { *m = ThreadSnapshotQuery{} }
 func (m *ThreadSnapshotQuery) String() string { return proto.CompactTextString(m) }
 func (*ThreadSnapshotQuery) ProtoMessage()    {}
 func (*ThreadSnapshotQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_e051b7f44626bdcd, []int{7}
+	return fileDescriptor_5c6ac9b241082464, []int{7}
 }
+
 func (m *ThreadSnapshotQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadSnapshotQuery.Unmarshal(m, b)
 }
 func (m *ThreadSnapshotQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadSnapshotQuery.Marshal(b, m, deterministic)
 }
-func (dst *ThreadSnapshotQuery) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadSnapshotQuery.Merge(dst, src)
+func (m *ThreadSnapshotQuery) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadSnapshotQuery.Merge(m, src)
 }
 func (m *ThreadSnapshotQuery) XXX_Size() int {
 	return xxx_messageInfo_ThreadSnapshotQuery.Size(m)
@@ -562,6 +578,9 @@ func (m *ThreadSnapshotQuery) GetAddress() string {
 }
 
 func init() {
+	proto.RegisterEnum("QueryOptions_FilterType", QueryOptions_FilterType_name, QueryOptions_FilterType_value)
+	proto.RegisterEnum("Query_Type", Query_Type_name, Query_Type_value)
+	proto.RegisterEnum("PubSubQuery_ResponseType", PubSubQuery_ResponseType_name, PubSubQuery_ResponseType_value)
 	proto.RegisterType((*QueryOptions)(nil), "QueryOptions")
 	proto.RegisterType((*Query)(nil), "Query")
 	proto.RegisterType((*PubSubQuery)(nil), "PubSubQuery")
@@ -570,14 +589,11 @@ func init() {
 	proto.RegisterType((*PubSubQueryResults)(nil), "PubSubQueryResults")
 	proto.RegisterType((*ContactQuery)(nil), "ContactQuery")
 	proto.RegisterType((*ThreadSnapshotQuery)(nil), "ThreadSnapshotQuery")
-	proto.RegisterEnum("QueryOptions_FilterType", QueryOptions_FilterType_name, QueryOptions_FilterType_value)
-	proto.RegisterEnum("Query_Type", Query_Type_name, Query_Type_value)
-	proto.RegisterEnum("PubSubQuery_ResponseType", PubSubQuery_ResponseType_name, PubSubQuery_ResponseType_value)
 }
 
-func init() { proto.RegisterFile("query.proto", fileDescriptor_query_e051b7f44626bdcd) }
+func init() { proto.RegisterFile("query.proto", fileDescriptor_5c6ac9b241082464) }
 
-var fileDescriptor_query_e051b7f44626bdcd = []byte{
+var fileDescriptor_5c6ac9b241082464 = []byte{
 	// 638 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0xcd, 0x4e, 0xdb, 0x4a,
 	0x14, 0xc6, 0x4e, 0x1c, 0x93, 0xe3, 0x24, 0xb2, 0x06, 0x16, 0x06, 0x5d, 0x5d, 0x22, 0xdf, 0x05,

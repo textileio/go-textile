@@ -83,6 +83,8 @@ func (g *Gateway) Start(addr string) {
 	router.GET("/cafe", g.cafeHandler)
 	router.GET("/cafes", g.cafesHandler)
 
+	router.GET("/bots/:root", g.botsHandler)
+
 	router.NoRoute(func(c *gin.Context) {
 		g.render404(c)
 	})
@@ -231,6 +233,30 @@ func (g *Gateway) cafesHandler(c *gin.Context) {
 		"primary":   g.Node.CafeInfo(),
 		"secondary": secondary,
 	})
+}
+
+// ipnsHandler renders data behind an IPNS address
+func (g *Gateway) botsHandler(c *gin.Context) {
+	botID := c.Param("root")
+	botService, err := g.Node.Bots()
+	if err != nil {
+		log.Errorf("error bot not found: %s", botID)
+		g.render404(c)
+		return
+	}
+	if !botService.Exists(botID) { // bot doesn't exist yet
+		log.Errorf("error bot not found: %s", botID)
+		g.render404(c)
+		return
+	}
+
+	query := c.Request.URL.Query().Encode()
+	qbytes := []byte(query)
+
+	botResponse, err := botService.Get(botID, qbytes)
+	statusInt := int(botResponse.Status)
+
+	c.Render(statusInt, render.Data{Data: botResponse.Body})
 }
 
 // link represents a node link for HTML rendering
