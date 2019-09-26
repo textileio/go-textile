@@ -141,25 +141,11 @@ func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
 
 // InitRepo calls core InitRepo
 func InitRepo(config *InitConfig) error {
-	if config.Seed == "" {
-		return core.ErrAccountRequired
-	}
-	kp, err := keypair.Parse(config.Seed)
+	coreConf, err := config.coreInitConfig()
 	if err != nil {
 		return err
 	}
-	accnt, ok := kp.(*keypair.Full)
-	if !ok {
-		return keypair.ErrInvalidKey
-	}
-
-	return core.InitRepo(core.InitConfig{
-		Account:      accnt,
-		BaseRepoPath: config.BaseRepoPath,
-		IsMobile:     true,
-		LogToDisk:    config.LogToDisk,
-		Debug:        config.Debug,
-	})
+	return core.InitRepo(coreConf)
 }
 
 // MigrateRepo calls core MigrateRepo
