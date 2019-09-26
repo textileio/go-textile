@@ -135,11 +135,11 @@ func checkValidVersionByte(version VersionByte) error {
 func decodeString(src string) ([]byte, error) {
 	raw, err := base58.FastBase58Decoding(src)
 	if err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("base58 decode failed: %s", err))
+		return nil, fmt.Errorf("base58 decode failed: %s", err)
 	}
 
 	if len(raw) < 3 {
-		return nil, fmt.Errorf(fmt.Sprintf("encoded value is %d bytes; minimum valid length is 3", len(raw)))
+		return nil, fmt.Errorf("encoded value is %d bytes; minimum valid length is 3", len(raw))
 	}
 
 	return raw, nil

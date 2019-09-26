@@ -331,7 +331,7 @@ An access token is required to register, and should be obtained separately from 
 	// daemon
 	daemonCmd := appCmd.Command("daemon", "Start a node daemon session")
 	daemonBaseRepo := daemonCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
-	daemonAccountSeed := daemonCmd.Flag("account-seed", "Specify an existing acconut seed").Short('a').String()
+	daemonAccountSeed := daemonCmd.Flag("account-seed", "Specify an existing account seed").Short('a').String()
 	daemonPin := daemonCmd.Flag("pin", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
 	daemonDocs := daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
 	cmds[daemonCmd.FullCommand()] = func() error {
@@ -448,7 +448,7 @@ Stacks may include:
 	cmds[initCmd.FullCommand()] = func() error {
 		kp, err := keypair.Parse(*initAccountSeed)
 		if err != nil {
-			return fmt.Errorf(fmt.Sprintf("parse account seed failed: %s", err))
+			return fmt.Errorf("parse account seed failed: %s", err)
 		}
 
 		account, ok := kp.(*keypair.Full)
@@ -647,7 +647,7 @@ There are two types of invites, direct account-to-account and external:
 	// migrate
 	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
 	migrateBaseRepo := migrateCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
-	migrateAccountSeed := migrateCmd.Flag("account-seed", "Specify an existing acconut seed").Short('a').String()
+	migrateAccountSeed := migrateCmd.Flag("account-seed", "Specify an existing account seed").Short('a').String()
 	cmds[migrateCmd.FullCommand()] = func() error {
 		baseRepo, err := getBaseRepo(*migrateBaseRepo)
 		if err != nil {
@@ -1200,13 +1200,13 @@ func getBaseRepo(baseRepo string) (string, error) {
 		// get homedir
 		home, err := homedir.Dir()
 		if err != nil {
-			return "", fmt.Errorf(fmt.Sprintf("get homedir failed: %s", err))
+			return "", fmt.Errorf("get homedir failed: %s", err)
 		}
 
 		// ensure app folder is created
 		appDir := filepath.Join(home, ".textile")
 		if err := os.MkdirAll(appDir, 0755); err != nil {
-			return "", fmt.Errorf(fmt.Sprintf("create repo directory failed: %s", err))
+			return "", fmt.Errorf("create repo directory failed: %s", err)
 		}
 		baseRepo = filepath.Join(appDir, "repo")
 	}
@@ -1231,7 +1231,7 @@ func getRepo(baseRepo string, accountSeed string) (string, error) {
 	}
 	kp, err := keypair.Parse(accountSeed)
 	if err != nil {
-		return "", fmt.Errorf(fmt.Sprintf("parse account seed failed: %s", err))
+		return "", fmt.Errorf("parse account seed failed: %s", err)
 	}
 	account, ok := kp.(*keypair.Full)
 	if !ok {
