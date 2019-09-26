@@ -1224,6 +1224,9 @@ func getRepo(baseRepo string, accountSeed string) (string, error) {
 		if len(files) == 0 {
 			return "", fmt.Errorf("no account repos initialized in: %s", baseRepo)
 		}
+		if len(files) > 1 {
+			return "", fmt.Errorf("there are multiple accounts initialzed in %s, you should specify account-seed", baseRepo)
+		}
 		return path.Join(baseRepo, files[0].Name()), nil
 	}
 	kp, err := keypair.Parse(accountSeed)
