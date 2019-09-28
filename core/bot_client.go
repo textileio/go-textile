@@ -7,8 +7,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	shared "github.com/textileio/go-textile-core/bots"
 	bots "github.com/textileio/go-textile-bots"
+	shared "github.com/textileio/go-textile-core/bots"
 )
 
 type BotClient struct {
@@ -25,6 +25,7 @@ func (b *BotClient) setup(botID string, version int, name string, pth string, st
 	pluginMap := map[string]plugin.Plugin{
 		botID: &bots.TextileBot{}, // <- the TextileBot interface will always be the same.
 	}
+
 	handshake := plugin.HandshakeConfig{
 		ProtocolVersion:  uint(version),
 		MagicCookieKey:   botID,

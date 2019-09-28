@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"path"
@@ -8,6 +9,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	shared "github.com/textileio/go-textile-core/bots"
 	"github.com/textileio/go-textile/crypto"
+	ipfs "github.com/textileio/go-textile/ipfs"
 )
 
 type BotIpfsHandler struct {
@@ -18,7 +20,6 @@ type BotIpfsHandler struct {
 type BotKVStore struct {
 	botID      string
 	botVersion int
-	store      map[string]string
 	node       *Textile
 }
 
@@ -46,6 +47,30 @@ func (mip BotIpfsHandler) Get(pth string, key string) ([]byte, error) {
 	return data, nil
 }
 
+func (mip BotIpfsHandler) Add(data []byte, encrypt bool) (hash string, key string, err error) {
+	var input []byte
+	k := ""
+	if encrypt {
+		aes, err := crypto.GenerateAESKey()
+		if err != nil {
+			return "", "", err
+		}
+		input, err = crypto.EncryptAES(data, aes)
+		if err != nil {
+			return "", "", err
+		}
+		k = base58.FastBase58Encoding(aes)
+	} else {
+		input = data
+	}
+	r := bytes.NewReader(input)
+	idp, err := ipfs.AddData(mip.node.Ipfs(), r, false, false)
+	if err != nil {
+		return "", "", err
+	}
+	return idp.Hash().B58String(), k, nil
+}
+
 func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
 	err = kv.node.datastore.Bots().AddOrUpdate(kv.botID, key, data, kv.botVersion)
 	if err != nil {
@@ -53,16 +78,16 @@ func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
 	}
 	return true, nil
 }
-func (kv BotKVStore) Get(key string) (data []byte, err error) {
+func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
 	// TODO: include bot version from row in response, allowing migrations
 	keyVal := kv.node.datastore.Bots().Get(kv.botID, key)
 	if keyVal == nil {
-		return []byte(""), nil
+		return []byte(""), 0, nil
 	}
 	if keyVal.Value == nil {
-		return []byte(""), nil
+		return []byte(""), 0, nil
 	}
-	return keyVal.Value, nil
+	return keyVal.Value, keyVal.BotReleaseVersion, nil
 }
 func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 	err = kv.node.datastore.Bots().Delete(kv.botID, key)
@@ -97,7 +122,6 @@ func (s *BotService) Create(botID string, botVersion int, name string, pth strin
 	store := &BotKVStore{
 		botID,
 		botVersion,
-		make(map[string]string),
 		s.node,
 	}
 	ipfs := &BotIpfsHandler{
@@ -124,28 +148,28 @@ func (s *BotService) Get(botID string, q []byte) (shared.Response, error) {
 }
 
 // Post runs the bot.Post method
-func (s *BotService) Post(botID string, q []byte) (shared.Response, error) {
+func (s *BotService) Post(botID string, q []byte, body []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		return shared.Response{
 			Status: 400,
 			Body:   []byte(""),
 		}, nil
 	}
-	bot := s.clients[botID]
-	res, err := bot.service.Post(q, bot.store, bot.ipfs)
+	botClient := s.clients[botID]
+	res, err := botClient.service.Post(q, body, botClient.store, botClient.ipfs)
 	return res, err
 }
 
 // Put runs the bot.Put method
-func (s *BotService) Put(botID string, q []byte) (shared.Response, error) {
+func (s *BotService) Put(botID string, q []byte, body []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		return shared.Response{
 			Status: 400,
 			Body:   []byte(""),
 		}, nil
 	}
-	bot := s.clients[botID]
-	res, err := bot.service.Put(q, bot.store, bot.ipfs)
+	botClient := s.clients[botID]
+	res, err := botClient.service.Put(q, body, botClient.store, botClient.ipfs)
 	return res, err
 }
 
@@ -158,8 +182,8 @@ func (s *BotService) Delete(botID string, q []byte) (shared.Response, error) {
 			Body:   []byte(""),
 		}, nil
 	}
-	bot := s.clients[botID]
-	res, err := bot.service.Delete(q, bot.store, bot.ipfs)
+	botClient := s.clients[botID]
+	res, err := botClient.service.Delete(q, botClient.store, botClient.ipfs)
 	return res, err
 }
 

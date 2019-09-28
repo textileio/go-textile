@@ -2,6 +2,8 @@ module github.com/textileio/go-textile
 
 go 1.12
 
+replace github.com/textileio/go-textile-bots v0.0.1 => ../go-bots/go-textile-bots
+
 replace github.com/textileio/go-textile-core v0.0.1 => ../go-bots/go-textile-core
 
 require (
@@ -49,7 +51,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.6.2
-	github.com/textileio/go-textile-bots v0.0.0-20190926211656-591f4fd421c4
+	github.com/textileio/go-textile-bots v0.0.1
 	github.com/textileio/go-textile-core v0.0.1
 	github.com/tyler-smith/go-bip39 v1.0.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc

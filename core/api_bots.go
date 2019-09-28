@@ -1,6 +1,7 @@
 package core
 
 import (
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +47,13 @@ func (a *api) botsPost(c *gin.Context) {
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 
-	botResponse, err := botService.Post(botID, qbytes)
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	botResponse, err := botService.Post(botID, qbytes, body)
 	statusInt := int(botResponse.Status)
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
@@ -90,7 +97,13 @@ func (a *api) botsPut(c *gin.Context) {
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 
-	botResponse, err := botService.Put(botID, qbytes)
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	botResponse, err := botService.Put(botID, qbytes, body)
 	statusInt := int(botResponse.Status)
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
