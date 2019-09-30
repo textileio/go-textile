@@ -129,6 +129,20 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 	return proto.Marshal(files)
 }
 
+// File calls core File
+func (m *Mobile) File(blockId string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	file, err := m.node.File(blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(file)
+}
+
 // FileContent is the async version of fileContent
 func (m *Mobile) FileContent(hash string, cb DataCallback) {
 	m.node.WaitAdd(1, "Mobile.FileContent")
