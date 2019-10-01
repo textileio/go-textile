@@ -47,14 +47,16 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.6.2
-	github.com/textileio/go-textile-bots v0.0.0-20191001152108-13ee8faec0fc
-	github.com/textileio/go-textile-core v0.0.0-20191001151943-10f2d055211e
+	github.com/textileio/go-textile-bots v0.0.0-20191001170951-5f7fe3eb2094
+	github.com/textileio/go-textile-core v0.0.0-20191001163737-1b67de46dcd8
 	github.com/tyler-smith/go-bip39 v1.0.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
+	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0
 	go.uber.org/fx v1.9.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
