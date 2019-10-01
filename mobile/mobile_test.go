@@ -513,6 +513,18 @@ func TestMobile_Files(t *testing.T) {
 	}
 }
 
+func TestMobile_File(t *testing.T) {
+	res, err := testVars.mobile1.File(testVars.filesBlock.Id)
+	if err != nil {
+		t.Fatalf("get thread file failed: %s", err)
+	}
+	files := new(pb.Files)
+	err = proto.Unmarshal(res, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMobile_FilesBadThread(t *testing.T) {
 	if _, err := testVars.mobile1.Files("empty", "", -1); err == nil {
 		t.Fatal("get thread files from bad thread should fail")
