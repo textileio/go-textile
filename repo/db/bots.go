@@ -18,6 +18,7 @@ func NewBotStore(db *sql.DB, lock *sync.Mutex) repo.BotStore {
 	return &BotDB{modelStore{db, lock}}
 }
 
+// AddOrUpdate Bot KV store adds namespace all bot requests by their id
 func (c *BotDB) AddOrUpdate(id string, key string, value []byte, botVersion int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -51,6 +52,7 @@ func (c *BotDB) AddOrUpdate(id string, key string, value []byte, botVersion int)
 	return nil
 }
 
+// Get Bot KV store gets namespace all bot requests by their id
 func (c *BotDB) Get(id string, key string) *pb.BotKV {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -61,6 +63,7 @@ func (c *BotDB) Get(id string, key string) *pb.BotKV {
 	return res[0]
 }
 
+// Delete Bot KV store deletes namespace all bot requests by their id
 func (c *BotDB) Delete(id string, key string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

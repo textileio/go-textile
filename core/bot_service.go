@@ -12,17 +12,20 @@ import (
 	ipfs "github.com/textileio/go-textile/ipfs"
 )
 
+// BotIpfsHandler is the ipfs interface shared with a bot. It requires Get and Add
 type BotIpfsHandler struct {
 	botID string
 	node  *Textile
 }
 
+// BotKVStore is the kv store interface shared with a bot. Set, Get, Delete required
 type BotKVStore struct {
 	botID      string
 	botVersion int
 	node       *Textile
 }
 
+// Get allows a bot to get IPFS data by the cid/path. Allows optional key for decryption on the fly
 func (mip BotIpfsHandler) Get(pth string, key string) ([]byte, error) {
 	data, err := mip.node.DataAtPath(pth)
 
@@ -47,6 +50,7 @@ func (mip BotIpfsHandler) Get(pth string, key string) ([]byte, error) {
 	return data, nil
 }
 
+// Add allows a bot to add data to IPFS. currently it does not pin the data, only adds.
 func (mip BotIpfsHandler) Add(data []byte, encrypt bool) (hash string, key string, err error) {
 	var input []byte
 	k := ""
@@ -71,6 +75,7 @@ func (mip BotIpfsHandler) Add(data []byte, encrypt bool) (hash string, key strin
 	return idp.Hash().B58String(), k, nil
 }
 
+// Set allows a bot to add a key-val to the store
 func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
 	err = kv.node.datastore.Bots().AddOrUpdate(kv.botID, key, data, kv.botVersion)
 	if err != nil {
@@ -78,6 +83,8 @@ func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
 	}
 	return true, nil
 }
+
+// Get allows a bot to get a value by string. It responds with the version of the bot that wrote the data.
 func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
 	// TODO: include bot version from row in response, allowing migrations
 	keyVal := kv.node.datastore.Bots().Get(kv.botID, key)
@@ -89,6 +96,8 @@ func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
 	}
 	return keyVal.Value, keyVal.BotReleaseVersion, nil
 }
+
+// Delete allows a bot to delete a value in the kv store
 func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 	err = kv.node.datastore.Bots().Delete(kv.botID, key)
 	if err != nil {
@@ -97,6 +106,7 @@ func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 	return true, nil
 }
 
+// BotService holds a map to all running bots on this node
 type BotService struct {
 	clients map[string]*BotClient
 	node    *Textile

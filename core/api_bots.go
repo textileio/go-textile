@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// botsGet is the GET endpoint for all bots
 func (a *api) botsGet(c *gin.Context) {
 	botID := c.Param("root")
 	botService, err := a.node.Bots()
@@ -30,6 +31,7 @@ func (a *api) botsGet(c *gin.Context) {
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
 
+// botsPost is the POST endpoint for all bots
 func (a *api) botsPost(c *gin.Context) {
 	botID := c.Param("root")
 	botService, err := a.node.Bots()

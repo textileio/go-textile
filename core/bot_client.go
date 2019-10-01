@@ -21,16 +21,19 @@ type BotClient struct {
 	ipfs    *BotIpfsHandler
 }
 
+// setup will configure the rpc server information for the bot
 func (b *BotClient) setup(botID string, version int, name string, pth string, store *BotKVStore, ipfs *BotIpfsHandler) {
 	pluginMap := map[string]plugin.Plugin{
 		botID: &bots.TextileBot{}, // <- the TextileBot interface will always be the same.
 	}
 
+	// handshake for any bot version will remain the same. it will error if the bot program version doesn't match the config
 	handshake := plugin.HandshakeConfig{
 		ProtocolVersion:  uint(version),
-		MagicCookieKey:   botID,
+		MagicCookieKey:   botID, // TODO: this should use the current IPFS hash of the bot program
 		MagicCookieValue: name,
 	}
+
 	// https://github.com/hashicorp/go-plugin/blob/master/client.go#L108
 	// We're a host. Start by launching the plugin process.
 	b.config = &plugin.ClientConfig{
