@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
-	github.com/ahmetb/govvv v0.2.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/chzyer/readline v0.0.0-20160726135117-62c6fe619375
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -47,7 +46,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.6.2
-	github.com/textileio/go-textile-bots v0.0.0-20191002185616-3b213dc9706e
+	github.com/textileio/go-textile-bots v0.0.0-20191002192220-6842325906c5
 	github.com/textileio/go-textile-core v0.0.0-20191002185451-5b6ce4198647
 	github.com/tyler-smith/go-bip39 v1.0.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc

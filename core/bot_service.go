@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/mr-tron/base58/base58"
+	bots "github.com/textileio/go-textile-bots"
 	shared "github.com/textileio/go-textile-core/bots"
 	"github.com/textileio/go-textile/crypto"
 	ipfs "github.com/textileio/go-textile/ipfs"
@@ -108,7 +109,7 @@ func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 
 // BotService holds a map to all running bots on this node
 type BotService struct {
-	clients map[string]*BotClient
+	clients map[string]*bots.Client
 	node    *Textile
 }
 
@@ -144,9 +145,9 @@ func (s *BotService) Create(botID string, botVersion int, name string, params ma
 		ipfs,
 		params,
 	}
-	botClient := &BotClient{}
+	botClient := &bots.Client{}
 	s.clients[botID] = botClient
-	s.clients[botID].prepare(botID, botVersion, name, pth, config)
+	s.clients[botID].Prepare(botID, botVersion, name, pth, config)
 }
 
 // Get runs the bot.Get method
@@ -158,7 +159,7 @@ func (s *BotService) Get(botID string, q []byte) (shared.Response, error) {
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Get(q, botClient.sharedConf)
+	res, err := botClient.Service.Get(q, botClient.SharedConf)
 	return res, err
 }
 
@@ -171,7 +172,7 @@ func (s *BotService) Post(botID string, q []byte, body []byte) (shared.Response,
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Post(q, body, botClient.sharedConf)
+	res, err := botClient.Service.Post(q, body, botClient.SharedConf)
 	return res, err
 }
 
@@ -184,7 +185,7 @@ func (s *BotService) Put(botID string, q []byte, body []byte) (shared.Response, 
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Put(q, body, botClient.sharedConf)
+	res, err := botClient.Service.Put(q, body, botClient.SharedConf)
 	return res, err
 }
 
@@ -198,7 +199,7 @@ func (s *BotService) Delete(botID string, q []byte) (shared.Response, error) {
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Delete(q, botClient.sharedConf)
+	res, err := botClient.Service.Delete(q, botClient.SharedConf)
 	return res, err
 }
 
@@ -220,7 +221,7 @@ func (s *BotService) RunAll(repoPath string, bots []string) {
 // NewBotService returns a new bot service
 func NewBotService(node *Textile) *BotService {
 	bots := &BotService{
-		map[string]*BotClient{},
+		map[string]*bots.Client{},
 		node,
 	}
 	return bots
