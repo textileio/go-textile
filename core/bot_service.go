@@ -12,13 +12,13 @@ import (
 	ipfs "github.com/textileio/go-textile/ipfs"
 )
 
-// BotIpfsHandler is the ipfs interface shared with a bot. It requires Get and Add
+// BotIpfsHandler implements shared.IpfsHandler. Extends it by hanging on the the botID
 type BotIpfsHandler struct {
 	botID string
 	node  *Textile
 }
 
-// BotKVStore is the kv store interface shared with a bot. Set, Get, Delete required
+// BotKVStore implements shared.BotStore. Extends it with BotID and BotVersion
 type BotKVStore struct {
 	botID      string
 	botVersion int
@@ -124,7 +124,7 @@ func (s *BotService) Exists(id string) bool {
 }
 
 // Create configures the Bot rpc instance
-func (s *BotService) Create(botID string, botVersion int, name string, pth string) {
+func (s *BotService) Create(botID string, botVersion int, name string, params map[string]string, pth string) {
 	if s.Exists(botID) {
 		return
 	}
@@ -139,9 +139,14 @@ func (s *BotService) Create(botID string, botVersion int, name string, pth strin
 		s.node,
 	}
 
+	config := shared.ClientConfig{
+		store,
+		ipfs,
+		params,
+	}
 	botClient := &BotClient{}
 	s.clients[botID] = botClient
-	s.clients[botID].setup(botID, botVersion, name, pth, store, ipfs)
+	s.clients[botID].prepare(botID, botVersion, name, pth, config)
 }
 
 // Get runs the bot.Get method
@@ -153,7 +158,7 @@ func (s *BotService) Get(botID string, q []byte) (shared.Response, error) {
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Get(q, botClient.store, botClient.ipfs)
+	res, err := botClient.service.Get(q, botClient.sharedConf)
 	return res, err
 }
 
@@ -166,7 +171,7 @@ func (s *BotService) Post(botID string, q []byte, body []byte) (shared.Response,
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Post(q, body, botClient.store, botClient.ipfs)
+	res, err := botClient.service.Post(q, body, botClient.sharedConf)
 	return res, err
 }
 
@@ -179,7 +184,7 @@ func (s *BotService) Put(botID string, q []byte, body []byte) (shared.Response, 
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Put(q, body, botClient.store, botClient.ipfs)
+	res, err := botClient.service.Put(q, body, botClient.sharedConf)
 	return res, err
 }
 
@@ -193,7 +198,7 @@ func (s *BotService) Delete(botID string, q []byte) (shared.Response, error) {
 		}, nil
 	}
 	botClient := s.clients[botID]
-	res, err := botClient.service.Delete(q, botClient.store, botClient.ipfs)
+	res, err := botClient.service.Delete(q, botClient.sharedConf)
 	return res, err
 }
 
@@ -207,7 +212,7 @@ func (s *BotService) RunAll(repoPath string, bots []string) {
 			log.Errorf(err.Error())
 		} else {
 			botPath := path.Join(botPath, "bot") // bots are always compiled to "bot"
-			s.Create(botConfig.BotID, botConfig.ReleaseVersion, botConfig.BotName, botPath)
+			s.Create(botConfig.ID, botConfig.ReleaseVersion, botConfig.Name, botConfig.Params, botPath)
 		}
 	}
 }
@@ -221,14 +226,14 @@ func NewBotService(node *Textile) *BotService {
 	return bots
 }
 
-// ReadConfig loads the BotConfig
-func readBotConfig(botPath string) (*shared.BotConfig, error) {
+// ReadConfig loads the HostConfig
+func readBotConfig(botPath string) (*shared.HostConfig, error) {
 	data, err := ioutil.ReadFile(path.Join(botPath, "config"))
 	if err != nil {
 		return nil, err
 	}
 
-	var conf *shared.BotConfig
+	var conf *shared.HostConfig
 	if err := json.Unmarshal(data, &conf); err != nil {
 		return nil, err
 	}

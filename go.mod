@@ -47,8 +47,8 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.6.2
-	github.com/textileio/go-textile-bots v0.0.0-20191001170951-5f7fe3eb2094
-	github.com/textileio/go-textile-core v0.0.0-20191001163737-1b67de46dcd8
+	github.com/textileio/go-textile-bots v0.0.0-20191002185616-3b213dc9706e
+	github.com/textileio/go-textile-core v0.0.0-20191002185451-5b6ce4198647
 	github.com/tyler-smith/go-bip39 v1.0.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

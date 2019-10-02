@@ -12,17 +12,16 @@ import (
 )
 
 type BotClient struct {
-	botID   string
-	name    string
-	service shared.Botservice
-	config  *plugin.ClientConfig
-	client  *plugin.Client
-	store   *BotKVStore
-	ipfs    *BotIpfsHandler
+	botID      string
+	name       string
+	service    shared.Service
+	config     *plugin.ClientConfig
+	client     *plugin.Client
+	sharedConf shared.ClientConfig
 }
 
 // setup will configure the rpc server information for the bot
-func (b *BotClient) setup(botID string, version int, name string, pth string, store *BotKVStore, ipfs *BotIpfsHandler) {
+func (b *BotClient) prepare(botID string, version int, name string, pth string, config shared.ClientConfig) {
 	pluginMap := map[string]plugin.Plugin{
 		botID: &bots.TextileBot{}, // <- the TextileBot interface will always be the same.
 	}
@@ -53,8 +52,7 @@ func (b *BotClient) setup(botID string, version int, name string, pth string, st
 	b.client = plugin.NewClient(b.config)
 	b.botID = botID
 	b.name = name
-	b.store = store
-	b.ipfs = ipfs
+	b.sharedConf = config
 	// in go-plugin examples we need defer Kill, but because Managed: true, do we?
 	// defer b.client.Kill()
 	b.run()
@@ -74,7 +72,7 @@ func (b *BotClient) run() {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
-	// We should have a Botservice store now! This feels like a normal interface
+	// We should have a Bot service store now! This feels like a normal interface
 	// implementation but is in fact over an RPC connection.
-	b.service = raw.(shared.Botservice)
+	b.service = raw.(shared.Service)
 }

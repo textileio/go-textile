@@ -280,7 +280,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	return node, nil
 }
 
-// Start creates an ipfs node and starts textile services
+// Bots returns the running Botservice
 func (t *Textile) Bots() (*BotService, error) {
 	return t.botService, nil
 }
@@ -376,9 +376,7 @@ func (t *Textile) Start() error {
 
 	// get ready to run some bots
 	log.Debug("creating the bot service...")
-	t.botService = NewBotService(
-		t,
-	)
+	t.botService = NewBotService(t)
 	t.botService.RunAll(t.repoPath, t.config.Bots)
 
 	go func() {
