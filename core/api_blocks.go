@@ -233,7 +233,7 @@ func (a *api) getBlockFileMeta(g *gin.Context) {
 // @Param id path string true "block id"
 // @Param index path string true "file index"
 // @Param path path string true "file path"
-// @Success 200 {string} byte
+// @Success 200 {array} byte
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 func (a *api) getBlockFileContent(g *gin.Context) {
