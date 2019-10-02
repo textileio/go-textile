@@ -40,6 +40,7 @@ type SQLiteDatastore struct {
 	cafeTokens         repo.CafeTokenStore
 	cafeClientThreads  repo.CafeClientThreadStore
 	cafeClientMessages repo.CafeClientMessageStore
+	botstore           repo.BotStore
 	db                 *sql.DB
 	lock               *sync.Mutex
 }
@@ -77,6 +78,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		cafeTokens:         NewCafeTokenStore(conn, lock),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, lock),
 		cafeClientMessages: NewCafeClientMessageStore(conn, lock),
+		botstore:           NewBotStore(conn, lock),
 		db:                 conn,
 		lock:               lock,
 	}, nil
@@ -156,6 +158,10 @@ func (d *SQLiteDatastore) CafeClientThreads() repo.CafeClientThreadStore {
 
 func (d *SQLiteDatastore) CafeClientMessages() repo.CafeClientMessageStore {
 	return d.cafeClientMessages
+}
+
+func (d *SQLiteDatastore) Bots() repo.BotStore {
+	return d.botstore
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, pin string) error {
@@ -273,7 +279,11 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
     create index cafe_client_message_date on cafe_client_messages (date);
 
-    create table cafe_tokens (id text primary key not null, token text not null, date integer not null);
+		create table cafe_tokens (id text primary key not null, token text not null, date integer not null);
+		
+		create table botstore (id text primary key not null, key text not null, value blob, version integer not null, created integer not null, updated integer not null);
+    create index botstore_key on botstore (key);
+    create index botstore_updated on peers (updated);
     `
 	if _, err := db.Exec(sqlStmt); err != nil {
 		return err

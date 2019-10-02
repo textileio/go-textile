@@ -25,7 +25,7 @@ var ErrRepoDoesNotExist = fmt.Errorf("repo does not exist, initialization is req
 var ErrMigrationRequired = fmt.Errorf("repo needs migration")
 var ErrRepoCorrupted = fmt.Errorf("repo is corrupted")
 
-const Repover = "16"
+const Repover = "17"
 
 func Init(repoPath string, mobile bool, server bool) error {
 	err := checkWriteable(repoPath)
@@ -60,6 +60,12 @@ func Init(repoPath string, mobile bool, server bool) error {
 	}
 
 	err = fsrepo.Init(repoPath, conf)
+	if err != nil {
+		return err
+	}
+
+	// create a folder for bots
+	err = initializeBotFolder(repoPath)
 	if err != nil {
 		return err
 	}
@@ -142,6 +148,16 @@ func checkWriteable(dir string) error {
 		return fmt.Errorf("cannot write to %s, incorrect permissions", err)
 	}
 
+	return err
+}
+
+func initializeBotFolder(repoPath string) error {
+	botFolder := filepath.Join(repoPath, "bots")
+	_, err := os.Stat(botFolder)
+	if os.IsNotExist(err) {
+		// dir doesnt exist, check that we can create it
+		return os.MkdirAll(botFolder, 0775)
+	}
 	return err
 }
 

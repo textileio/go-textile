@@ -3,9 +3,11 @@
 
 package pb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CafeChallenge struct {
 	Address              string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -29,16 +31,17 @@ func (m *CafeChallenge) Reset()         { *m = CafeChallenge{} }
 func (m *CafeChallenge) String() string { return proto.CompactTextString(m) }
 func (*CafeChallenge) ProtoMessage()    {}
 func (*CafeChallenge) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{0}
+	return fileDescriptor_af259e22dc6e576e, []int{0}
 }
+
 func (m *CafeChallenge) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeChallenge.Unmarshal(m, b)
 }
 func (m *CafeChallenge) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeChallenge.Marshal(b, m, deterministic)
 }
-func (dst *CafeChallenge) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeChallenge.Merge(dst, src)
+func (m *CafeChallenge) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeChallenge.Merge(m, src)
 }
 func (m *CafeChallenge) XXX_Size() int {
 	return xxx_messageInfo_CafeChallenge.Size(m)
@@ -67,16 +70,17 @@ func (m *CafeNonce) Reset()         { *m = CafeNonce{} }
 func (m *CafeNonce) String() string { return proto.CompactTextString(m) }
 func (*CafeNonce) ProtoMessage()    {}
 func (*CafeNonce) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{1}
+	return fileDescriptor_af259e22dc6e576e, []int{1}
 }
+
 func (m *CafeNonce) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeNonce.Unmarshal(m, b)
 }
 func (m *CafeNonce) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeNonce.Marshal(b, m, deterministic)
 }
-func (dst *CafeNonce) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeNonce.Merge(dst, src)
+func (m *CafeNonce) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeNonce.Merge(m, src)
 }
 func (m *CafeNonce) XXX_Size() int {
 	return xxx_messageInfo_CafeNonce.Size(m)
@@ -109,16 +113,17 @@ func (m *CafeRegistration) Reset()         { *m = CafeRegistration{} }
 func (m *CafeRegistration) String() string { return proto.CompactTextString(m) }
 func (*CafeRegistration) ProtoMessage()    {}
 func (*CafeRegistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{2}
+	return fileDescriptor_af259e22dc6e576e, []int{2}
 }
+
 func (m *CafeRegistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRegistration.Unmarshal(m, b)
 }
 func (m *CafeRegistration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeRegistration.Marshal(b, m, deterministic)
 }
-func (dst *CafeRegistration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeRegistration.Merge(dst, src)
+func (m *CafeRegistration) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeRegistration.Merge(m, src)
 }
 func (m *CafeRegistration) XXX_Size() int {
 	return xxx_messageInfo_CafeRegistration.Size(m)
@@ -175,16 +180,17 @@ func (m *CafeDeregistration) Reset()         { *m = CafeDeregistration{} }
 func (m *CafeDeregistration) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistration) ProtoMessage()    {}
 func (*CafeDeregistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{3}
+	return fileDescriptor_af259e22dc6e576e, []int{3}
 }
+
 func (m *CafeDeregistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistration.Unmarshal(m, b)
 }
 func (m *CafeDeregistration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeDeregistration.Marshal(b, m, deterministic)
 }
-func (dst *CafeDeregistration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeDeregistration.Merge(dst, src)
+func (m *CafeDeregistration) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeDeregistration.Merge(m, src)
 }
 func (m *CafeDeregistration) XXX_Size() int {
 	return xxx_messageInfo_CafeDeregistration.Size(m)
@@ -213,16 +219,17 @@ func (m *CafeDeregistrationAck) Reset()         { *m = CafeDeregistrationAck{} }
 func (m *CafeDeregistrationAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistrationAck) ProtoMessage()    {}
 func (*CafeDeregistrationAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{4}
+	return fileDescriptor_af259e22dc6e576e, []int{4}
 }
+
 func (m *CafeDeregistrationAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistrationAck.Unmarshal(m, b)
 }
 func (m *CafeDeregistrationAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeDeregistrationAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeDeregistrationAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeDeregistrationAck.Merge(dst, src)
+func (m *CafeDeregistrationAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeDeregistrationAck.Merge(m, src)
 }
 func (m *CafeDeregistrationAck) XXX_Size() int {
 	return xxx_messageInfo_CafeDeregistrationAck.Size(m)
@@ -252,16 +259,17 @@ func (m *CafeRefreshSession) Reset()         { *m = CafeRefreshSession{} }
 func (m *CafeRefreshSession) String() string { return proto.CompactTextString(m) }
 func (*CafeRefreshSession) ProtoMessage()    {}
 func (*CafeRefreshSession) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{5}
+	return fileDescriptor_af259e22dc6e576e, []int{5}
 }
+
 func (m *CafeRefreshSession) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRefreshSession.Unmarshal(m, b)
 }
 func (m *CafeRefreshSession) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeRefreshSession.Marshal(b, m, deterministic)
 }
-func (dst *CafeRefreshSession) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeRefreshSession.Merge(dst, src)
+func (m *CafeRefreshSession) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeRefreshSession.Merge(m, src)
 }
 func (m *CafeRefreshSession) XXX_Size() int {
 	return xxx_messageInfo_CafeRefreshSession.Size(m)
@@ -298,16 +306,17 @@ func (m *CafePublishPeer) Reset()         { *m = CafePublishPeer{} }
 func (m *CafePublishPeer) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeer) ProtoMessage()    {}
 func (*CafePublishPeer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{6}
+	return fileDescriptor_af259e22dc6e576e, []int{6}
 }
+
 func (m *CafePublishPeer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeer.Unmarshal(m, b)
 }
 func (m *CafePublishPeer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafePublishPeer.Marshal(b, m, deterministic)
 }
-func (dst *CafePublishPeer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafePublishPeer.Merge(dst, src)
+func (m *CafePublishPeer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafePublishPeer.Merge(m, src)
 }
 func (m *CafePublishPeer) XXX_Size() int {
 	return xxx_messageInfo_CafePublishPeer.Size(m)
@@ -343,16 +352,17 @@ func (m *CafePublishPeerAck) Reset()         { *m = CafePublishPeerAck{} }
 func (m *CafePublishPeerAck) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeerAck) ProtoMessage()    {}
 func (*CafePublishPeerAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{7}
+	return fileDescriptor_af259e22dc6e576e, []int{7}
 }
+
 func (m *CafePublishPeerAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeerAck.Unmarshal(m, b)
 }
 func (m *CafePublishPeerAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafePublishPeerAck.Marshal(b, m, deterministic)
 }
-func (dst *CafePublishPeerAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafePublishPeerAck.Merge(dst, src)
+func (m *CafePublishPeerAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafePublishPeerAck.Merge(m, src)
 }
 func (m *CafePublishPeerAck) XXX_Size() int {
 	return xxx_messageInfo_CafePublishPeerAck.Size(m)
@@ -382,16 +392,17 @@ func (m *CafeStore) Reset()         { *m = CafeStore{} }
 func (m *CafeStore) String() string { return proto.CompactTextString(m) }
 func (*CafeStore) ProtoMessage()    {}
 func (*CafeStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{8}
+	return fileDescriptor_af259e22dc6e576e, []int{8}
 }
+
 func (m *CafeStore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStore.Unmarshal(m, b)
 }
 func (m *CafeStore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeStore.Marshal(b, m, deterministic)
 }
-func (dst *CafeStore) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeStore.Merge(dst, src)
+func (m *CafeStore) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStore.Merge(m, src)
 }
 func (m *CafeStore) XXX_Size() int {
 	return xxx_messageInfo_CafeStore.Size(m)
@@ -427,16 +438,17 @@ func (m *CafeStoreAck) Reset()         { *m = CafeStoreAck{} }
 func (m *CafeStoreAck) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreAck) ProtoMessage()    {}
 func (*CafeStoreAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{9}
+	return fileDescriptor_af259e22dc6e576e, []int{9}
 }
+
 func (m *CafeStoreAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreAck.Unmarshal(m, b)
 }
 func (m *CafeStoreAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeStoreAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeStoreAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeStoreAck.Merge(dst, src)
+func (m *CafeStoreAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStoreAck.Merge(m, src)
 }
 func (m *CafeStoreAck) XXX_Size() int {
 	return xxx_messageInfo_CafeStoreAck.Size(m)
@@ -466,16 +478,17 @@ func (m *CafeUnstore) Reset()         { *m = CafeUnstore{} }
 func (m *CafeUnstore) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstore) ProtoMessage()    {}
 func (*CafeUnstore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{10}
+	return fileDescriptor_af259e22dc6e576e, []int{10}
 }
+
 func (m *CafeUnstore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstore.Unmarshal(m, b)
 }
 func (m *CafeUnstore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeUnstore.Marshal(b, m, deterministic)
 }
-func (dst *CafeUnstore) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeUnstore.Merge(dst, src)
+func (m *CafeUnstore) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstore.Merge(m, src)
 }
 func (m *CafeUnstore) XXX_Size() int {
 	return xxx_messageInfo_CafeUnstore.Size(m)
@@ -511,16 +524,17 @@ func (m *CafeUnstoreAck) Reset()         { *m = CafeUnstoreAck{} }
 func (m *CafeUnstoreAck) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreAck) ProtoMessage()    {}
 func (*CafeUnstoreAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{11}
+	return fileDescriptor_af259e22dc6e576e, []int{11}
 }
+
 func (m *CafeUnstoreAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreAck.Unmarshal(m, b)
 }
 func (m *CafeUnstoreAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeUnstoreAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeUnstoreAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeUnstoreAck.Merge(dst, src)
+func (m *CafeUnstoreAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreAck.Merge(m, src)
 }
 func (m *CafeUnstoreAck) XXX_Size() int {
 	return xxx_messageInfo_CafeUnstoreAck.Size(m)
@@ -549,16 +563,17 @@ func (m *CafeObjectList) Reset()         { *m = CafeObjectList{} }
 func (m *CafeObjectList) String() string { return proto.CompactTextString(m) }
 func (*CafeObjectList) ProtoMessage()    {}
 func (*CafeObjectList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{12}
+	return fileDescriptor_af259e22dc6e576e, []int{12}
 }
+
 func (m *CafeObjectList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObjectList.Unmarshal(m, b)
 }
 func (m *CafeObjectList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeObjectList.Marshal(b, m, deterministic)
 }
-func (dst *CafeObjectList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeObjectList.Merge(dst, src)
+func (m *CafeObjectList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeObjectList.Merge(m, src)
 }
 func (m *CafeObjectList) XXX_Size() int {
 	return xxx_messageInfo_CafeObjectList.Size(m)
@@ -590,16 +605,17 @@ func (m *CafeObject) Reset()         { *m = CafeObject{} }
 func (m *CafeObject) String() string { return proto.CompactTextString(m) }
 func (*CafeObject) ProtoMessage()    {}
 func (*CafeObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{13}
+	return fileDescriptor_af259e22dc6e576e, []int{13}
 }
+
 func (m *CafeObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObject.Unmarshal(m, b)
 }
 func (m *CafeObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeObject.Marshal(b, m, deterministic)
 }
-func (dst *CafeObject) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeObject.Merge(dst, src)
+func (m *CafeObject) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeObject.Merge(m, src)
 }
 func (m *CafeObject) XXX_Size() int {
 	return xxx_messageInfo_CafeObject.Size(m)
@@ -651,16 +667,17 @@ func (m *CafeStoreThread) Reset()         { *m = CafeStoreThread{} }
 func (m *CafeStoreThread) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreThread) ProtoMessage()    {}
 func (*CafeStoreThread) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{14}
+	return fileDescriptor_af259e22dc6e576e, []int{14}
 }
+
 func (m *CafeStoreThread) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreThread.Unmarshal(m, b)
 }
 func (m *CafeStoreThread) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeStoreThread.Marshal(b, m, deterministic)
 }
-func (dst *CafeStoreThread) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeStoreThread.Merge(dst, src)
+func (m *CafeStoreThread) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStoreThread.Merge(m, src)
 }
 func (m *CafeStoreThread) XXX_Size() int {
 	return xxx_messageInfo_CafeStoreThread.Size(m)
@@ -703,16 +720,17 @@ func (m *CafeStoreThreadAck) Reset()         { *m = CafeStoreThreadAck{} }
 func (m *CafeStoreThreadAck) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreThreadAck) ProtoMessage()    {}
 func (*CafeStoreThreadAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{15}
+	return fileDescriptor_af259e22dc6e576e, []int{15}
 }
+
 func (m *CafeStoreThreadAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreThreadAck.Unmarshal(m, b)
 }
 func (m *CafeStoreThreadAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeStoreThreadAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeStoreThreadAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeStoreThreadAck.Merge(dst, src)
+func (m *CafeStoreThreadAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStoreThreadAck.Merge(m, src)
 }
 func (m *CafeStoreThreadAck) XXX_Size() int {
 	return xxx_messageInfo_CafeStoreThreadAck.Size(m)
@@ -742,16 +760,17 @@ func (m *CafeUnstoreThread) Reset()         { *m = CafeUnstoreThread{} }
 func (m *CafeUnstoreThread) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreThread) ProtoMessage()    {}
 func (*CafeUnstoreThread) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{16}
+	return fileDescriptor_af259e22dc6e576e, []int{16}
 }
+
 func (m *CafeUnstoreThread) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreThread.Unmarshal(m, b)
 }
 func (m *CafeUnstoreThread) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeUnstoreThread.Marshal(b, m, deterministic)
 }
-func (dst *CafeUnstoreThread) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeUnstoreThread.Merge(dst, src)
+func (m *CafeUnstoreThread) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreThread.Merge(m, src)
 }
 func (m *CafeUnstoreThread) XXX_Size() int {
 	return xxx_messageInfo_CafeUnstoreThread.Size(m)
@@ -787,16 +806,17 @@ func (m *CafeUnstoreThreadAck) Reset()         { *m = CafeUnstoreThreadAck{} }
 func (m *CafeUnstoreThreadAck) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreThreadAck) ProtoMessage()    {}
 func (*CafeUnstoreThreadAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{17}
+	return fileDescriptor_af259e22dc6e576e, []int{17}
 }
+
 func (m *CafeUnstoreThreadAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreThreadAck.Unmarshal(m, b)
 }
 func (m *CafeUnstoreThreadAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeUnstoreThreadAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeUnstoreThreadAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeUnstoreThreadAck.Merge(dst, src)
+func (m *CafeUnstoreThreadAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreThreadAck.Merge(m, src)
 }
 func (m *CafeUnstoreThreadAck) XXX_Size() int {
 	return xxx_messageInfo_CafeUnstoreThreadAck.Size(m)
@@ -827,16 +847,17 @@ func (m *CafeDeliverMessage) Reset()         { *m = CafeDeliverMessage{} }
 func (m *CafeDeliverMessage) String() string { return proto.CompactTextString(m) }
 func (*CafeDeliverMessage) ProtoMessage()    {}
 func (*CafeDeliverMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{18}
+	return fileDescriptor_af259e22dc6e576e, []int{18}
 }
+
 func (m *CafeDeliverMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeliverMessage.Unmarshal(m, b)
 }
 func (m *CafeDeliverMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeDeliverMessage.Marshal(b, m, deterministic)
 }
-func (dst *CafeDeliverMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeDeliverMessage.Merge(dst, src)
+func (m *CafeDeliverMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeDeliverMessage.Merge(m, src)
 }
 func (m *CafeDeliverMessage) XXX_Size() int {
 	return xxx_messageInfo_CafeDeliverMessage.Size(m)
@@ -879,16 +900,17 @@ func (m *CafeCheckMessages) Reset()         { *m = CafeCheckMessages{} }
 func (m *CafeCheckMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeCheckMessages) ProtoMessage()    {}
 func (*CafeCheckMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{19}
+	return fileDescriptor_af259e22dc6e576e, []int{19}
 }
+
 func (m *CafeCheckMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeCheckMessages.Unmarshal(m, b)
 }
 func (m *CafeCheckMessages) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeCheckMessages.Marshal(b, m, deterministic)
 }
-func (dst *CafeCheckMessages) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeCheckMessages.Merge(dst, src)
+func (m *CafeCheckMessages) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeCheckMessages.Merge(m, src)
 }
 func (m *CafeCheckMessages) XXX_Size() int {
 	return xxx_messageInfo_CafeCheckMessages.Size(m)
@@ -917,16 +939,17 @@ func (m *CafeMessages) Reset()         { *m = CafeMessages{} }
 func (m *CafeMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeMessages) ProtoMessage()    {}
 func (*CafeMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{20}
+	return fileDescriptor_af259e22dc6e576e, []int{20}
 }
+
 func (m *CafeMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeMessages.Unmarshal(m, b)
 }
 func (m *CafeMessages) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeMessages.Marshal(b, m, deterministic)
 }
-func (dst *CafeMessages) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeMessages.Merge(dst, src)
+func (m *CafeMessages) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeMessages.Merge(m, src)
 }
 func (m *CafeMessages) XXX_Size() int {
 	return xxx_messageInfo_CafeMessages.Size(m)
@@ -955,16 +978,17 @@ func (m *CafeDeleteMessages) Reset()         { *m = CafeDeleteMessages{} }
 func (m *CafeDeleteMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessages) ProtoMessage()    {}
 func (*CafeDeleteMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{21}
+	return fileDescriptor_af259e22dc6e576e, []int{21}
 }
+
 func (m *CafeDeleteMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessages.Unmarshal(m, b)
 }
 func (m *CafeDeleteMessages) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeDeleteMessages.Marshal(b, m, deterministic)
 }
-func (dst *CafeDeleteMessages) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeDeleteMessages.Merge(dst, src)
+func (m *CafeDeleteMessages) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeDeleteMessages.Merge(m, src)
 }
 func (m *CafeDeleteMessages) XXX_Size() int {
 	return xxx_messageInfo_CafeDeleteMessages.Size(m)
@@ -993,16 +1017,17 @@ func (m *CafeDeleteMessagesAck) Reset()         { *m = CafeDeleteMessagesAck{} }
 func (m *CafeDeleteMessagesAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessagesAck) ProtoMessage()    {}
 func (*CafeDeleteMessagesAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_d8d39819aa21027d, []int{22}
+	return fileDescriptor_af259e22dc6e576e, []int{22}
 }
+
 func (m *CafeDeleteMessagesAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessagesAck.Unmarshal(m, b)
 }
 func (m *CafeDeleteMessagesAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CafeDeleteMessagesAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeDeleteMessagesAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeDeleteMessagesAck.Merge(dst, src)
+func (m *CafeDeleteMessagesAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeDeleteMessagesAck.Merge(m, src)
 }
 func (m *CafeDeleteMessagesAck) XXX_Size() int {
 	return xxx_messageInfo_CafeDeleteMessagesAck.Size(m)
@@ -1046,9 +1071,9 @@ func init() {
 	proto.RegisterType((*CafeDeleteMessagesAck)(nil), "CafeDeleteMessagesAck")
 }
 
-func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_cafe_service_d8d39819aa21027d) }
+func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_af259e22dc6e576e) }
 
-var fileDescriptor_cafe_service_d8d39819aa21027d = []byte{
+var fileDescriptor_af259e22dc6e576e = []byte{
 	// 542 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0x51, 0x6f, 0xd3, 0x30,
 	0x10, 0xc7, 0x95, 0x74, 0x1d, 0xeb, 0xb5, 0x1b, 0x25, 0x0c, 0x14, 0x78, 0x98, 0x8a, 0x35, 0x41,

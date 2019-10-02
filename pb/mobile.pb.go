@@ -3,9 +3,11 @@
 
 package pb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type MobileEventType int32
 
@@ -45,6 +47,7 @@ var MobileEventType_name = map[int32]string{
 	31: "CAFE_SYNC_GROUP_COMPLETE",
 	32: "CAFE_SYNC_GROUP_FAILED",
 }
+
 var MobileEventType_value = map[string]int32{
 	"NODE_START":               0,
 	"NODE_ONLINE":              1,
@@ -61,8 +64,9 @@ var MobileEventType_value = map[string]int32{
 func (x MobileEventType) String() string {
 	return proto.EnumName(MobileEventType_name, int32(x))
 }
+
 func (MobileEventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_45565783e915ecba, []int{0}
+	return fileDescriptor_3486309221f3b440, []int{0}
 }
 
 type MobileQueryEvent_Type int32
@@ -78,6 +82,7 @@ var MobileQueryEvent_Type_name = map[int32]string{
 	1: "DONE",
 	2: "ERROR",
 }
+
 var MobileQueryEvent_Type_value = map[string]int32{
 	"DATA":  0,
 	"DONE":  1,
@@ -87,8 +92,9 @@ var MobileQueryEvent_Type_value = map[string]int32{
 func (x MobileQueryEvent_Type) String() string {
 	return proto.EnumName(MobileQueryEvent_Type_name, int32(x))
 }
+
 func (MobileQueryEvent_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_45565783e915ecba, []int{1, 0}
+	return fileDescriptor_3486309221f3b440, []int{1, 0}
 }
 
 type MobileWalletAccount struct {
@@ -103,16 +109,17 @@ func (m *MobileWalletAccount) Reset()         { *m = MobileWalletAccount{} }
 func (m *MobileWalletAccount) String() string { return proto.CompactTextString(m) }
 func (*MobileWalletAccount) ProtoMessage()    {}
 func (*MobileWalletAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_45565783e915ecba, []int{0}
+	return fileDescriptor_3486309221f3b440, []int{0}
 }
+
 func (m *MobileWalletAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MobileWalletAccount.Unmarshal(m, b)
 }
 func (m *MobileWalletAccount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MobileWalletAccount.Marshal(b, m, deterministic)
 }
-func (dst *MobileWalletAccount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MobileWalletAccount.Merge(dst, src)
+func (m *MobileWalletAccount) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MobileWalletAccount.Merge(m, src)
 }
 func (m *MobileWalletAccount) XXX_Size() int {
 	return xxx_messageInfo_MobileWalletAccount.Size(m)
@@ -151,16 +158,17 @@ func (m *MobileQueryEvent) Reset()         { *m = MobileQueryEvent{} }
 func (m *MobileQueryEvent) String() string { return proto.CompactTextString(m) }
 func (*MobileQueryEvent) ProtoMessage()    {}
 func (*MobileQueryEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_45565783e915ecba, []int{1}
+	return fileDescriptor_3486309221f3b440, []int{1}
 }
+
 func (m *MobileQueryEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MobileQueryEvent.Unmarshal(m, b)
 }
 func (m *MobileQueryEvent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MobileQueryEvent.Marshal(b, m, deterministic)
 }
-func (dst *MobileQueryEvent) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MobileQueryEvent.Merge(dst, src)
+func (m *MobileQueryEvent) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MobileQueryEvent.Merge(m, src)
 }
 func (m *MobileQueryEvent) XXX_Size() int {
 	return xxx_messageInfo_MobileQueryEvent.Size(m)
@@ -200,15 +208,15 @@ func (m *MobileQueryEvent) GetError() *Error {
 }
 
 func init() {
-	proto.RegisterType((*MobileWalletAccount)(nil), "MobileWalletAccount")
-	proto.RegisterType((*MobileQueryEvent)(nil), "MobileQueryEvent")
 	proto.RegisterEnum("MobileEventType", MobileEventType_name, MobileEventType_value)
 	proto.RegisterEnum("MobileQueryEvent_Type", MobileQueryEvent_Type_name, MobileQueryEvent_Type_value)
+	proto.RegisterType((*MobileWalletAccount)(nil), "MobileWalletAccount")
+	proto.RegisterType((*MobileQueryEvent)(nil), "MobileQueryEvent")
 }
 
-func init() { proto.RegisterFile("mobile.proto", fileDescriptor_mobile_45565783e915ecba) }
+func init() { proto.RegisterFile("mobile.proto", fileDescriptor_3486309221f3b440) }
 
-var fileDescriptor_mobile_45565783e915ecba = []byte{
+var fileDescriptor_3486309221f3b440 = []byte{
 	// 398 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x92, 0xdf, 0x6a, 0xdb, 0x30,
 	0x14, 0xc6, 0x6b, 0xcf, 0xed, 0x96, 0x93, 0x3f, 0xd5, 0x4e, 0x47, 0x31, 0xa5, 0x6c, 0x21, 0x30,

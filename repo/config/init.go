@@ -20,6 +20,7 @@ type Config struct {
 	IsMobile  bool      // local node is setup for mobile
 	IsServer  bool      // local node is setup for a server w/ a public IP
 	Cafe      Cafe      // local node cafe settings
+	Bots      []string  // local node enabled bots
 }
 
 // Account store public account info
@@ -157,6 +158,7 @@ func Init() (*Config, error) {
 		},
 		IsMobile: false,
 		IsServer: false,
+		Bots:     []string{},
 	}, nil
 }
 

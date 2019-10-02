@@ -92,6 +92,7 @@ type Textile struct {
 	ctx               context.Context
 	stop              func() error
 	node              *core.IpfsNode
+	botService        *BotService
 	started           bool
 	datastore         repo.Datastore
 	loadedThreads     []*Thread
@@ -160,6 +161,7 @@ func InitRepo(conf InitConfig) error {
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		if err := rep.Close(); err != nil {
 			log.Error(err.Error())
@@ -278,6 +280,11 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	return node, nil
 }
 
+// Bots returns the running Botservice
+func (t *Textile) Bots() (*BotService, error) {
+	return t.botService, nil
+}
+
 // Start creates an ipfs node and starts textile services
 func (t *Textile) Start() error {
 	t.lock.Lock()
@@ -366,6 +373,12 @@ func (t *Textile) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// get ready to run some bots
+	log.Debug("creating the bot service...")
+	t.botService = NewBotService(t)
+	t.botService.RunAll(t.repoPath, t.config.Bots)
+
 	go func() {
 		defer func() {
 			close(t.online)

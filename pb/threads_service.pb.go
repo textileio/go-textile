@@ -3,11 +3,13 @@
 
 package pb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
-import timestamp "github.com/golang/protobuf/ptypes/timestamp"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // for wire transport
 type ThreadEnvelope struct {
@@ -37,16 +39,17 @@ func (m *ThreadEnvelope) Reset()         { *m = ThreadEnvelope{} }
 func (m *ThreadEnvelope) String() string { return proto.CompactTextString(m) }
 func (*ThreadEnvelope) ProtoMessage()    {}
 func (*ThreadEnvelope) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{0}
+	return fileDescriptor_402f4f9ff5658127, []int{0}
 }
+
 func (m *ThreadEnvelope) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadEnvelope.Unmarshal(m, b)
 }
 func (m *ThreadEnvelope) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadEnvelope.Marshal(b, m, deterministic)
 }
-func (dst *ThreadEnvelope) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadEnvelope.Merge(dst, src)
+func (m *ThreadEnvelope) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadEnvelope.Merge(m, src)
 }
 func (m *ThreadEnvelope) XXX_Size() int {
 	return xxx_messageInfo_ThreadEnvelope.Size(m)
@@ -112,16 +115,17 @@ func (m *ThreadEnvelopeAck) Reset()         { *m = ThreadEnvelopeAck{} }
 func (m *ThreadEnvelopeAck) String() string { return proto.CompactTextString(m) }
 func (*ThreadEnvelopeAck) ProtoMessage()    {}
 func (*ThreadEnvelopeAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{1}
+	return fileDescriptor_402f4f9ff5658127, []int{1}
 }
+
 func (m *ThreadEnvelopeAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadEnvelopeAck.Unmarshal(m, b)
 }
 func (m *ThreadEnvelopeAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadEnvelopeAck.Marshal(b, m, deterministic)
 }
-func (dst *ThreadEnvelopeAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadEnvelopeAck.Merge(dst, src)
+func (m *ThreadEnvelopeAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadEnvelopeAck.Merge(m, src)
 }
 func (m *ThreadEnvelopeAck) XXX_Size() int {
 	return xxx_messageInfo_ThreadEnvelopeAck.Size(m)
@@ -152,16 +156,17 @@ func (m *ThreadBlock) Reset()         { *m = ThreadBlock{} }
 func (m *ThreadBlock) String() string { return proto.CompactTextString(m) }
 func (*ThreadBlock) ProtoMessage()    {}
 func (*ThreadBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{2}
+	return fileDescriptor_402f4f9ff5658127, []int{2}
 }
+
 func (m *ThreadBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadBlock.Unmarshal(m, b)
 }
 func (m *ThreadBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadBlock.Marshal(b, m, deterministic)
 }
-func (dst *ThreadBlock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadBlock.Merge(dst, src)
+func (m *ThreadBlock) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadBlock.Merge(m, src)
 }
 func (m *ThreadBlock) XXX_Size() int {
 	return xxx_messageInfo_ThreadBlock.Size(m)
@@ -207,16 +212,17 @@ func (m *ThreadBlockHeader) Reset()         { *m = ThreadBlockHeader{} }
 func (m *ThreadBlockHeader) String() string { return proto.CompactTextString(m) }
 func (*ThreadBlockHeader) ProtoMessage()    {}
 func (*ThreadBlockHeader) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{3}
+	return fileDescriptor_402f4f9ff5658127, []int{3}
 }
+
 func (m *ThreadBlockHeader) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadBlockHeader.Unmarshal(m, b)
 }
 func (m *ThreadBlockHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadBlockHeader.Marshal(b, m, deterministic)
 }
-func (dst *ThreadBlockHeader) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadBlockHeader.Merge(dst, src)
+func (m *ThreadBlockHeader) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadBlockHeader.Merge(m, src)
 }
 func (m *ThreadBlockHeader) XXX_Size() int {
 	return xxx_messageInfo_ThreadBlockHeader.Size(m)
@@ -269,16 +275,17 @@ func (m *ThreadAdd) Reset()         { *m = ThreadAdd{} }
 func (m *ThreadAdd) String() string { return proto.CompactTextString(m) }
 func (*ThreadAdd) ProtoMessage()    {}
 func (*ThreadAdd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{4}
+	return fileDescriptor_402f4f9ff5658127, []int{4}
 }
+
 func (m *ThreadAdd) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadAdd.Unmarshal(m, b)
 }
 func (m *ThreadAdd) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadAdd.Marshal(b, m, deterministic)
 }
-func (dst *ThreadAdd) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadAdd.Merge(dst, src)
+func (m *ThreadAdd) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadAdd.Merge(m, src)
 }
 func (m *ThreadAdd) XXX_Size() int {
 	return xxx_messageInfo_ThreadAdd.Size(m)
@@ -322,16 +329,17 @@ func (m *ThreadIgnore) Reset()         { *m = ThreadIgnore{} }
 func (m *ThreadIgnore) String() string { return proto.CompactTextString(m) }
 func (*ThreadIgnore) ProtoMessage()    {}
 func (*ThreadIgnore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{5}
+	return fileDescriptor_402f4f9ff5658127, []int{5}
 }
+
 func (m *ThreadIgnore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadIgnore.Unmarshal(m, b)
 }
 func (m *ThreadIgnore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadIgnore.Marshal(b, m, deterministic)
 }
-func (dst *ThreadIgnore) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadIgnore.Merge(dst, src)
+func (m *ThreadIgnore) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadIgnore.Merge(m, src)
 }
 func (m *ThreadIgnore) XXX_Size() int {
 	return xxx_messageInfo_ThreadIgnore.Size(m)
@@ -361,16 +369,17 @@ func (m *ThreadFlag) Reset()         { *m = ThreadFlag{} }
 func (m *ThreadFlag) String() string { return proto.CompactTextString(m) }
 func (*ThreadFlag) ProtoMessage()    {}
 func (*ThreadFlag) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{6}
+	return fileDescriptor_402f4f9ff5658127, []int{6}
 }
+
 func (m *ThreadFlag) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadFlag.Unmarshal(m, b)
 }
 func (m *ThreadFlag) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadFlag.Marshal(b, m, deterministic)
 }
-func (dst *ThreadFlag) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadFlag.Merge(dst, src)
+func (m *ThreadFlag) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadFlag.Merge(m, src)
 }
 func (m *ThreadFlag) XXX_Size() int {
 	return xxx_messageInfo_ThreadFlag.Size(m)
@@ -400,16 +409,17 @@ func (m *ThreadJoin) Reset()         { *m = ThreadJoin{} }
 func (m *ThreadJoin) String() string { return proto.CompactTextString(m) }
 func (*ThreadJoin) ProtoMessage()    {}
 func (*ThreadJoin) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{7}
+	return fileDescriptor_402f4f9ff5658127, []int{7}
 }
+
 func (m *ThreadJoin) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadJoin.Unmarshal(m, b)
 }
 func (m *ThreadJoin) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadJoin.Marshal(b, m, deterministic)
 }
-func (dst *ThreadJoin) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadJoin.Merge(dst, src)
+func (m *ThreadJoin) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadJoin.Merge(m, src)
 }
 func (m *ThreadJoin) XXX_Size() int {
 	return xxx_messageInfo_ThreadJoin.Size(m)
@@ -446,16 +456,17 @@ func (m *ThreadAnnounce) Reset()         { *m = ThreadAnnounce{} }
 func (m *ThreadAnnounce) String() string { return proto.CompactTextString(m) }
 func (*ThreadAnnounce) ProtoMessage()    {}
 func (*ThreadAnnounce) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{8}
+	return fileDescriptor_402f4f9ff5658127, []int{8}
 }
+
 func (m *ThreadAnnounce) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadAnnounce.Unmarshal(m, b)
 }
 func (m *ThreadAnnounce) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadAnnounce.Marshal(b, m, deterministic)
 }
-func (dst *ThreadAnnounce) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadAnnounce.Merge(dst, src)
+func (m *ThreadAnnounce) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadAnnounce.Merge(m, src)
 }
 func (m *ThreadAnnounce) XXX_Size() int {
 	return xxx_messageInfo_ThreadAnnounce.Size(m)
@@ -491,16 +502,17 @@ func (m *ThreadMessage) Reset()         { *m = ThreadMessage{} }
 func (m *ThreadMessage) String() string { return proto.CompactTextString(m) }
 func (*ThreadMessage) ProtoMessage()    {}
 func (*ThreadMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{9}
+	return fileDescriptor_402f4f9ff5658127, []int{9}
 }
+
 func (m *ThreadMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadMessage.Unmarshal(m, b)
 }
 func (m *ThreadMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadMessage.Marshal(b, m, deterministic)
 }
-func (dst *ThreadMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadMessage.Merge(dst, src)
+func (m *ThreadMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadMessage.Merge(m, src)
 }
 func (m *ThreadMessage) XXX_Size() int {
 	return xxx_messageInfo_ThreadMessage.Size(m)
@@ -531,16 +543,17 @@ func (m *ThreadFiles) Reset()         { *m = ThreadFiles{} }
 func (m *ThreadFiles) String() string { return proto.CompactTextString(m) }
 func (*ThreadFiles) ProtoMessage()    {}
 func (*ThreadFiles) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{10}
+	return fileDescriptor_402f4f9ff5658127, []int{10}
 }
+
 func (m *ThreadFiles) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadFiles.Unmarshal(m, b)
 }
 func (m *ThreadFiles) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadFiles.Marshal(b, m, deterministic)
 }
-func (dst *ThreadFiles) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadFiles.Merge(dst, src)
+func (m *ThreadFiles) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadFiles.Merge(m, src)
 }
 func (m *ThreadFiles) XXX_Size() int {
 	return xxx_messageInfo_ThreadFiles.Size(m)
@@ -586,16 +599,17 @@ func (m *ThreadComment) Reset()         { *m = ThreadComment{} }
 func (m *ThreadComment) String() string { return proto.CompactTextString(m) }
 func (*ThreadComment) ProtoMessage()    {}
 func (*ThreadComment) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{11}
+	return fileDescriptor_402f4f9ff5658127, []int{11}
 }
+
 func (m *ThreadComment) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadComment.Unmarshal(m, b)
 }
 func (m *ThreadComment) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadComment.Marshal(b, m, deterministic)
 }
-func (dst *ThreadComment) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadComment.Merge(dst, src)
+func (m *ThreadComment) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadComment.Merge(m, src)
 }
 func (m *ThreadComment) XXX_Size() int {
 	return xxx_messageInfo_ThreadComment.Size(m)
@@ -632,16 +646,17 @@ func (m *ThreadLike) Reset()         { *m = ThreadLike{} }
 func (m *ThreadLike) String() string { return proto.CompactTextString(m) }
 func (*ThreadLike) ProtoMessage()    {}
 func (*ThreadLike) Descriptor() ([]byte, []int) {
-	return fileDescriptor_threads_service_dc83fc8030da8efe, []int{12}
+	return fileDescriptor_402f4f9ff5658127, []int{12}
 }
+
 func (m *ThreadLike) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadLike.Unmarshal(m, b)
 }
 func (m *ThreadLike) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ThreadLike.Marshal(b, m, deterministic)
 }
-func (dst *ThreadLike) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ThreadLike.Merge(dst, src)
+func (m *ThreadLike) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ThreadLike.Merge(m, src)
 }
 func (m *ThreadLike) XXX_Size() int {
 	return xxx_messageInfo_ThreadLike.Size(m)
@@ -676,11 +691,9 @@ func init() {
 	proto.RegisterType((*ThreadLike)(nil), "ThreadLike")
 }
 
-func init() {
-	proto.RegisterFile("threads_service.proto", fileDescriptor_threads_service_dc83fc8030da8efe)
-}
+func init() { proto.RegisterFile("threads_service.proto", fileDescriptor_402f4f9ff5658127) }
 
-var fileDescriptor_threads_service_dc83fc8030da8efe = []byte{
+var fileDescriptor_402f4f9ff5658127 = []byte{
 	// 615 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x54, 0x4d, 0x6b, 0xdb, 0x40,
 	0x10, 0x45, 0xb2, 0x62, 0xe3, 0x71, 0x12, 0xd2, 0x6d, 0x1a, 0x14, 0x53, 0x88, 0x51, 0x7a, 0x30,

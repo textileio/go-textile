@@ -365,3 +365,14 @@ message CafeClientMessage {
     string client                  = 3;
     google.protobuf.Timestamp date = 4;
 }
+
+// Bots KV Store //
+
+message BotKV {
+    string id                         = 1;
+    string key                        = 2;
+    bytes value                      = 3;
+    int32 bot_release_version         = 4;
+    google.protobuf.Timestamp created = 5;
+    google.protobuf.Timestamp updated = 6;
+}
