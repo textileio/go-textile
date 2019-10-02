@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/textileio/go-textile/bots"
 	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/gateway"
@@ -30,8 +31,12 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 		return fmt.Errorf("create node failed: %s", err)
 	}
 
+	service := bots.NewService(node)
+	service.RunAll(repoPath, node.Config().Bots)
+
 	gateway.Host = &gateway.Gateway{
 		Node: node,
+		Bots: service,
 	}
 
 	err = startNode(docs)

@@ -329,14 +329,6 @@ func (a *api) Start() {
 			}
 		}
 
-		bots := v0.Group("/bots")
-		{
-			bots.GET("/:root", a.botsGet)
-			bots.POST("/:root", a.botsPost)
-			bots.DELETE("/:root", a.botsDelete)
-			bots.PUT("/:root", a.botsPut)
-		}
-
 		logs := v0.Group("/logs")
 		{
 			logs.POST("", a.logsCall)

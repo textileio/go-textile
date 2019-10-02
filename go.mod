@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
+	github.com/ahmetb/govvv v0.2.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/chzyer/readline v0.0.0-20160726135117-62c6fe619375
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -55,7 +56,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.1.0
 	go.uber.org/fx v1.9.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	google.golang.org/appengine v1.4.0 // indirect
+	google.golang.org/appengine v1.4.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
