@@ -5,6 +5,7 @@ import (
 
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/ipfs"
 )
 
 // PeerId returns the ipfs peer id
@@ -18,6 +19,20 @@ func (m *Mobile) PeerId() (string, error) {
 		return "", err
 	}
 	return pid.Pretty(), nil
+}
+
+// SwarmConnect opens a new direct connection to a peer using an IPFS multiaddr
+func (m *Mobile) SwarmConnect(address string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	results, err := ipfs.SwarmConnect(m.node.Ipfs(), []string{address})
+	if err != nil {
+		return "", err
+	}
+
+	return results[0], nil
 }
 
 // DataAtPath is the async version of dataAtPath
