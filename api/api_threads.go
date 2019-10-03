@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"crypto/rand"
@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
@@ -23,7 +24,7 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads [post]
-func (a *api) addThreads(g *gin.Context) {
+func (a *Api) addThreads(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -66,18 +67,18 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	thrd, err := a.node.AddThread(config, sk, a.node.account.Address(), true, true)
+	thrd, err := a.Node.AddThread(config, sk, a.Node.Account().Address(), true, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	view, err := a.node.ThreadView(thrd.Id)
+	view, err := a.Node.ThreadView(thrd.Id)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, view)
 }
@@ -91,7 +92,7 @@ func (a *api) addThreads(g *gin.Context) {
 // @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /threads/{id} [put]
-func (a *api) addOrUpdateThreads(g *gin.Context) {
+func (a *Api) addOrUpdateThreads(g *gin.Context) {
 	var thrd pb.Thread
 	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &thrd); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -107,12 +108,12 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 		return
 	}
 
-	if err := a.node.AddOrUpdateThread(&thrd); err != nil {
+	if err := a.Node.AddOrUpdateThread(&thrd); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -126,7 +127,7 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 // @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /threads/{id}/name [put]
-func (a *api) renameThreads(g *gin.Context) {
+func (a *Api) renameThreads(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -137,12 +138,12 @@ func (a *api) renameThreads(g *gin.Context) {
 		return
 	}
 
-	if err := a.node.RenameThread(g.Param("id"), args[0]); err != nil {
+	if err := a.Node.RenameThread(g.Param("id"), args[0]); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -156,12 +157,12 @@ func (a *api) renameThreads(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads [get]
-func (a *api) lsThreads(g *gin.Context) {
+func (a *Api) lsThreads(g *gin.Context) {
 	views := &pb.ThreadList{
 		Items: make([]*pb.Thread, 0),
 	}
-	for _, thrd := range a.node.Threads() {
-		view, err := a.node.ThreadView(thrd.Id)
+	for _, thrd := range a.Node.Threads() {
+		view, err := a.Node.ThreadView(thrd.Id)
 		if err == nil {
 			views.Items = append(views.Items, view)
 		} else {
@@ -182,12 +183,12 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id} [get]
-func (a *api) getThreads(g *gin.Context) {
+func (a *Api) getThreads(g *gin.Context) {
 	id := g.Param("id")
 
-	view, err := a.node.ThreadView(id)
+	view, err := a.Node.ThreadView(id)
 	if err != nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 		return
 	}
 
@@ -203,10 +204,10 @@ func (a *api) getThreads(g *gin.Context) {
 // @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Router /threads/{id}/peers [get]
-func (a *api) peersThreads(g *gin.Context) {
+func (a *Api) peersThreads(g *gin.Context) {
 	id := g.Param("id")
 
-	peers, err := a.node.ThreadPeers(id)
+	peers, err := a.Node.ThreadPeers(id)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -224,21 +225,21 @@ func (a *api) peersThreads(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id} [delete]
-func (a *api) rmThreads(g *gin.Context) {
+func (a *Api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
 
-	thrd := a.node.Thread(id)
+	thrd := a.Node.Thread(id)
 	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 		return
 	}
 
-	if _, err := a.node.RemoveThread(id); err != nil {
+	if _, err := a.Node.RemoveThread(id); err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }

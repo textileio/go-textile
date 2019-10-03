@@ -3,6 +3,7 @@ module github.com/textileio/go-textile
 go 1.12
 
 require (
+	cloud.google.com/go v0.38.0
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/ahmetb/govvv v0.2.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
@@ -16,6 +17,7 @@ require (
 	github.com/gin-gonic/gin v1.3.0
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
+	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/hashicorp/go-hclog v0.9.2
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/ipfs/go-cid v0.0.2
@@ -56,7 +58,8 @@ require (
 	github.com/xeipuuv/gojsonschema v1.1.0
 	go.uber.org/fx v1.9.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	google.golang.org/appengine v1.4.0
+	google.golang.org/api v0.10.0 // indirect
+	google.golang.org/appengine v1.5.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )

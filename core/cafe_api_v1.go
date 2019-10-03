@@ -631,3 +631,18 @@ func (c *cafeApi) search(g *gin.Context) {
 		return true
 	})
 }
+
+// sendError sends the error to the gin context
+func sendError(g *gin.Context, err error, statusCode int) {
+	g.String(statusCode, err.Error())
+}
+
+// pbJSON responds with a JSON rendered protobuf message
+func pbJSON(g *gin.Context, status int, msg proto.Message) {
+	str, err := pbMarshaler.MarshalToString(msg)
+	if err != nil {
+		sendError(g, err, http.StatusBadRequest)
+		return
+	}
+	g.Data(status, "application/json", []byte(str))
+}

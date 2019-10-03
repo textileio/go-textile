@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"io"
@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/core"
+	pb "github.com/textileio/go-textile/pb"
 )
 
 // getThreadsObserve godoc
@@ -21,7 +22,7 @@ import (
 // @Success 200 {object} pb.FeedItem "stream of updates"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /observe/{id} [get]
-func (a *api) getThreadsObserve(g *gin.Context) {
+func (a *Api) getThreadsObserve(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -32,7 +33,7 @@ func (a *api) getThreadsObserve(g *gin.Context) {
 	types := strings.Split(strings.TrimSpace(strings.ToUpper(opts["type"])), "|")
 	threadId := g.Param("id")
 
-	listener := a.node.ThreadUpdateListener()
+	listener := a.Node.ThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():
@@ -47,7 +48,7 @@ func (a *api) getThreadsObserve(g *gin.Context) {
 					break
 				}
 
-				btype, err := FeedItemType(update)
+				btype, err := core.FeedItemType(update)
 				if err != nil {
 					log.Error(err.Error())
 					break

@@ -1,10 +1,11 @@
-package core
+package api
 
 import (
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/go-textile/core"
 )
 
 // addThreadMessages godoc
@@ -18,7 +19,7 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id}/messages [post]
-func (a *api) addThreadMessages(g *gin.Context) {
+func (a *Api) addThreadMessages(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -30,9 +31,9 @@ func (a *api) addThreadMessages(g *gin.Context) {
 	}
 
 	threadId := g.Param("id")
-	thrd := a.node.Thread(threadId)
+	thrd := a.Node.Thread(threadId)
 	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 		return
 	}
 
@@ -43,13 +44,13 @@ func (a *api) addThreadMessages(g *gin.Context) {
 		return
 	}
 
-	msg, err := a.node.Message(hash.B58String())
+	msg, err := a.Node.Message(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, msg)
 }
@@ -65,7 +66,7 @@ func (a *api) addThreadMessages(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /messages [get]
-func (a *api) lsThreadMessages(g *gin.Context) {
+func (a *Api) lsThreadMessages(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -74,9 +75,9 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 
 	threadId := opts["thread"]
 	if threadId != "" {
-		thrd := a.node.Thread(threadId)
+		thrd := a.Node.Thread(threadId)
 		if thrd == nil {
-			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+			g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 			return
 		}
 	}
@@ -90,7 +91,7 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.Messages(opts["offset"], limit, threadId)
+	list, err := a.Node.Messages(opts["offset"], limit, threadId)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -108,8 +109,8 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 // @Success 200 {object} pb.Text "message"
 // @Failure 400 {string} string "Bad Request"
 // @Router /messages/{block} [get]
-func (a *api) getThreadMessages(g *gin.Context) {
-	info, err := a.node.Message(g.Param("block"))
+func (a *Api) getThreadMessages(g *gin.Context) {
+	info, err := a.Node.Message(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

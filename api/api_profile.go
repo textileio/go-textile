@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -14,8 +14,8 @@ import (
 // @Success 200 {object} pb.Peer "peer"
 // @Failure 400 {string} string "Bad Request"
 // @Router /profile [get]
-func (a *api) getProfile(g *gin.Context) {
-	profile := a.node.Profile()
+func (a *Api) getProfile(g *gin.Context) {
+	profile := a.Node.Profile()
 	if profile == nil {
 		g.String(http.StatusBadRequest, "profile is not set")
 		return
@@ -33,7 +33,7 @@ func (a *api) getProfile(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /profile/name [post]
-func (a *api) setName(g *gin.Context) {
+func (a *Api) setName(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -43,12 +43,12 @@ func (a *api) setName(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing name")
 		return
 	}
-	if err := a.node.SetName(args[0]); err != nil {
+	if err := a.Node.SetName(args[0]); err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.JSON(http.StatusCreated, "ok")
 }
@@ -62,13 +62,13 @@ func (a *api) setName(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /profile/avatar [post]
-func (a *api) setAvatar(g *gin.Context) {
-	if err := a.node.SetAvatar(); err != nil {
+func (a *Api) setAvatar(g *gin.Context) {
+	if err := a.Node.SetAvatar(); err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.JSON(http.StatusCreated, "ok")
 }

@@ -252,8 +252,6 @@ func (g *Gateway) botsHandler(c *gin.Context) {
 		return
 	}
 
-	log.Errorf("no error: %s", botID)
-
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 

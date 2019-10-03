@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"io/ioutil"
@@ -17,7 +17,7 @@ import (
 // @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /publish [post]
-func (a *api) publish(g *gin.Context) {
+func (a *Api) publish(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -35,7 +35,7 @@ func (a *api) publish(g *gin.Context) {
 		return
 	}
 
-	err = a.node.Publish(payload, args[0])
+	err = a.Node.Publish(payload, args[0])
 	if err != nil {
 		a.abort500(g, err)
 		return

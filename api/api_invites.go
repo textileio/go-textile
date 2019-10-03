@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -19,7 +19,7 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /invites [post]
-func (a *api) createInvites(g *gin.Context) {
+func (a *Api) createInvites(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -29,23 +29,23 @@ func (a *api) createInvites(g *gin.Context) {
 	threadId := opts["thread"]
 
 	if opts["address"] != "" {
-		if err := a.node.AddInvite(threadId, opts["address"]); err != nil {
+		if err := a.Node.AddInvite(threadId, opts["address"]); err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 		g.Status(http.StatusCreated)
 
-		a.node.FlushCafes()
+		a.Node.FlushCafes()
 		return
 	}
 
-	invite, err := a.node.AddExternalInvite(threadId)
+	invite, err := a.Node.AddExternalInvite(threadId)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, invite)
 }
@@ -57,8 +57,8 @@ func (a *api) createInvites(g *gin.Context) {
 // @Produce application/json
 // @Success 200 {object} pb.InviteViewList "invites"
 // @Router /invites [get]
-func (a *api) lsInvites(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.Invites())
+func (a *Api) lsInvites(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.Invites())
 }
 
 // acceptInvites godoc
@@ -74,7 +74,7 @@ func (a *api) lsInvites(g *gin.Context) {
 // @Failure 409 {string} string "Conflict"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /invites/{id}/accept [post]
-func (a *api) acceptInvites(g *gin.Context) {
+func (a *Api) acceptInvites(g *gin.Context) {
 	id := g.Param("id")
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -89,13 +89,13 @@ func (a *api) acceptInvites(g *gin.Context) {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		hash, err = a.node.AcceptExternalInvite(id, key)
+		hash, err = a.Node.AcceptExternalInvite(id, key)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 	} else {
-		hash, err = a.node.AcceptInvite(id)
+		hash, err = a.Node.AcceptInvite(id)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
@@ -106,13 +106,13 @@ func (a *api) acceptInvites(g *gin.Context) {
 		return
 	}
 
-	block, err := a.node.BlockView(hash.B58String())
+	block, err := a.Node.BlockView(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, block)
 }
@@ -126,15 +126,15 @@ func (a *api) acceptInvites(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /invites/{id}/ignore [post]
-func (a *api) ignoreInvites(g *gin.Context) {
+func (a *Api) ignoreInvites(g *gin.Context) {
 	id := g.Param("id")
 
-	if err := a.node.IgnoreInvite(id); err != nil {
+	if err := a.Node.IgnoreInvite(id); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.String(http.StatusOK, "ok")
 }

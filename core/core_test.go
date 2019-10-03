@@ -91,24 +91,6 @@ func TestTextile_Start(t *testing.T) {
 	<-vars.node.OnlineCh()
 }
 
-func TestTextile_API_Start(t *testing.T) {
-	vars.node.StartApi(vars.node.Config().Addresses.API, false)
-}
-
-func TestTextile_API_Addr(t *testing.T) {
-	if len(vars.node.ApiAddr()) == 0 {
-		t.Error("get api address failed")
-		return
-	}
-}
-
-func TestTextile_API_Stop(t *testing.T) {
-	if err := vars.node.StopApi(); err != nil {
-		t.Errorf("stop api failed: %s", err)
-		return
-	}
-}
-
 func TestTextile_Started(t *testing.T) {
 	if !vars.node.Started() {
 		t.Fatal("should report node started")

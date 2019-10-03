@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/textileio/go-textile/api"
 	"github.com/textileio/go-textile/bots"
 	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"
@@ -37,6 +38,13 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	gateway.Host = &gateway.Gateway{
 		Node: node,
 		Bots: service,
+	}
+
+	api.Host = &api.Api{
+		Node:     node,
+		Bots:     service,
+		PinCode:  pinCode,
+		RepoPath: repoPath,
 	}
 
 	err = startNode(docs)
@@ -70,7 +78,7 @@ func printSplash() {
 	fmt.Println(Grey("go-textile version: " + common.GitSummary))
 	fmt.Println(Grey("Repo version: ") + Grey(repo.Repover))
 	fmt.Println(Grey("Repo path: ") + Grey(node.RepoPath()))
-	fmt.Println(Grey("API address: ") + Grey(node.ApiAddr()))
+	fmt.Println(Grey("API address: ") + Grey(api.Host.Addr()))
 	fmt.Println(Grey("Gateway address: ") + Grey(gateway.Host.Addr()))
 	if node.CafeApiAddr() != "" {
 		fmt.Println(Grey("Cafe address: ") + Grey(node.CafeApiAddr()))
@@ -187,7 +195,7 @@ func startNode(serveDocs bool) error {
 	}()
 
 	// start apis
-	node.StartApi(node.Config().Addresses.API, serveDocs)
+	api.Host.Start(node.Config().Addresses.API, serveDocs)
 	gateway.Host.Start(node.Config().Addresses.Gateway)
 
 	// start profiling api
@@ -212,7 +220,7 @@ func startNode(serveDocs bool) error {
 // Stop the api, then the gateway, then the node, then if possible, the channels
 // If a former fails, do not continue with the latter
 func stopNode() error {
-	err := node.StopApi()
+	err := api.Host.Stop()
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -19,7 +19,7 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes [post]
-func (a *api) addCafes(g *gin.Context) {
+func (a *Api) addCafes(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -42,13 +42,13 @@ func (a *api) addCafes(g *gin.Context) {
 		return
 	}
 
-	session, err := a.node.RegisterCafe(args[0], token)
+	session, err := a.Node.RegisterCafe(args[0], token)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, session)
 }
@@ -62,8 +62,8 @@ func (a *api) addCafes(g *gin.Context) {
 // @Success 200 {object} pb.CafeSessionList "cafe sessions"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes [get]
-func (a *api) lsCafes(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.CafeSessions())
+func (a *Api) lsCafes(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.CafeSessions())
 }
 
 // getCafes godoc
@@ -77,10 +77,10 @@ func (a *api) lsCafes(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/{id} [get]
-func (a *api) getCafes(g *gin.Context) {
+func (a *Api) getCafes(g *gin.Context) {
 	id := g.Param("id")
 
-	session, err := a.node.CafeSession(id)
+	session, err := a.Node.CafeSession(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -101,16 +101,16 @@ func (a *api) getCafes(g *gin.Context) {
 // @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/{id} [delete]
-func (a *api) rmCafes(g *gin.Context) {
+func (a *Api) rmCafes(g *gin.Context) {
 	id := g.Param("id")
 
-	err := a.node.DeregisterCafe(id)
+	err := a.Node.DeregisterCafe(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -124,14 +124,14 @@ func (a *api) rmCafes(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/messages [post]
-func (a *api) checkCafeMessages(g *gin.Context) {
-	err := a.node.CheckCafeMessages()
+func (a *Api) checkCafeMessages(g *gin.Context) {
+	err := a.Node.CheckCafeMessages()
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.String(http.StatusOK, "ok")
 }

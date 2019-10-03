@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 )
 
@@ -33,7 +34,7 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /feed [get]
-func (a *api) lsThreadFeed(g *gin.Context) {
+func (a *Api) lsThreadFeed(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -49,9 +50,9 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		Limit:  5,
 	}
 	if req.Thread != "" {
-		thrd := a.node.Thread(req.Thread)
+		thrd := a.Node.Thread(req.Thread)
 		if thrd == nil {
-			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+			g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 			return
 		}
 	}
@@ -65,7 +66,7 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		req.Limit = int32(limit)
 	}
 
-	list, err := a.node.Feed(req)
+	list, err := a.Node.Feed(req)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

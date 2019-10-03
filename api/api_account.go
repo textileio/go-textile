@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -14,8 +14,8 @@ import (
 // @Success 200 {object} pb.Contact "contact"
 // @Failure 400 {string} string "Bad Request"
 // @Router /account [get]
-func (a *api) accountGet(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.AccountContact())
+func (a *Api) accountGet(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.AccountContact())
 }
 
 // accountSeed godoc
@@ -25,8 +25,8 @@ func (a *api) accountGet(g *gin.Context) {
 // @Produce text/plain
 // @Success 200 {string} string "seed"
 // @Router /account/seed [get]
-func (a *api) accountSeed(g *gin.Context) {
-	g.String(http.StatusOK, a.node.account.Seed())
+func (a *Api) accountSeed(g *gin.Context) {
+	g.String(http.StatusOK, a.Node.Account().Seed())
 }
 
 // accountAddress godoc
@@ -36,6 +36,6 @@ func (a *api) accountSeed(g *gin.Context) {
 // @Produce text/plain
 // @Success 200 {string} string "address"
 // @Router /account/address [get]
-func (a *api) accountAddress(g *gin.Context) {
-	g.String(http.StatusOK, a.node.account.Address())
+func (a *Api) accountAddress(g *gin.Context) {
+	g.String(http.StatusOK, a.Node.Account().Address())
 }
