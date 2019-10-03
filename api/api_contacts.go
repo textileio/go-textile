@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -18,7 +18,7 @@ import (
 // @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /contacts/{address} [put]
-func (a *api) addContacts(g *gin.Context) {
+func (a *Api) addContacts(g *gin.Context) {
 	var contact pb.Contact
 	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -33,12 +33,12 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
-	if err := a.node.AddContact(&contact); err != nil {
+	if err := a.Node.AddContact(&contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -52,8 +52,8 @@ func (a *api) addContacts(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts [get]
-func (a *api) lsContacts(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.Contacts())
+func (a *Api) lsContacts(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.Contacts())
 }
 
 // getContacts godoc
@@ -65,8 +65,8 @@ func (a *api) lsContacts(g *gin.Context) {
 // @Success 200 {object} pb.Contact "contact"
 // @Failure 404 {string} string "Not Found"
 // @Router /contacts/{address} [get]
-func (a *api) getContacts(g *gin.Context) {
-	contact := a.node.Contact(g.Param("address"))
+func (a *Api) getContacts(g *gin.Context) {
+	contact := a.Node.Contact(g.Param("address"))
 	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
@@ -84,21 +84,21 @@ func (a *api) getContacts(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts/{address} [delete]
-func (a *api) rmContacts(g *gin.Context) {
+func (a *Api) rmContacts(g *gin.Context) {
 	address := g.Param("address")
 
-	contact := a.node.Contact(address)
+	contact := a.Node.Contact(address)
 	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
 	}
 
-	if err := a.node.RemoveContact(address); err != nil {
+	if err := a.Node.RemoveContact(address); err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.Status(http.StatusNoContent)
 }
@@ -113,7 +113,7 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts/search [post]
-func (a *api) searchContacts(g *gin.Context) {
+func (a *Api) searchContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -148,7 +148,7 @@ func (a *api) searchContacts(g *gin.Context) {
 		Wait:       int32(wait),
 	}
 
-	resCh, errCh, cancel, err := a.node.SearchContacts(query, options)
+	resCh, errCh, cancel, err := a.Node.SearchContacts(query, options)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

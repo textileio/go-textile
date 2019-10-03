@@ -20,6 +20,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mr-tron/base58/base58"
 	gincors "github.com/rs/cors/wrapper/gin"
+	"github.com/textileio/go-textile/bots"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/gateway/static/css"
@@ -37,6 +38,7 @@ var Host *Gateway
 // Gateway is a HTTP API for getting files and links from IPFS
 type Gateway struct {
 	Node   *core.Textile
+	Bots   *bots.Service
 	server *http.Server
 }
 
@@ -238,13 +240,13 @@ func (g *Gateway) cafesHandler(c *gin.Context) {
 // ipnsHandler renders data behind an IPNS address
 func (g *Gateway) botsHandler(c *gin.Context) {
 	botID := c.Param("root")
-	botService, err := g.Node.Bots()
-	if err != nil {
-		log.Errorf("error bot not found: %s", botID)
+	if g.Bots == (&bots.Service{}) { // bot doesn't exist yet
+		log.Errorf("error no bots: %s", botID)
 		g.render404(c)
 		return
 	}
-	if !botService.Exists(botID) { // bot doesn't exist yet
+
+	if !g.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		g.render404(c)
 		return
@@ -253,7 +255,12 @@ func (g *Gateway) botsHandler(c *gin.Context) {
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 
-	botResponse, err := botService.Get(botID, qbytes)
+	botResponse, err := g.Bots.Get(botID, qbytes)
+	if err != nil {
+		log.Errorf("bad bot response: %s", botID)
+		g.render404(c)
+		return
+	}
 	statusInt := int(botResponse.Status)
 
 	c.Render(statusInt, render.Data{Data: botResponse.Body})

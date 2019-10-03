@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"encoding/json"
@@ -43,9 +43,9 @@ func getKeyValue(path string, object interface{}) (interface{}, error) {
 // @Success 200 {object} mill.Json "new config value"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config/{path} [get]
-func (a *api) getConfig(g *gin.Context) {
+func (a *Api) getConfig(g *gin.Context) {
 	pth := g.Param("path")
-	conf := a.node.Config()
+	conf := a.Node.Config()
 
 	if pth == "" {
 		g.JSON(http.StatusOK, conf)
@@ -72,7 +72,7 @@ func (a *api) getConfig(g *gin.Context) {
 // @Success 204 {string} string "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config [patch]
-func (a *api) patchConfig(g *gin.Context) {
+func (a *Api) patchConfig(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -87,7 +87,7 @@ func (a *api) patchConfig(g *gin.Context) {
 		return
 	}
 
-	configPath := path.Join(a.node.repoPath, "textile")
+	configPath := path.Join(a.RepoPath, "textile")
 
 	original, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -135,8 +135,8 @@ func (a *api) patchConfig(g *gin.Context) {
 // @Success 204 {string} string "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config [put]
-func (a *api) setConfig(g *gin.Context) {
-	configPath := path.Join(a.node.repoPath, "textile")
+func (a *Api) setConfig(g *gin.Context) {
+	configPath := path.Join(a.RepoPath, "textile")
 
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {

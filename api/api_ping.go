@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -17,7 +17,7 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /ping [get]
-func (a *api) ping(g *gin.Context) {
+func (a *Api) ping(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -35,7 +35,7 @@ func (a *api) ping(g *gin.Context) {
 		return
 	}
 
-	status, err := a.node.Ping(pid)
+	status, err := a.Node.Ping(pid)
 	if err != nil {
 		a.abort500(g, err)
 		return

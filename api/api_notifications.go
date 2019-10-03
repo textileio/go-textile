@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -13,8 +13,8 @@ import (
 // @Produce application/json
 // @Success 200 {object} pb.NotificationList "notifications"
 // @Router /notifications [get]
-func (a *api) lsNotifications(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.Notifications("", -1))
+func (a *Api) lsNotifications(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.Notifications("", -1))
 }
 
 // readNotifications godoc
@@ -26,14 +26,14 @@ func (a *api) lsNotifications(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /notifications/{id}/read [post]
-func (a *api) readNotifications(g *gin.Context) {
+func (a *Api) readNotifications(g *gin.Context) {
 	id := g.Param("id")
 
 	var err error
 	if id == "all" {
-		err = a.node.ReadAllNotifications()
+		err = a.Node.ReadAllNotifications()
 	} else {
-		err = a.node.ReadNotification(id)
+		err = a.Node.ReadNotification(id)
 	}
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())

@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
@@ -26,7 +27,7 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id}/files [post]
-func (a *api) addThreadFiles(g *gin.Context) {
+func (a *Api) addThreadFiles(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -34,9 +35,9 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	}
 
 	threadId := g.Param("id")
-	thrd := a.node.Thread(threadId)
+	thrd := a.Node.Thread(threadId)
 	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 		return
 	}
 
@@ -60,13 +61,13 @@ func (a *api) addThreadFiles(g *gin.Context) {
 				files = append(files, dir.Files[schema.SingleFileTag])
 			}
 		}
-		node, keys, err = a.node.AddNodeFromFiles(files)
+		node, keys, err = a.Node.AddNodeFromFiles(files)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 	} else {
-		node, keys, err = a.node.AddNodeFromDirs(dirs)
+		node, keys, err = a.Node.AddNodeFromDirs(dirs)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
@@ -85,13 +86,13 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	files, err := a.node.File(hash.B58String())
+	files, err := a.Node.File(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, files)
 }
@@ -107,7 +108,7 @@ func (a *api) addThreadFiles(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /files [get]
-func (a *api) lsThreadFiles(g *gin.Context) {
+func (a *Api) lsThreadFiles(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -116,9 +117,9 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 
 	threadId := opts["thread"]
 	if threadId != "" {
-		thrd := a.node.Thread(threadId)
+		thrd := a.Node.Thread(threadId)
 		if thrd == nil {
-			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+			g.String(http.StatusNotFound, core.ErrThreadNotFound.Error())
 			return
 		}
 	}
@@ -132,7 +133,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.Files(opts["offset"], limit, threadId)
+	list, err := a.Node.Files(opts["offset"], limit, threadId)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -150,16 +151,16 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 // @Success 200 {object} pb.Keys "keys"
 // @Failure 400 {string} string "Bad Request"
 // @Router /keys/{target} [get]
-func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
+func (a *Api) lsThreadFileTargetKeys(g *gin.Context) {
 	target := g.Param("target")
 
-	node, err := ipfs.NodeAtPath(a.node.Ipfs(), target, ipfs.CatTimeout)
+	node, err := ipfs.NodeAtPath(a.Node.Ipfs(), target, ipfs.CatTimeout)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	keys, err := a.node.TargetNodeKeys(node)
+	keys, err := a.Node.TargetNodeKeys(node)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -177,8 +178,8 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 // @Success 200 {object} pb.FileIndex "file"
 // @Failure 404 {string} string "Not Found"
 // @Router /file/{target}/meta [get]
-func (a *api) getFileMeta(g *gin.Context) {
-	file, err := a.node.FileMeta(g.Param("hash"))
+func (a *Api) getFileMeta(g *gin.Context) {
+	file, err := a.Node.FileMeta(g.Param("hash"))
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return
@@ -196,8 +197,8 @@ func (a *api) getFileMeta(g *gin.Context) {
 // @Success 200 {string} byte
 // @Failure 404 {string} string "Not Found"
 // @Router /file/{hash}/content [get]
-func (a *api) getFileContent(g *gin.Context) {
-	reader, file, err := a.node.FileContent(g.Param("hash"))
+func (a *Api) getFileContent(g *gin.Context) {
+	reader, file, err := a.Node.FileContent(g.Param("hash"))
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return

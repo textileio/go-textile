@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"io/ioutil"
@@ -8,15 +8,9 @@ import (
 )
 
 // botsGet is the GET endpoint for all bots
-func (a *api) botsGet(c *gin.Context) {
+func (a *Api) botsGet(c *gin.Context) {
 	botID := c.Param("root")
-	botService, err := a.node.Bots()
-	if err != nil {
-		log.Errorf("error bot not found: %s", botID)
-		c.String(http.StatusBadRequest, "bot not found")
-		return
-	}
-	if !botService.Exists(botID) { // bot doesn't exist yet
+	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
 		return
@@ -25,22 +19,20 @@ func (a *api) botsGet(c *gin.Context) {
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 
-	botResponse, err := botService.Get(botID, qbytes)
+	botResponse, err := a.Bots.Get(botID, qbytes)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
 	statusInt := int(botResponse.Status)
 
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
 
 // botsPost is the POST endpoint for all bots
-func (a *api) botsPost(c *gin.Context) {
+func (a *Api) botsPost(c *gin.Context) {
 	botID := c.Param("root")
-	botService, err := a.node.Bots()
-	if err != nil {
-		log.Errorf("error bot not found: %s", botID)
-		c.String(http.StatusBadRequest, "bot not found")
-		return
-	}
-	if !botService.Exists(botID) { // bot doesn't exist yet
+	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
 		return
@@ -55,20 +47,18 @@ func (a *api) botsPost(c *gin.Context) {
 		return
 	}
 
-	botResponse, err := botService.Post(botID, qbytes, body)
+	botResponse, err := a.Bots.Post(botID, qbytes, body)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
 	statusInt := int(botResponse.Status)
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
 
-func (a *api) botsDelete(c *gin.Context) {
+func (a *Api) botsDelete(c *gin.Context) {
 	botID := c.Param("root")
-	botService, err := a.node.Bots()
-	if err != nil {
-		log.Errorf("error bot not found: %s", botID)
-		c.String(http.StatusBadRequest, "bot not found")
-		return
-	}
-	if !botService.Exists(botID) { // bot doesn't exist yet
+	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
 		return
@@ -77,20 +67,19 @@ func (a *api) botsDelete(c *gin.Context) {
 	query := c.Request.URL.Query().Encode()
 	qbytes := []byte(query)
 
-	botResponse, err := botService.Delete(botID, qbytes)
+	botResponse, err := a.Bots.Delete(botID, qbytes)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
 	statusInt := int(botResponse.Status)
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }
 
-func (a *api) botsPut(c *gin.Context) {
+func (a *Api) botsPut(c *gin.Context) {
 	botID := c.Param("root")
-	botService, err := a.node.Bots()
-	if err != nil {
-		log.Errorf("error bot not found: %s", botID)
-		c.String(http.StatusBadRequest, "bot not found")
-		return
-	}
-	if !botService.Exists(botID) { // bot doesn't exist yet
+
+	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
 		return
@@ -105,7 +94,11 @@ func (a *api) botsPut(c *gin.Context) {
 		return
 	}
 
-	botResponse, err := botService.Put(botID, qbytes, body)
+	botResponse, err := a.Bots.Put(botID, qbytes, body)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
 	statusInt := int(botResponse.Status)
 	c.Data(statusInt, botResponse.ContentType, botResponse.Body)
 }

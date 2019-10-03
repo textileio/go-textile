@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -21,13 +21,13 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /tokens [post]
-func (a *api) createTokens(g *gin.Context) {
+func (a *Api) createTokens(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
-	token, err := a.node.CreateCafeToken(opts["token"], opts["store"] == "true")
+	token, err := a.Node.CreateCafeToken(opts["token"], opts["store"] == "true")
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -43,8 +43,8 @@ func (a *api) createTokens(g *gin.Context) {
 // @Success 200 {array} string "tokens"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /tokens [get]
-func (a *api) lsTokens(g *gin.Context) {
-	tokens, err := a.node.CafeTokens()
+func (a *Api) lsTokens(g *gin.Context) {
+	tokens, err := a.Node.CafeTokens()
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -64,9 +64,9 @@ func (a *api) lsTokens(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 401 {string} string "Unauthorized"
 // @Router /tokens/{id} [get]
-func (a *api) validateTokens(g *gin.Context) {
+func (a *Api) validateTokens(g *gin.Context) {
 	token := g.Param("token")
-	ok, err := a.node.ValidateCafeToken(token)
+	ok, err := a.Node.ValidateCafeToken(token)
 	if err != nil || !ok {
 		g.String(http.StatusUnauthorized, "invalid credentials")
 		return
@@ -82,9 +82,9 @@ func (a *api) validateTokens(g *gin.Context) {
 // @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /tokens/{id} [delete]
-func (a *api) rmTokens(g *gin.Context) {
+func (a *Api) rmTokens(g *gin.Context) {
 	token := g.Param("token")
-	if err := a.node.RemoveCafeToken(token); err != nil {
+	if err := a.Node.RemoveCafeToken(token); err != nil {
 		a.abort500(g, err)
 		return
 	}

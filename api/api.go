@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"bytes"
@@ -16,12 +16,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	logging "github.com/ipfs/go-log"
 	ipfspath "github.com/ipfs/go-path"
 	gincors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
+	"github.com/textileio/go-textile/api/docs"
+	"github.com/textileio/go-textile/bots"
 	"github.com/textileio/go-textile/common"
-	"github.com/textileio/go-textile/docs"
+	"github.com/textileio/go-textile/core"
 	ipfsutil "github.com/textileio/go-textile/ipfs"
 	m "github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
@@ -30,20 +33,21 @@ import (
 // apiVersion is the api version
 const apiVersion = "v0"
 
-// apiHost is the instance used by the daemon
-var apiHost *api
+// TODO: create api logger
+var log = logging.Logger("tex-gateway")
 
-// api is a limited HTTP REST API for the cmd tool
-type api struct {
-	addr   string
-	server *http.Server
-	node   *Textile
-	docs   bool
-}
+// Host is the instance used by the daemon
+var Host *Api
 
-// pbMarshaler is used to marshal protobufs to JSON
-var pbMarshaler = jsonpb.Marshaler{
-	OrigName: true,
+// Gateway is a HTTP API for getting files and links from IPFS
+type Api struct {
+	Node     *core.Textile
+	Bots     *bots.Service
+	PinCode  string
+	RepoPath string
+	server   *http.Server
+	addr     string
+	docs     bool
 }
 
 // pbUnmarshaler is used to unmarshal JSON protobufs
@@ -51,25 +55,21 @@ var pbUnmarshaler = jsonpb.Unmarshaler{
 	AllowUnknownFields: true,
 }
 
-// StartApi starts the host instance
-func (t *Textile) StartApi(addr string, serveDocs bool) {
+// Start starts the host instance
+func (a *Api) Start(addr string, serveDocs bool) {
 	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = t.writer
-	apiHost = &api{addr: addr, node: t, docs: serveDocs}
-	apiHost.Start()
+	gin.DefaultWriter = a.Node.Writer()
+	a.addr = addr
+	a.docs = serveDocs
+	a.Run()
 }
 
-// StopApi starts the host instance
-func (t *Textile) StopApi() error {
-	return apiHost.Stop()
-}
-
-// ApiAddr returns the api address
-func (t *Textile) ApiAddr() string {
-	if apiHost == nil {
+// Addr returns the api address
+func (a *Api) Addr() string {
+	if Host == nil {
 		return ""
 	}
-	return apiHost.addr
+	return Host.addr
 }
 
 // @title Textile REST API
@@ -87,19 +87,19 @@ func (t *Textile) ApiAddr() string {
 // @securityDefinitions.basic BasicAuth
 // @Security BasicAuth
 // @BasePath /api/v0
-func (a *api) Start() {
+func (a *Api) Run() {
 	// Dynamically set the swagger 'host' value
 	docs.SwaggerInfo.Host = a.addr
 
 	router := gin.Default()
 
-	conf := a.node.Config()
+	conf := a.Node.Config()
 
 	// middleware setup
 
 	// Add the CORS middleware
 	// Merges the API HTTPHeaders (from config/init) into blank/default CORS configuration
-	router.Use(gincors.New(ConvertHeadersToCorsOptions(conf.API.HTTPHeaders)))
+	router.Use(gincors.New(core.ConvertHeadersToCorsOptions(conf.API.HTTPHeaders)))
 
 	// Add size limits
 	if conf.API.SizeLimit > 0 {
@@ -123,9 +123,8 @@ func (a *api) Start() {
 
 	// If given a passcode use it, else leave API wide open
 	var auth gin.HandlerFunc
-	pincode := a.node.pinCode
-	if pincode != "" {
-		auth = gin.BasicAuth(gin.Accounts{a.node.Account().Address(): pincode})
+	if a.PinCode != "" {
+		auth = gin.BasicAuth(gin.Accounts{a.Node.Account().Address(): a.PinCode})
 	} else {
 		auth = func(c *gin.Context) {
 			// noop handler function
@@ -137,7 +136,6 @@ func (a *api) Start() {
 	v0 := router.Group("/api/v0", auth)
 	{
 		v0.GET("/summary", a.nodeSummary)
-
 		v0.GET("/ping", a.ping)
 		v0.POST("/publish", a.publish)
 
@@ -383,7 +381,7 @@ func (a *api) Start() {
 }
 
 // Stop stops the http api
-func (a *api) Stop() error {
+func (a *Api) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
@@ -399,15 +397,15 @@ func (a *api) Stop() error {
 // @Produce application/json
 // @Success 200 {object} pb.Summary "summary"
 // @Router /summary [get]
-func (a *api) nodeSummary(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.Summary())
+func (a *Api) nodeSummary(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.Node.Summary())
 }
 
-func (a *api) abort500(g *gin.Context, err error) {
+func (a *Api) abort500(g *gin.Context, err error) {
 	sendError(g, err, http.StatusInternalServerError)
 }
 
-func (a *api) readArgs(g *gin.Context) ([]string, error) {
+func (a *Api) readArgs(g *gin.Context) ([]string, error) {
 	header := g.Request.Header.Get("X-Textile-Args")
 	var args []string
 	for _, a := range strings.Split(header, ",") {
@@ -422,7 +420,7 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 	return args, nil
 }
 
-func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
+func (a *Api) readOpts(g *gin.Context) (map[string]string, error) {
 	header := g.Request.Header.Get("X-Textile-Opts")
 	opts := make(map[string]string)
 	for _, o := range strings.Split(header, ",") {
@@ -441,7 +439,7 @@ func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
 	return opts, nil
 }
 
-func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
+func (a *Api) openFile(g *gin.Context) (multipart.File, string, error) {
 	form, err := g.MultipartForm()
 	if err != nil {
 		return nil, "", err
@@ -457,9 +455,9 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 	return file, header.Filename, nil
 }
 
-func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext bool) (*AddFileConfig, error) {
+func (a *Api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext bool) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
-	conf := &AddFileConfig{}
+	conf := &core.AddFileConfig{}
 
 	if use == "" {
 		f, fn, err := a.openFile(g)
@@ -477,11 +475,11 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		parts := strings.Split(ref.String(), "/")
 		hash := parts[len(parts)-1]
 		var file *pb.FileIndex
-		reader, file, err = a.node.FileContent(hash)
+		reader, file, err = a.Node.FileContent(hash)
 		if err != nil {
-			if err == ErrFileNotFound {
+			if err == core.ErrFileNotFound {
 				// just cat the data from ipfs
-				b, err := ipfsutil.DataAtPath(a.node.Ipfs(), ref.String())
+				b, err := ipfsutil.DataAtPath(a.Node.Ipfs(), ref.String())
 				if err != nil {
 					return nil, err
 				}
@@ -495,7 +493,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		}
 	}
 
-	media, err := a.node.GetMillMedia(reader, mill)
+	media, err := a.Node.GetMillMedia(reader, mill)
 	if err != nil {
 		return nil, err
 	}
@@ -510,6 +508,11 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 	conf.Plaintext = plaintext
 
 	return conf, nil
+}
+
+// pbMarshaler is used to marshal protobufs to JSON
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
 }
 
 // pbJSON responds with a JSON rendered protobuf message

@@ -1,4 +1,4 @@
-package core
+package bots
 
 import (
 	"bytes"
@@ -7,8 +7,9 @@ import (
 	"path"
 
 	"github.com/mr-tron/base58/base58"
-	bots "github.com/textileio/go-textile-bots"
+	tbots "github.com/textileio/go-textile-bots"
 	shared "github.com/textileio/go-textile-core/bots"
+	core "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	ipfs "github.com/textileio/go-textile/ipfs"
 )
@@ -16,14 +17,14 @@ import (
 // BotIpfsHandler implements shared.IpfsHandler. Extends it by hanging on the the botID
 type BotIpfsHandler struct {
 	botID string
-	node  *Textile
+	node  *core.Textile
 }
 
 // BotKVStore implements shared.BotStore. Extends it with BotID and BotVersion
 type BotKVStore struct {
 	botID      string
 	botVersion int
-	node       *Textile
+	node       *core.Textile
 }
 
 // Get allows a bot to get IPFS data by the cid/path. Allows optional key for decryption on the fly
@@ -38,12 +39,12 @@ func (mip BotIpfsHandler) Get(pth string, key string) ([]byte, error) {
 	if key != "" {
 		keyb, err := base58.Decode(key)
 		if err != nil {
-			log.Debugf("error decoding key %s: %s", key, err)
+			// log.Debugf("error decoding key %s: %s", key, err)
 			return nil, err
 		}
 		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
-			log.Debugf("error decrypting %s: %s", pth, err)
+			// log.Debugf("error decrypting %s: %s", pth, err)
 			return nil, err
 		}
 		return plain, nil
@@ -78,7 +79,8 @@ func (mip BotIpfsHandler) Add(data []byte, encrypt bool) (hash string, key strin
 
 // Set allows a bot to add a key-val to the store
 func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
-	err = kv.node.datastore.Bots().AddOrUpdate(kv.botID, key, data, kv.botVersion)
+	datastore := kv.node.Datastore()
+	err = datastore.Bots().AddOrUpdate(kv.botID, key, data, kv.botVersion)
 	if err != nil {
 		return false, err
 	}
@@ -88,7 +90,8 @@ func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
 // Get allows a bot to get a value by string. It responds with the version of the bot that wrote the data.
 func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
 	// TODO: include bot version from row in response, allowing migrations
-	keyVal := kv.node.datastore.Bots().Get(kv.botID, key)
+	datastore := kv.node.Datastore()
+	keyVal := datastore.Bots().Get(kv.botID, key)
 	if keyVal == nil {
 		return []byte(""), 0, nil
 	}
@@ -100,21 +103,22 @@ func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
 
 // Delete allows a bot to delete a value in the kv store
 func (kv BotKVStore) Delete(key string) (ok bool, err error) {
-	err = kv.node.datastore.Bots().Delete(kv.botID, key)
+	datastore := kv.node.Datastore()
+	err = datastore.Bots().Delete(kv.botID, key)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-// BotService holds a map to all running bots on this node
-type BotService struct {
-	clients map[string]*bots.Client
-	node    *Textile
+// Service holds a map to all running bots on this node
+type Service struct {
+	clients map[string]*tbots.Client
+	node    *core.Textile
 }
 
 // Exists is a helper to check if a bot exists
-func (s *BotService) Exists(id string) bool {
+func (s *Service) Exists(id string) bool {
 	if s.clients == nil {
 		return false
 	}
@@ -125,7 +129,7 @@ func (s *BotService) Exists(id string) bool {
 }
 
 // Create configures the Bot rpc instance
-func (s *BotService) Create(botID string, botVersion int, name string, params map[string]string, pth string) {
+func (s *Service) Create(botID string, botVersion int, name string, params map[string]string, pth string) {
 	if s.Exists(botID) {
 		return
 	}
@@ -145,13 +149,13 @@ func (s *BotService) Create(botID string, botVersion int, name string, params ma
 		ipfs,
 		params,
 	}
-	botClient := &bots.Client{}
+	botClient := &tbots.Client{}
 	s.clients[botID] = botClient
 	s.clients[botID].Prepare(botID, botVersion, name, pth, config)
 }
 
 // Get runs the bot.Get method
-func (s *BotService) Get(botID string, q []byte) (shared.Response, error) {
+func (s *Service) Get(botID string, q []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		return shared.Response{
 			Status: 400,
@@ -164,7 +168,7 @@ func (s *BotService) Get(botID string, q []byte) (shared.Response, error) {
 }
 
 // Post runs the bot.Post method
-func (s *BotService) Post(botID string, q []byte, body []byte) (shared.Response, error) {
+func (s *Service) Post(botID string, q []byte, body []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		return shared.Response{
 			Status: 400,
@@ -177,7 +181,7 @@ func (s *BotService) Post(botID string, q []byte, body []byte) (shared.Response,
 }
 
 // Put runs the bot.Put method
-func (s *BotService) Put(botID string, q []byte, body []byte) (shared.Response, error) {
+func (s *Service) Put(botID string, q []byte, body []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		return shared.Response{
 			Status: 400,
@@ -190,7 +194,7 @@ func (s *BotService) Put(botID string, q []byte, body []byte) (shared.Response, 
 }
 
 // Delete runs the bot.Delete method
-func (s *BotService) Delete(botID string, q []byte) (shared.Response, error) {
+func (s *Service) Delete(botID string, q []byte) (shared.Response, error) {
 	if !s.Exists(botID) {
 		// TODO add error
 		return shared.Response{
@@ -204,13 +208,13 @@ func (s *BotService) Delete(botID string, q []byte) (shared.Response, error) {
 }
 
 // RunAll runs a list of bots from Textile config
-func (s *BotService) RunAll(repoPath string, bots []string) {
+func (s *Service) RunAll(repoPath string, bots []string) {
 	for _, botID := range bots {
 		botFolder := path.Join(repoPath, "bots")
 		botPath := path.Join(botFolder, botID)
 		botConfig, err := readBotConfig(botPath)
 		if err != nil {
-			log.Errorf(err.Error())
+			// log.Errorf(err.Error("Bots: config read error"))
 		} else {
 			botPath := path.Join(botPath, "bot") // bots are always compiled to "bot"
 			s.Create(botConfig.ID, botConfig.ReleaseVersion, botConfig.Name, botConfig.Params, botPath)
@@ -218,10 +222,10 @@ func (s *BotService) RunAll(repoPath string, bots []string) {
 	}
 }
 
-// NewBotService returns a new bot service
-func NewBotService(node *Textile) *BotService {
-	bots := &BotService{
-		map[string]*bots.Client{},
+// NewService returns a new bot service
+func NewService(node *core.Textile) *Service {
+	bots := &Service{
+		map[string]*tbots.Client{},
 		node,
 	}
 	return bots

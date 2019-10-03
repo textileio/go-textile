@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -17,13 +17,13 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /snapshots [post]
-func (a *api) createThreadSnapshots(g *gin.Context) {
-	if err := a.node.SnapshotThreads(); err != nil {
+func (a *Api) createThreadSnapshots(g *gin.Context) {
+	if err := a.Node.SnapshotThreads(); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	g.String(http.StatusCreated, "ok")
 }
@@ -38,7 +38,7 @@ func (a *api) createThreadSnapshots(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /snapshots/search [post]
-func (a *api) searchThreadSnapshots(g *gin.Context) {
+func (a *Api) searchThreadSnapshots(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -51,14 +51,14 @@ func (a *api) searchThreadSnapshots(g *gin.Context) {
 	}
 
 	query := &pb.ThreadSnapshotQuery{
-		Address: a.node.account.Address(),
+		Address: a.Node.Account().Address(),
 	}
 	options := &pb.QueryOptions{
 		Limit: -1,
 		Wait:  int32(wait),
 	}
 
-	resCh, errCh, cancel, err := a.node.SearchThreadSnapshots(query, options)
+	resCh, errCh, cancel, err := a.Node.SearchThreadSnapshots(query, options)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

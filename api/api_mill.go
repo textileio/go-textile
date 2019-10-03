@@ -1,10 +1,11 @@
-package core
+package api
 
 import (
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/go-textile/core"
 	m "github.com/textileio/go-textile/mill"
 )
 
@@ -18,7 +19,7 @@ import (
 // @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Router /mills/schema [post]
-func (a *api) schemaMill(g *gin.Context) {
+func (a *Api) schemaMill(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -28,12 +29,12 @@ func (a *api) schemaMill(g *gin.Context) {
 
 	mill := &m.Schema{}
 
-	conf := AddFileConfig{
+	conf := core.AddFileConfig{
 		Input: body,
 		Media: "application/json",
 	}
 
-	added, err := a.node.AddFileIndex(mill, conf)
+	added, err := a.Node.AddFileIndex(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -55,7 +56,7 @@ func (a *api) schemaMill(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/blob [post]
-func (a *api) blobMill(g *gin.Context) {
+func (a *Api) blobMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -71,7 +72,7 @@ func (a *api) blobMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFileIndex(mill, *conf)
+	added, err := a.Node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -93,7 +94,7 @@ func (a *api) blobMill(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/image/resize [post]
-func (a *api) imageResizeMill(g *gin.Context) {
+func (a *Api) imageResizeMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -125,7 +126,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFileIndex(mill, *conf)
+	added, err := a.Node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -147,7 +148,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/image/exif [post]
-func (a *api) imageExifMill(g *gin.Context) {
+func (a *Api) imageExifMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -164,7 +165,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	conf.Media = "application/json"
 
-	added, err := a.node.AddFileIndex(mill, *conf)
+	added, err := a.Node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -186,7 +187,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/json [post]
-func (a *api) jsonMill(g *gin.Context) {
+func (a *Api) jsonMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -195,7 +196,7 @@ func (a *api) jsonMill(g *gin.Context) {
 
 	mill := &m.Json{}
 
-	conf := AddFileConfig{
+	conf := core.AddFileConfig{
 		Media:     "application/json",
 		Plaintext: opts["plaintext"] == "true",
 	}
@@ -215,7 +216,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		conf.Input = body
 
 	} else {
-		reader, file, err := a.node.FileContent(opts["use"])
+		reader, file, err := a.Node.FileContent(opts["use"])
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
@@ -229,7 +230,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		}
 	}
 
-	added, err := a.node.AddFileIndex(mill, conf)
+	added, err := a.Node.AddFileIndex(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

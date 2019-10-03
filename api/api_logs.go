@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -23,7 +23,7 @@ type SubsystemInfo map[string]string
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /logs/{subsystem} [post]
-func (a *api) logsCall(g *gin.Context) {
+func (a *Api) logsCall(g *gin.Context) {
 
 	subsystem := g.Param("subsystem")
 	var subsystems []string

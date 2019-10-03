@@ -415,3 +415,8 @@ func looksLikeFileNode(node ipld.Node) bool {
 	}
 	return true
 }
+
+// pbMarshaler is used to marshal protobufs to JSON
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}

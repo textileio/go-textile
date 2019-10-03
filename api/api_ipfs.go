@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -17,8 +17,8 @@ import (
 // @Success 200 {string} string "peer id"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /ipfs/id [get]
-func (a *api) ipfsId(g *gin.Context) {
-	pid, err := a.node.PeerId()
+func (a *Api) ipfsId(g *gin.Context) {
+	pid, err := a.Node.PeerId()
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -36,7 +36,7 @@ func (a *api) ipfsId(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /ipfs/swarm/connect [post]
-func (a *api) ipfsSwarmConnect(g *gin.Context) {
+func (a *Api) ipfsSwarmConnect(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -47,7 +47,7 @@ func (a *api) ipfsSwarmConnect(g *gin.Context) {
 		return
 	}
 
-	res, err := ipfs.SwarmConnect(a.node.node, []string{args[0]})
+	res, err := ipfs.SwarmConnect(a.Node.Ipfs(), []string{args[0]})
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -66,7 +66,7 @@ func (a *api) ipfsSwarmConnect(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /ipfs/swarm/peers [get]
-func (a *api) ipfsSwarmPeers(g *gin.Context) {
+func (a *Api) ipfsSwarmPeers(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -77,7 +77,7 @@ func (a *api) ipfsSwarmPeers(g *gin.Context) {
 	streams := opts["streams"] == "true"
 	direction := opts["direction"] == "true"
 
-	res, err := ipfs.SwarmPeers(a.node.node, verbose, latency, streams, direction)
+	res, err := ipfs.SwarmPeers(a.Node.Ipfs(), verbose, latency, streams, direction)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -99,7 +99,7 @@ func (a *api) ipfsSwarmPeers(g *gin.Context) {
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /ipfs/cat/{path} [get]
-func (a *api) ipfsCat(g *gin.Context) {
+func (a *Api) ipfsCat(g *gin.Context) {
 	pth := g.Param("path")
 	if pth == "" {
 		g.String(http.StatusBadRequest, "Missing IPFS CID")
@@ -111,7 +111,7 @@ func (a *api) ipfsCat(g *gin.Context) {
 		return
 	}
 
-	data, err := ipfs.DataAtPath(a.node.node, pth[1:])
+	data, err := ipfs.DataAtPath(a.Node.Ipfs(), pth[1:])
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return

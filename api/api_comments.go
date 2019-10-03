@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -18,10 +18,10 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /blocks/{id}/comments [post]
-func (a *api) addBlockComments(g *gin.Context) {
+func (a *Api) addBlockComments(g *gin.Context) {
 	id := g.Param("id")
 
-	thread, err, code := getBlockThread(a.node, id)
+	thread, err, code := getBlockThread(a.Node, id)
 	if err != nil {
 		sendError(g, err, code)
 		return
@@ -43,13 +43,13 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	comment, err := a.node.Comment(hash.B58String())
+	comment, err := a.Node.Comment(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, comment)
 }
@@ -63,10 +63,10 @@ func (a *api) addBlockComments(g *gin.Context) {
 // @Success 200 {object} pb.CommentList "comments"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /blocks/{id}/comments [get]
-func (a *api) lsBlockComments(g *gin.Context) {
+func (a *Api) lsBlockComments(g *gin.Context) {
 	id := g.Param("id")
 
-	comments, err := a.node.Comments(id)
+	comments, err := a.Node.Comments(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -84,8 +84,8 @@ func (a *api) lsBlockComments(g *gin.Context) {
 // @Success 200 {object} pb.Comment "comment"
 // @Failure 400 {string} string "Bad Request"
 // @Router /blocks/{id}/comment [get]
-func (a *api) getBlockComment(g *gin.Context) {
-	info, err := a.node.Comment(g.Param("id"))
+func (a *Api) getBlockComment(g *gin.Context) {
+	info, err := a.Node.Comment(g.Param("id"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

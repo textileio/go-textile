@@ -1,4 +1,4 @@
-package core
+package api
 
 import (
 	"net/http"
@@ -17,10 +17,10 @@ import (
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /blocks/{id}/likes [post]
-func (a *api) addBlockLikes(g *gin.Context) {
+func (a *Api) addBlockLikes(g *gin.Context) {
 	id := g.Param("id")
 
-	thread, err, code := getBlockThread(a.node, id)
+	thread, err, code := getBlockThread(a.Node, id)
 	if err != nil {
 		sendError(g, err, code)
 		return
@@ -32,13 +32,13 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	like, err := a.node.Like(hash.B58String())
+	like, err := a.Node.Like(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	a.node.FlushCafes()
+	a.Node.FlushCafes()
 
 	pbJSON(g, http.StatusCreated, like)
 }
@@ -52,10 +52,10 @@ func (a *api) addBlockLikes(g *gin.Context) {
 // @Success 200 {object} pb.LikeList "likes"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /blocks/{id}/likes [get]
-func (a *api) lsBlockLikes(g *gin.Context) {
+func (a *Api) lsBlockLikes(g *gin.Context) {
 	id := g.Param("id")
 
-	likes, err := a.node.Likes(id)
+	likes, err := a.Node.Likes(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -73,8 +73,8 @@ func (a *api) lsBlockLikes(g *gin.Context) {
 // @Success 200 {object} pb.Like "like"
 // @Failure 400 {string} string "Bad Request"
 // @Router /blocks/{id}/like [get]
-func (a *api) getBlockLike(g *gin.Context) {
-	info, err := a.node.Like(g.Param("id"))
+func (a *Api) getBlockLike(g *gin.Context) {
+	info, err := a.Node.Like(g.Param("id"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
