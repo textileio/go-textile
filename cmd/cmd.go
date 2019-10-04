@@ -1076,7 +1076,7 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 	}
 
 	if res != nil && res.StatusCode == 401 {
-		err = fmt.Errorf("Error: Unauthorized")
+		err = fmt.Errorf("error: unauthorized")
 	}
 
 	return res, cancel, err

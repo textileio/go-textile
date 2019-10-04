@@ -28,7 +28,7 @@ func (Minor016) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	query := `
-		create table botstore (id text primary key not null, key text not null, value blob, version integer not null, created integer not null, updated integer not null);
+    create table botstore (id text primary key not null, key text not null, value blob, version integer not null, created integer not null, updated integer not null);
     create index botstore_key on botstore (key);
     create index botstore_updated on botstore (updated);
     `
