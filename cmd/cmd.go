@@ -1075,7 +1075,7 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 		tr.CancelRequest(req)
 	}
 
-	if res.StatusCode == 401 {
+	if res != nil && res.StatusCode == 401 {
 		err = fmt.Errorf("Error: Unauthorized")
 	}
 
@@ -1225,6 +1225,12 @@ func getRepo(baseRepo string, accountAddress string) (string, error) {
 			return "", fmt.Errorf("no account repos initialized in: %s", baseRepo)
 		}
 		if len(files) > 1 {
+			for _, file := range files {
+				if !file.IsDir() && file.Name() == "textile" {
+					// This is a pre 0.7.2 repo, not subdir under account path
+					return baseRepo, nil
+				}
+			}
 			return "", fmt.Errorf("there are multiple accounts initialzed in %s, you need to specify account-address", baseRepo)
 		}
 		return path.Join(baseRepo, files[0].Name()), nil
