@@ -7,6 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// botsList lists all running bots
+func (a *Api) botsList(c *gin.Context) {
+	bots := a.Bots.List() // TODO: this should be a pb {items:[]}
+	c.JSON(200, bots)
+}
+
 // botsGet is the GET endpoint for all bots
 func (a *Api) botsGet(c *gin.Context) {
 	botID := c.Param("root")
@@ -32,6 +38,7 @@ func (a *Api) botsGet(c *gin.Context) {
 // botsPost is the POST endpoint for all bots
 func (a *Api) botsPost(c *gin.Context) {
 	botID := c.Param("root")
+	log.Errorf("botID: %s", botID)
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")

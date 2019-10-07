@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path"
+	"reflect"
 
 	"github.com/mr-tron/base58/base58"
 	tbots "github.com/textileio/go-textile-bots"
@@ -115,6 +116,16 @@ func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 type Service struct {
 	clients map[string]*tbots.Client
 	node    *core.Textile
+}
+
+// List returns the id of all running bots
+func (s *Service) List() []string {
+	keys := reflect.ValueOf(s.clients).MapKeys()
+	strkeys := make([]string, len(keys))
+	for i := 0; i < len(keys); i++ {
+		strkeys[i] = keys[i].String()
+	}
+	return strkeys
 }
 
 // Exists is a helper to check if a bot exists

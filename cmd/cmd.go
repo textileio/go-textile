@@ -192,6 +192,15 @@ func Run() error {
 
 	// ================================
 
+	// bots
+	botsCmd := appCmd.Command("bots", "Commands to manage bots").Alias("bot")
+
+	// bots list
+	botsListCmd := botsCmd.Command("list", "List info about all active bots").Alias("ls").Default()
+	cmds[botsListCmd.FullCommand()] = BotsList
+
+	// ================================
+
 	// cafe
 	cafeCmd := appCmd.Command("cafe", "Commands to manage cafes").Alias("cafes")
 

@@ -7,6 +7,8 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	njwt "github.com/dgrijalva/jwt-go"
@@ -630,6 +632,23 @@ func (c *cafeApi) search(g *gin.Context) {
 		}
 		return true
 	})
+}
+
+func ReverseProxyBotApi(method string) gin.HandlerFunc {
+	return func(g *gin.Context) {
+		id := g.Param("id")
+		s := fmt.Sprintf("/api/v0/bots/id/%s", id)
+		u, _ := url.Parse("localhost:40600") // TODO get dynamic port
+		director := func(req *http.Request) {
+			req.URL.Path = s
+			req.Method = method
+			req.URL.Scheme = "http"
+			req.URL.Host = u.String()
+			req.Host = u.String()
+		}
+		proxy := &httputil.ReverseProxy{Director: director}
+		proxy.ServeHTTP(g.Writer, g.Request)
+	}
 }
 
 // sendError sends the error to the gin context
