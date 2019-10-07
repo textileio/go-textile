@@ -38,7 +38,6 @@ func (a *Api) botsGet(c *gin.Context) {
 // botsPost is the POST endpoint for all bots
 func (a *Api) botsPost(c *gin.Context) {
 	botID := c.Param("id")
-	log.Errorf("botID: %s", botID)
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
