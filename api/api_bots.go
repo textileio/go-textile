@@ -15,7 +15,7 @@ func (a *Api) botsList(c *gin.Context) {
 
 // botsGet is the GET endpoint for all bots
 func (a *Api) botsGet(c *gin.Context) {
-	botID := c.Param("root")
+	botID := c.Param("id")
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
@@ -37,7 +37,7 @@ func (a *Api) botsGet(c *gin.Context) {
 
 // botsPost is the POST endpoint for all bots
 func (a *Api) botsPost(c *gin.Context) {
-	botID := c.Param("root")
+	botID := c.Param("id")
 	log.Errorf("botID: %s", botID)
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
@@ -64,7 +64,7 @@ func (a *Api) botsPost(c *gin.Context) {
 }
 
 func (a *Api) botsDelete(c *gin.Context) {
-	botID := c.Param("root")
+	botID := c.Param("id")
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
 		c.String(http.StatusBadRequest, "bot not found")
@@ -84,7 +84,7 @@ func (a *Api) botsDelete(c *gin.Context) {
 }
 
 func (a *Api) botsPut(c *gin.Context) {
-	botID := c.Param("root")
+	botID := c.Param("id")
 
 	if !a.Bots.Exists(botID) { // bot doesn't exist yet
 		log.Errorf("error bot not found: %s", botID)
