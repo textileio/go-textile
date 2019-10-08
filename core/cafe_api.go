@@ -131,10 +131,10 @@ func (c *cafeApi) start() {
 	// Enables bots on cafes
 	bots := v1.Group("/bots")
 	{
-		bots.PUT("/id/:id", ReverseProxyBotApi("PUT"))
-		bots.POST("/id/:id", ReverseProxyBotApi("POST"))
-		bots.GET("/id/:id", ReverseProxyBotApi("GET"))
-		bots.DELETE("/id/:id", ReverseProxyBotApi("DELETE"))
+		bots.PUT("/id/:id", ReverseProxyBotAPI("PUT", c.node.config.Addresses.API))
+		bots.POST("/id/:id", ReverseProxyBotAPI("POST", c.node.config.Addresses.API))
+		bots.GET("/id/:id", ReverseProxyBotAPI("GET", c.node.config.Addresses.API))
+		bots.DELETE("/id/:id", ReverseProxyBotAPI("DELETE", c.node.config.Addresses.API))
 	}
 
 	c.server = &http.Server{

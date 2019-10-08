@@ -329,8 +329,8 @@ func (a *Api) Run() {
 
 		bots := v0.Group("/bots")
 		{
-			bots.GET("/list", a.botsList)
-			bots.GET("/disable", a.botsDisable)
+			bots.POST("/list", a.botsList)
+			bots.POST("/disable", a.botsDisable)
 			bots.GET("/enable", a.botsEnable)
 			bots.GET("/id/:id", a.botsGet)
 			bots.POST("/id/:id", a.botsPost)
