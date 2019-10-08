@@ -67,6 +67,7 @@ func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, err
 // InitConfig is used to setup a textile node
 type InitConfig struct {
 	Seed         string
+	RepoPath     string
 	BaseRepoPath string
 	LogToDisk    bool
 	Debug        bool
@@ -92,13 +93,19 @@ type Mobile struct {
 	listener  *broadcast.Listener
 }
 
-// RepoPath returns the actual location of the configured repo
-func (conf InitConfig) RepoPath() (string, error) {
+// Repo returns the actual location of the configured repo
+func (conf InitConfig) Repo() (string, error) {
 	coreConf, err := conf.coreInitConfig()
 	if err != nil {
 		return "", err
 	}
-	return coreConf.RepoPath(), nil
+
+	repo, err := coreConf.Repo()
+	if err != nil {
+		return "", err
+	}
+
+	return repo, nil
 }
 
 // RepoExists return whether or not the configured repo already exists
@@ -107,14 +114,37 @@ func (conf InitConfig) RepoExists() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return coreConf.RepoExists(), nil
+
+	exists, err := coreConf.RepoExists()
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
-func (conf InitConfig) account() (*keypair.Full, error) {
-	if conf.Seed == "" {
-		return nil, core.ErrAccountRequired
+func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
+	var accnt *keypair.Full
+	if len(conf.Seed) > 0 {
+		var err error
+		accnt, err = toAccount(conf.Seed)
+		if err != nil {
+			return core.InitConfig{}, err
+		}
 	}
-	kp, err := keypair.Parse(conf.Seed)
+
+	return core.InitConfig{
+		Account:      accnt,
+		RepoPath:     conf.RepoPath,
+		BaseRepoPath: conf.BaseRepoPath,
+		IsMobile:     true,
+		LogToDisk:    conf.LogToDisk,
+		Debug:        conf.Debug,
+	}, nil
+}
+
+func toAccount(seed string) (*keypair.Full, error) {
+	kp, err := keypair.Parse(seed)
 	if err != nil {
 		return nil, err
 	}
@@ -123,20 +153,6 @@ func (conf InitConfig) account() (*keypair.Full, error) {
 		return nil, keypair.ErrInvalidKey
 	}
 	return accnt, nil
-}
-
-func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
-	accnt, err := conf.account()
-	if err != nil {
-		return core.InitConfig{}, err
-	}
-	return core.InitConfig{
-		Account:      accnt,
-		BaseRepoPath: conf.BaseRepoPath,
-		IsMobile:     true,
-		LogToDisk:    conf.LogToDisk,
-		Debug:        conf.Debug,
-	}, nil
 }
 
 // InitRepo calls core InitRepo

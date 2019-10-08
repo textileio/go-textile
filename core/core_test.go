@@ -6,10 +6,10 @@ import (
 	"path"
 	"testing"
 
+	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/util"
 
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
@@ -34,16 +34,43 @@ var vars = struct {
 }
 
 func TestRepoPath(t *testing.T) {
-	target := path.Join(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Address())
-	value := vars.initConfig.RepoPath()
+	conf := InitConfig{
+		RepoPath: "path",
+	}
+	value, err := conf.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conf.RepoPath != value {
+		t.Fatalf("repo path incorrect")
+	}
+}
+
+func TestBaseRepoPath(t *testing.T) {
+	conf := InitConfig{
+		BaseRepoPath: "base",
+		Account:      keypair.Random(),
+	}
+	target := path.Join(conf.BaseRepoPath, conf.Account.Address())
+	value, err := conf.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if target != value {
 		t.Fatalf("repo path incorrect")
 	}
 }
 
 func TestNoRepoExists(t *testing.T) {
-	_ = os.RemoveAll(vars.initConfig.RepoPath())
-	exists := vars.initConfig.RepoExists()
+	repo, err := vars.initConfig.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = os.RemoveAll(repo)
+	exists, err := vars.initConfig.RepoExists()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if exists {
 		t.Fatalf("repo should not exist but it does")
 	}
@@ -56,16 +83,22 @@ func TestInitRepo(t *testing.T) {
 }
 
 func TestRepoExists(t *testing.T) {
-	exists := vars.initConfig.RepoExists()
+	exists, err := vars.initConfig.RepoExists()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !exists {
 		t.Fatalf("repo should exist but it doesn't")
 	}
 }
 
 func TestNewTextile(t *testing.T) {
-	var err error
+	repo, err := vars.initConfig.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	vars.node, err = NewTextile(RunConfig{
-		RepoPath: vars.initConfig.RepoPath(),
+		RepoPath: repo,
 		Debug:    true,
 	})
 	if err != nil {

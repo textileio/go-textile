@@ -142,16 +142,6 @@ func TestWalletAccountAt(t *testing.T) {
 	testVars.initConfig1.Seed = accnt.Seed
 }
 
-func TestGetConfigAccount(t *testing.T) {
-	accnt, err := testVars.initConfig1.account()
-	if err != nil {
-		t.Fatalf("unable to get account: %s", err)
-	}
-	if accnt.Seed() != testVars.initConfig1.Seed {
-		t.Fatalf("config seed and account seed don't match")
-	}
-}
-
 func TestGetConfigCoreConfig(t *testing.T) {
 	conf, err := testVars.initConfig1.coreInitConfig()
 	if err != nil {
@@ -163,12 +153,25 @@ func TestGetConfigCoreConfig(t *testing.T) {
 }
 
 func TestRepoPath(t *testing.T) {
+	conf := InitConfig{
+		RepoPath: "path",
+	}
+	value, err := conf.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conf.RepoPath != value {
+		t.Fatalf("repo path incorrect")
+	}
+}
+
+func TestBaseRepoPath(t *testing.T) {
 	coreConfig, err := testVars.initConfig1.coreInitConfig()
 	if err != nil {
 		t.Fatalf("unable to get core.InitConfig: %s", err)
 	}
 	target := path.Join(coreConfig.BaseRepoPath, coreConfig.Account.Address())
-	value, err := testVars.initConfig1.RepoPath()
+	value, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path: %s", err)
 	}
@@ -178,7 +181,7 @@ func TestRepoPath(t *testing.T) {
 }
 
 func TestNoRepoExists(t *testing.T) {
-	repoPath, err := testVars.initConfig1.RepoPath()
+	repoPath, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path: %s", err)
 	}
@@ -210,7 +213,7 @@ func TestRepoExists(t *testing.T) {
 }
 
 func TestMigrateRepo(t *testing.T) {
-	repoPath, err := testVars.initConfig1.RepoPath()
+	repoPath, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path: %s", err)
 	}
@@ -223,7 +226,7 @@ func TestMigrateRepo(t *testing.T) {
 }
 
 func TestNewTextile(t *testing.T) {
-	repoPath, err := testVars.initConfig1.RepoPath()
+	repoPath, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path: %s", err)
 	}
@@ -238,7 +241,7 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNewTextileAgain(t *testing.T) {
-	repoPath, err := testVars.initConfig1.RepoPath()
+	repoPath, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path: %s", err)
 	}
@@ -879,11 +882,11 @@ func TestMobile_Teardown(t *testing.T) {
 	testVars.mobile1 = nil
 	_ = testVars.mobile2.stop()
 	testVars.mobile2 = nil
-	repoPath1, err := testVars.initConfig1.RepoPath()
+	repoPath1, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path 1: %s", err)
 	}
-	repoPath2, err := testVars.initConfig1.RepoPath()
+	repoPath2, err := testVars.initConfig1.Repo()
 	if err != nil {
 		t.Fatalf("unable to get repo path 2: %s", err)
 	}
