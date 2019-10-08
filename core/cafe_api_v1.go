@@ -634,7 +634,7 @@ func (c *cafeApi) search(g *gin.Context) {
 }
 
 // ReverseProxyBotAPI generates a function for per-method reverse proxy
-func ReverseProxyBotAPI(method string, addr string) gin.HandlerFunc {
+func (c *cafeApi) reverseProxyBotAPI(method string) gin.HandlerFunc {
 	return func(g *gin.Context) {
 		id := g.Param("id")
 		s := fmt.Sprintf("/api/v0/bots/id/%s", id)
@@ -642,7 +642,7 @@ func ReverseProxyBotAPI(method string, addr string) gin.HandlerFunc {
 			req.URL.Path = s
 			req.Method = method
 			req.URL.Scheme = "http"
-			req.URL.Host = addr
+			req.URL.Host = c.node.config.Addresses.API
 		}
 		proxy := &httputil.ReverseProxy{Director: director}
 		proxy.ServeHTTP(g.Writer, g.Request)
