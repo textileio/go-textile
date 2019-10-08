@@ -67,6 +67,7 @@ func WalletAccountAt(mnemonic string, index int, passphrase string) ([]byte, err
 // InitConfig is used to setup a textile node
 type InitConfig struct {
 	Seed         string
+	RepoPath     string
 	BaseRepoPath string
 	LogToDisk    bool
 	Debug        bool
@@ -92,13 +93,19 @@ type Mobile struct {
 	listener  *broadcast.Listener
 }
 
-// RepoPath returns the actual location of the configured repo
-func (conf InitConfig) RepoPath() (string, error) {
+// Repo returns the actual location of the configured repo
+func (conf InitConfig) Repo() (string, error) {
 	coreConf, err := conf.coreInitConfig()
 	if err != nil {
 		return "", err
 	}
-	return coreConf.RepoPath(), nil
+
+	repo, err := coreConf.Repo()
+	if err != nil {
+		return "", err
+	}
+
+	return repo, nil
 }
 
 // RepoExists return whether or not the configured repo already exists
@@ -107,7 +114,13 @@ func (conf InitConfig) RepoExists() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return coreConf.RepoExists(), nil
+
+	exists, err := coreConf.RepoExists()
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 func (conf InitConfig) account() (*keypair.Full, error) {
@@ -132,6 +145,7 @@ func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
 	}
 	return core.InitConfig{
 		Account:      accnt,
+		RepoPath:     conf.RepoPath,
 		BaseRepoPath: conf.BaseRepoPath,
 		IsMobile:     true,
 		LogToDisk:    conf.LogToDisk,

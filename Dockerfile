@@ -78,7 +78,7 @@ VOLUME $TEXTILE_PATH
 
 # Init opts
 ENV INIT_ARGS \
-  --base-repo=$TEXTILE_PATH \
+  --repo=$TEXTILE_PATH \
   --swarm-ports=4001,8081 \
   --api-bind-addr=0.0.0.0:40600 \
   --gateway-bind-addr=0.0.0.0:5050 \

@@ -28,7 +28,7 @@ func createAndStartPeer(conf InitConfig, wait bool, handler core.CafeOutboxHandl
 	}
 	conf.Seed = accnt.Seed
 
-	repoPath, err := conf.RepoPath()
+	repoPath, err := conf.Repo()
 	if err != nil {
 		return nil, err
 	}

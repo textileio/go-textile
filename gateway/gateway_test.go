@@ -17,16 +17,21 @@ var initConfig = core.InitConfig{
 func TestGateway_Creation(t *testing.T) {
 	initConfig.Account = keypair.Random()
 
-	_ = os.RemoveAll(initConfig.RepoPath())
+	repo, err := initConfig.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err := core.InitRepo(initConfig)
+	_ = os.RemoveAll(repo)
+
+	err = core.InitRepo(initConfig)
 	if err != nil {
 		t.Errorf("init node failed: %s", err)
 		return
 	}
 
 	node, err := core.NewTextile(core.RunConfig{
-		RepoPath: initConfig.RepoPath(),
+		RepoPath: repo,
 	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
@@ -49,5 +54,9 @@ func TestGateway_Stop(t *testing.T) {
 	if err != nil {
 		t.Errorf("stop gateway failed: %s", err)
 	}
-	_ = os.RemoveAll(initConfig.RepoPath())
+	repo, err := initConfig.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = os.RemoveAll(repo)
 }
