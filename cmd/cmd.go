@@ -638,7 +638,7 @@ There are two types of invites, direct account-to-account and external:
 
 	// migrate
 	migrateCmd := appCmd.Command("migrate", "Migrate the node repository and exit")
-	migrateRepo := migrateCmd.Flag("repo", "Specify a custom path to the repo directory").Short('b').String()
+	migrateRepo := migrateCmd.Flag("repo", "Specify a custom path to the repo directory").Short('r').String()
 	migrateBaseRepo := migrateCmd.Flag("base-repo", "Specify a custom path to the base repo directory").Short('b').String()
 	migrateAccountAddress := migrateCmd.Flag("account-address", "Specify an existing account address").Short('a').String()
 	cmds[migrateCmd.FullCommand()] = func() error {

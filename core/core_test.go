@@ -16,8 +16,7 @@ import (
 )
 
 var vars = struct {
-	initConfig  InitConfig
-	initConfig2 InitConfig
+	initConfig InitConfig
 
 	node   *Textile
 	thread *Thread
