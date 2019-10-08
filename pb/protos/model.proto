@@ -232,11 +232,6 @@ message NotificationList {
 
 // BOTS //
 
-message BotIdentity {
-    string id                  = 1;
-    bytes sk                  = 2;
-}
-
 message ActiveBot {
     string id                  = 1;
     string name                = 2;
