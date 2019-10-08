@@ -123,26 +123,16 @@ func (conf InitConfig) RepoExists() (bool, error) {
 	return exists, nil
 }
 
-func (conf InitConfig) account() (*keypair.Full, error) {
-	if conf.Seed == "" {
-		return nil, core.ErrAccountRequired
-	}
-	kp, err := keypair.Parse(conf.Seed)
-	if err != nil {
-		return nil, err
-	}
-	accnt, ok := kp.(*keypair.Full)
-	if !ok {
-		return nil, keypair.ErrInvalidKey
-	}
-	return accnt, nil
-}
-
 func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
-	accnt, err := conf.account()
-	if err != nil {
-		return core.InitConfig{}, err
+	var accnt *keypair.Full
+	if len(conf.Seed) > 0 {
+		var err error
+		accnt, err = toAccount(conf.Seed)
+		if err != nil {
+			return core.InitConfig{}, err
+		}
 	}
+
 	return core.InitConfig{
 		Account:      accnt,
 		RepoPath:     conf.RepoPath,
@@ -151,6 +141,18 @@ func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
 		LogToDisk:    conf.LogToDisk,
 		Debug:        conf.Debug,
 	}, nil
+}
+
+func toAccount(seed string) (*keypair.Full, error) {
+	kp, err := keypair.Parse(seed)
+	if err != nil {
+		return nil, err
+	}
+	accnt, ok := kp.(*keypair.Full)
+	if !ok {
+		return nil, keypair.ErrInvalidKey
+	}
+	return accnt, nil
 }
 
 // InitRepo calls core InitRepo

@@ -142,16 +142,6 @@ func TestWalletAccountAt(t *testing.T) {
 	testVars.initConfig1.Seed = accnt.Seed
 }
 
-func TestGetConfigAccount(t *testing.T) {
-	accnt, err := testVars.initConfig1.account()
-	if err != nil {
-		t.Fatalf("unable to get account: %s", err)
-	}
-	if accnt.Seed() != testVars.initConfig1.Seed {
-		t.Fatalf("config seed and account seed don't match")
-	}
-}
-
 func TestGetConfigCoreConfig(t *testing.T) {
 	conf, err := testVars.initConfig1.coreInitConfig()
 	if err != nil {
@@ -165,7 +155,6 @@ func TestGetConfigCoreConfig(t *testing.T) {
 func TestRepoPath(t *testing.T) {
 	conf := InitConfig{
 		RepoPath: "path",
-		Seed:     testVars.initConfig1.Seed,
 	}
 	value, err := conf.Repo()
 	if err != nil {
