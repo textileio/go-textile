@@ -14,12 +14,14 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log"
+	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -452,11 +454,22 @@ Stacks may include:
 			return keypair.ErrInvalidKey
 		}
 
+		var repo = *initRepo
+		var baseRepo = *initBaseRepo
+
+		// default if neither repo or base-repo is specified, set a value for repo
+		if len(repo) == 0 && len(baseRepo) == 0 {
+			repo, err = getDefaultRepo()
+			if err != nil {
+				return err
+			}
+		}
+
 		config := core.InitConfig{
 			Account:         account,
 			PinCode:         *initPin, // @todo rename to pin
-			RepoPath:        *initRepo,
-			BaseRepoPath:    *initBaseRepo,
+			RepoPath:        repo,
+			BaseRepoPath:    baseRepo,
 			SwarmPorts:      *initIpfsSwarmPorts,
 			ApiAddr:         *initApiBindAddr,
 			CafeApiAddr:     *initCafeApiBindAddr,
@@ -1182,20 +1195,26 @@ func output(val interface{}) {
 	fmt.Println(val)
 }
 
+func getDefaultRepo() (string, error) {
+	// get homedir
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", fmt.Errorf(fmt.Sprintf("get homedir failed: %s", err))
+	}
+	return filepath.Join(home, ".textile", "repo"), nil
+}
+
 // Get the full repo path for the user, will create it if missing
 func getRepo(repo string, baseRepo string, accountAddress string) (string, error) {
-	var finalRepo string
 	if len(repo) > 0 {
-		finalRepo = repo
+		return repo, nil
 	} else if len(baseRepo) > 0 && len(accountAddress) > 0 {
-		finalRepo = path.Join(baseRepo, accountAddress)
+		return path.Join(baseRepo, accountAddress), nil
+	} else if len(baseRepo) == 0 && len(accountAddress) == 0 {
+		return getDefaultRepo()
 	} else {
-		return "", fmt.Errorf("you must specify --repo or --base-repo and --account-address flags")
+		return "", fmt.Errorf("you must specify --base-repo and --account-address flags")
 	}
-	if err := os.MkdirAll(finalRepo, 0755); err != nil {
-		return "", fmt.Errorf("create repo directory failed: %s", err)
-	}
-	return finalRepo, nil
 }
 
 func hideGlobalsFlagsFor(cmds ...*kingpin.CmdClause) {
