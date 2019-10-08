@@ -13,6 +13,7 @@ import (
 	core "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	ipfs "github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
 )
 
 // BotIpfsHandler implements shared.IpfsHandler. Extends it by hanging on the the botID
@@ -119,13 +120,19 @@ type Service struct {
 }
 
 // List returns the id of all running bots
-func (s *Service) List() []string {
+func (s *Service) List() *pb.ActiveBotList {
 	keys := reflect.ValueOf(s.clients).MapKeys()
-	strkeys := make([]string, len(keys))
+	items := make([]*pb.ActiveBot, len(keys))
 	for i := 0; i < len(keys); i++ {
-		strkeys[i] = keys[i].String()
+		botID := keys[i].String()
+		conf := &pb.ActiveBot{
+			Id:     botID,
+			Name:   s.clients[botID].Name,
+			Params: s.clients[botID].SharedConf.Params,
+		}
+		items[i] = conf
 	}
-	return strkeys
+	return &pb.ActiveBotList{Items: items}
 }
 
 // Exists is a helper to check if a bot exists

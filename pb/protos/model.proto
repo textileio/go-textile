@@ -230,6 +230,18 @@ message NotificationList {
     repeated Notification items = 1;
 }
 
+// BOTS //
+
+message ActiveBot {
+    string id                  = 1;
+    string name                = 2;
+    map<string, string> params = 3;
+}
+
+message ActiveBotList {
+    repeated ActiveBot items = 1;
+}
+
 // CAFE CLIENT //
 
 message Cafe {

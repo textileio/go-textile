@@ -13,8 +13,9 @@ import (
 
 // botsList lists all running bots
 func (a *Api) botsList(c *gin.Context) {
-	bots := a.Bots.List() // TODO: this should be a pb {items:[]}
-	c.JSON(200, bots)
+	// bots := a.Bots.List() // TODO: this should be a pb {items:[]}
+	// c.JSON(200, bots)
+	pbJSON(c, http.StatusOK, a.Bots.List())
 }
 
 func (a *Api) botsDisable(g *gin.Context) {
