@@ -1,4 +1,4 @@
-FROM golang:1.12.5
+FROM golang:1.13.1
 
 # replace shell with bash so we can source files
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
