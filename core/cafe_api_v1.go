@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
 	njwt "github.com/dgrijalva/jwt-go"
@@ -630,6 +631,22 @@ func (c *cafeApi) search(g *gin.Context) {
 		}
 		return true
 	})
+}
+
+// ReverseProxyBotAPI generates a function for per-method reverse proxy
+func (c *cafeApi) reverseProxyBotAPI(method string) gin.HandlerFunc {
+	return func(g *gin.Context) {
+		id := g.Param("id")
+		s := fmt.Sprintf("/api/v0/bots/id/%s", id)
+		director := func(req *http.Request) {
+			req.URL.Path = s
+			req.Method = method
+			req.URL.Scheme = "http"
+			req.URL.Host = c.node.config.Addresses.API
+		}
+		proxy := &httputil.ReverseProxy{Director: director}
+		proxy.ServeHTTP(g.Writer, g.Request)
+	}
 }
 
 // sendError sends the error to the gin context

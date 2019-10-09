@@ -192,6 +192,36 @@ func Run() error {
 
 	// ================================
 
+	// bots
+	botsCmd := appCmd.Command("bots", "Commands to manage bots").Alias("bot")
+
+	// bots list
+	botsListCmd := botsCmd.Command("list", "List info about all active bots").Alias("ls").Default()
+	cmds[botsListCmd.FullCommand()] = BotsList
+
+	// bots disable
+	botsDisableCmd := botsCmd.Command("disable", "Disable a bot")
+	botsDisableID := botsDisableCmd.Arg("id", "ID of the bot").Required().String()
+	cmds[botsDisableCmd.FullCommand()] = func() error {
+		return BotsDisable(*botsDisableID)
+	}
+
+	// bots enable
+	botsEnableCmd := botsCmd.Command("enable", "Enable a bot")
+	botsEnableID := botsEnableCmd.Arg("id", "ID of the bot").Required().String()
+	cmds[botsEnableCmd.FullCommand()] = func() error {
+		return BotsEnable(*botsEnableID)
+	}
+
+	// bots create
+	botsNewCmd := botsCmd.Command("create", "Initialize a new bot for development")
+	botsNewName := botsNewCmd.Arg("name", "Name of the bot").Required().String()
+	cmds[botsNewCmd.FullCommand()] = func() error {
+		return BotsCreate(*botsNewName)
+	}
+
+	// ================================
+
 	// cafe
 	cafeCmd := appCmd.Command("cafe", "Commands to manage cafes").Alias("cafes")
 

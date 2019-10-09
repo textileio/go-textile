@@ -128,6 +128,15 @@ func (c *cafeApi) start() {
 		search.POST("", c.search)
 	}
 
+	// Enables bots on cafes
+	bots := v1.Group("/bots")
+	{
+		bots.PUT("/id/:id", c.reverseProxyBotAPI("PUT"))
+		bots.POST("/id/:id", c.reverseProxyBotAPI("POST"))
+		bots.GET("/id/:id", c.reverseProxyBotAPI("GET"))
+		bots.DELETE("/id/:id", c.reverseProxyBotAPI("DELETE"))
+	}
+
 	c.server = &http.Server{
 		Addr:    c.addr,
 		Handler: router,

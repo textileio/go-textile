@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path"
+	"reflect"
 
 	"github.com/mr-tron/base58/base58"
 	tbots "github.com/textileio/go-textile-bots"
 	shared "github.com/textileio/go-textile-core/bots"
+	pb "github.com/textileio/go-textile-core/bots/pb"
 	core "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	ipfs "github.com/textileio/go-textile/ipfs"
@@ -115,6 +117,22 @@ func (kv BotKVStore) Delete(key string) (ok bool, err error) {
 type Service struct {
 	clients map[string]*tbots.Client
 	node    *core.Textile
+}
+
+// List returns the id of all running bots
+func (s *Service) List() *pb.ActiveBotList {
+	keys := reflect.ValueOf(s.clients).MapKeys()
+	items := make([]*pb.ActiveBot, len(keys))
+	for i := 0; i < len(keys); i++ {
+		botID := keys[i].String()
+		conf := &pb.ActiveBot{
+			Id:     botID,
+			Name:   s.clients[botID].Name,
+			Params: s.clients[botID].SharedConf.Params,
+		}
+		items[i] = conf
+	}
+	return &pb.ActiveBotList{Items: items}
 }
 
 // Exists is a helper to check if a bot exists
