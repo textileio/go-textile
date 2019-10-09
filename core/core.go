@@ -139,7 +139,17 @@ func (conf InitConfig) RepoExists() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return fsrepo.IsInitialized(repoPath), nil
+	return RepoExists(repoPath), nil
+}
+
+// RepoExists return whether or not the repo at repoPath exists
+func RepoExists(repoPath string) bool {
+	return fsrepo.IsInitialized(repoPath)
+}
+
+// AccountRepoExists return whether or not the repo at repoPath exists
+func AccountRepoExists(baseRepoPath string, accountAddress string) bool {
+	return fsrepo.IsInitialized(path.Join(baseRepoPath, accountAddress))
 }
 
 // InitRepo initializes a new node repo

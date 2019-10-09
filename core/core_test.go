@@ -72,7 +72,15 @@ func TestNoRepoExists(t *testing.T) {
 		t.Fatal(err)
 	}
 	if exists {
-		t.Fatalf("repo should not exist but it does")
+		t.Fatalf("repo should not exist via InitConfig.RepoExists, but it does")
+	}
+	exists = RepoExists(repo)
+	if exists {
+		t.Fatalf("repo should not exist via RepoExists, but it does")
+	}
+	exists = AccountRepoExists(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Address())
+	if exists {
+		t.Fatalf("repo should not exist via AccountRepoExists, but it does")
 	}
 }
 
@@ -83,12 +91,24 @@ func TestInitRepo(t *testing.T) {
 }
 
 func TestRepoExists(t *testing.T) {
+	repo, err := vars.initConfig.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	exists, err := vars.initConfig.RepoExists()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !exists {
-		t.Fatalf("repo should exist but it doesn't")
+		t.Fatalf("repo should exist via InitConfig.RepoExists, but it doesn't")
+	}
+	exists = RepoExists(repo)
+	if !exists {
+		t.Fatalf("repo should exist via RepoExists, but it doesn't")
+	}
+	exists = AccountRepoExists(vars.initConfig.BaseRepoPath, vars.initConfig.Account.Address())
+	if !exists {
+		t.Fatalf("repo should exist via AccountRepoExists, but it doesn't")
 	}
 }
 
