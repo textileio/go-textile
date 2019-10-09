@@ -21,6 +21,8 @@ var testVars = struct {
 	initConfig1 InitConfig
 	initConfig2 InitConfig
 
+	account1 *pb.MobileWalletAccount
+
 	recovery string
 
 	mobile1 *Mobile
@@ -139,6 +141,7 @@ func TestWalletAccountAt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	testVars.account1 = accnt
 	testVars.initConfig1.Seed = accnt.Seed
 }
 
@@ -191,7 +194,15 @@ func TestNoRepoExists(t *testing.T) {
 		t.Fatalf("unable to check if repo exists: %s", err)
 	}
 	if exists {
-		t.Fatalf("repo should not exist but it does")
+		t.Fatalf("repo should not exist via InitConfig.RepoExists, but it does")
+	}
+	exists = RepoExists(repoPath)
+	if exists {
+		t.Fatalf("repo should not exist via RepoExists, but it does")
+	}
+	exists = AccountRepoExists(testVars.initConfig1.BaseRepoPath, testVars.account1.GetAddress())
+	if exists {
+		t.Fatalf("repo should not exist via AccountRepoExists, but it does")
 	}
 }
 
@@ -203,12 +214,24 @@ func TestInitRepo(t *testing.T) {
 }
 
 func TestRepoExists(t *testing.T) {
+	repoPath, err := testVars.initConfig1.Repo()
+	if err != nil {
+		t.Fatalf("unable to get repo path: %s", err)
+	}
 	exists, err := testVars.initConfig1.RepoExists()
 	if err != nil {
 		t.Fatalf("unable to check if repo exists: %s", err)
 	}
 	if !exists {
-		t.Fatalf("repo should exist but it doesn't")
+		t.Fatalf("repo should exist via InitConfig.RepoExists, but it doesn't")
+	}
+	exists = RepoExists(repoPath)
+	if !exists {
+		t.Fatalf("repo should exist via RepoExists, but it doesn't")
+	}
+	exists = AccountRepoExists(testVars.initConfig1.BaseRepoPath, testVars.account1.GetAddress())
+	if !exists {
+		t.Fatalf("repo should exist via AccountRepoExists, but it doesn't")
 	}
 }
 

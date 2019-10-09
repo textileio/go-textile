@@ -123,6 +123,16 @@ func (conf InitConfig) RepoExists() (bool, error) {
 	return exists, nil
 }
 
+// RepoExists return whether or not the repo at repoPath exists
+func RepoExists(repoPath string) bool {
+	return core.RepoExists(repoPath)
+}
+
+// AccountRepoExists return whether or not the repo at repoPath exists
+func AccountRepoExists(baseRepoPath string, accountAddress string) bool {
+	return core.AccountRepoExists(baseRepoPath, accountAddress)
+}
+
 func (conf InitConfig) coreInitConfig() (core.InitConfig, error) {
 	var accnt *keypair.Full
 	if len(conf.Seed) > 0 {
