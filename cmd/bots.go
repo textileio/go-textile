@@ -56,7 +56,7 @@ func BotsCreate(name string) error {
 	return nil
 }
 
-// BotsDisable disables a abot
+// BotsDisable disables a bot
 func BotsDisable(id string) error {
 	res, err := executeJsonCmd(http.MethodPost, "bots/disable", params{
 		opts: map[string]string{"id": id},

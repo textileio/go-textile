@@ -10,10 +10,10 @@ import (
 	"github.com/mr-tron/base58/base58"
 	tbots "github.com/textileio/go-textile-bots"
 	shared "github.com/textileio/go-textile-core/bots"
+	pb "github.com/textileio/go-textile-core/bots/pb"
 	core "github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	ipfs "github.com/textileio/go-textile/ipfs"
-	"github.com/textileio/go-textile/pb"
 )
 
 // BotIpfsHandler implements shared.IpfsHandler. Extends it by hanging on the the botID

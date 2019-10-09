@@ -213,7 +213,7 @@ func Run() error {
 		return BotsEnable(*botsEnableID)
 	}
 
-	// bots enable
+	// bots create
 	botsNewCmd := botsCmd.Command("create", "Initialize a new bot for development")
 	botsNewName := botsNewCmd.Arg("name", "Name of the bot").Required().String()
 	cmds[botsNewCmd.FullCommand()] = func() error {
