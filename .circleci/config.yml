@@ -21,7 +21,7 @@ jobs:
 
   unit-test:
     docker:
-      - image: textile/builder:1.12.5
+      - image: textile/builder:1.13.1
     steps:
       - *checkout-linux
       - restore_cache:
@@ -45,7 +45,7 @@ jobs:
 
   build-cli-linux:
     docker:
-      - image: textile/builder:1.12.5
+      - image: textile/builder:1.13.1
     steps:
       - *checkout-linux
       - restore_cache:

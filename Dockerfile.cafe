@@ -1,4 +1,4 @@
-FROM golang:1.12-stretch
+FROM golang:1.13.1-stretch
 MAINTAINER Sander Pick <sander@textile.io>
 
 # This is (in large part) copied (with love) from
