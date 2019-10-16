@@ -35,6 +35,7 @@ var migrations = []Migration{
 	m.Minor014{},
 	m.Minor015{},
 	m.Minor016{},
+	m.Minor017{},
 }
 
 // Stat returns whether or not there's a major migration ahead of the current repover

@@ -26,7 +26,7 @@ type Datastore interface {
 	CafeTokens() CafeTokenStore
 	CafeClientThreads() CafeClientThreadStore
 	CafeClientMessages() CafeClientMessageStore
-	Bots() BotStore
+	Bots() Botstore
 	Ping() error
 	Close()
 }
@@ -64,7 +64,7 @@ type PeerStore interface {
 	DeleteByAddress(address string) error
 }
 
-type BotStore interface {
+type Botstore interface {
 	Queryable
 	AddOrUpdate(key string, value []byte) error
 	Get(key string) *pb.BotKV

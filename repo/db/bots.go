@@ -14,11 +14,11 @@ type BotDB struct {
 	modelStore
 }
 
-func NewBotStore(db *sql.DB, lock *sync.Mutex) repo.BotStore {
+func NewBotstore(db *sql.DB, lock *sync.Mutex) repo.Botstore {
 	return &BotDB{modelStore{db, lock}}
 }
 
-// AddOrUpdate Bot KV store adds namespace all bot requests by their id
+// AddOrUpdate Bot KV store adds namespace all bot requests by their key
 func (c *BotDB) AddOrUpdate(key string, value []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -26,7 +26,7 @@ func (c *BotDB) AddOrUpdate(key string, value []byte) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into botstore(key, value, created, updated) values(?,?,coalesce((select created from botstore where key=?),?),?)`
+	stm := `insert or replace into bots_store(id, value, created, updated) values(?,?,coalesce((select created from bots_store where id=?),?),?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -49,7 +49,7 @@ func (c *BotDB) AddOrUpdate(key string, value []byte) error {
 	return nil
 }
 
-// Get Bot KV store gets namespace all bot requests by their id
+// Get Bot KV store gets namespace all bot requests by their key
 func (c *BotDB) Get(key string) *pb.BotKV {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -60,29 +60,30 @@ func (c *BotDB) Get(key string) *pb.BotKV {
 	return res[0]
 }
 
-// Delete Bot KV store deletes namespace all bot requests by their id
+// Delete Bot KV store deletes namespace all bot requests by their key
 func (c *BotDB) Delete(key string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from botstore where key=?", key)
+	_, err := c.db.Exec("delete from bots_store where id=?", key)
 	return err
 }
 
 func (c *BotDB) handleQuery(key string) []*pb.BotKV {
 	list := make([]*pb.BotKV, 0)
-	rows, err := c.db.Query("select * from botstore where key=?", key)
+	rows, err := c.db.Query("select * from bots_store where id=?", key)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return list
 	}
 	for rows.Next() {
+		var id string
 		var value []byte
 		var createdInt, updatedInt int64
-		if err := rows.Scan(&key, &value, &createdInt, &updatedInt); err != nil {
+		if err := rows.Scan(&id, &value, &createdInt, &updatedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		row := c.handleRow(key, value, createdInt, updatedInt)
+		row := c.handleRow(id, value, createdInt, updatedInt)
 		if row != nil {
 			list = append(list, row)
 		}

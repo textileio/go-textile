@@ -367,10 +367,9 @@ message CafeClientMessage {
 }
 
 // Bots KV Store //
-
 message BotKV {
-    string key                        = 2;
-    bytes value                      = 3;
-    google.protobuf.Timestamp created = 5;
-    google.protobuf.Timestamp updated = 6;
+    string key                        = 1;
+    bytes value                      = 2;
+    google.protobuf.Timestamp created = 3;
+    google.protobuf.Timestamp updated = 4;
 }

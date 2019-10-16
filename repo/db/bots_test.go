@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/go-textile/repo"
 )
 
-var botStore repo.BotStore
+var botStore repo.Botstore
 
 var testBot *pb.BotKV
 
@@ -20,7 +20,7 @@ func init() {
 func setupBotDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	_ = initDatabaseTables(conn, "")
-	botStore = NewBotStore(conn, new(sync.Mutex))
+	botStore = NewBotstore(conn, new(sync.Mutex))
 }
 
 func TestBotDB_Add(t *testing.T) {
@@ -30,7 +30,7 @@ func TestBotDB_Add(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stmt, err := botStore.PrepareQuery("select value from botstore where key=?")
+	stmt, err := botStore.PrepareQuery("select value from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -55,7 +55,7 @@ func TestBotDB_AddOrUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stmt, err := botStore.PrepareQuery("select value, updated from botstore where key=?")
+	stmt, err := botStore.PrepareQuery("select value, updated from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -86,7 +86,7 @@ func TestBotDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := botStore.PrepareQuery("select id from botstore where key=?")
+	stmt, err := botStore.PrepareQuery("select id from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 	}

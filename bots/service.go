@@ -25,7 +25,7 @@ type BotIpfsHandler struct {
 	node  *core.Textile
 }
 
-// Datastore implements shared.BotStore. Extends it with BotID and BotVersion
+// Datastore implements shared.Botstore. Extends it with BotID and BotVersion
 type Datastore struct {
 	Namespace ds.Key
 	node      *core.Textile
