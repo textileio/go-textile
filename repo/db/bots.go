@@ -19,14 +19,14 @@ func NewBotStore(db *sql.DB, lock *sync.Mutex) repo.BotStore {
 }
 
 // AddOrUpdate Bot KV store adds namespace all bot requests by their id
-func (c *BotDB) AddOrUpdate(id string, key string, value []byte, botVersion int) error {
+func (c *BotDB) AddOrUpdate(key string, value []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into botstore(id, key, value, version, created, updated) values(?,?,?,?,coalesce((select created from botstore where id=? and key=?),?),?)`
+	stm := `insert or replace into botstore(key, value, created, updated) values(?,?,coalesce((select created from botstore where key=?),?),?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -35,11 +35,8 @@ func (c *BotDB) AddOrUpdate(id string, key string, value []byte, botVersion int)
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		id,
 		key,
 		value,
-		botVersion,
-		id,
 		key,
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
@@ -53,10 +50,10 @@ func (c *BotDB) AddOrUpdate(id string, key string, value []byte, botVersion int)
 }
 
 // Get Bot KV store gets namespace all bot requests by their id
-func (c *BotDB) Get(id string, key string) *pb.BotKV {
+func (c *BotDB) Get(key string) *pb.BotKV {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	res := c.handleQuery(id, key)
+	res := c.handleQuery(key)
 	if len(res) == 0 {
 		return nil
 	}
@@ -64,30 +61,28 @@ func (c *BotDB) Get(id string, key string) *pb.BotKV {
 }
 
 // Delete Bot KV store deletes namespace all bot requests by their id
-func (c *BotDB) Delete(id string, key string) error {
+func (c *BotDB) Delete(key string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from botstore where id=? and key=?", id, key)
+	_, err := c.db.Exec("delete from botstore where key=?", key)
 	return err
 }
 
-func (c *BotDB) handleQuery(id string, key string) []*pb.BotKV {
+func (c *BotDB) handleQuery(key string) []*pb.BotKV {
 	list := make([]*pb.BotKV, 0)
-	rows, err := c.db.Query("select * from botstore where id=? and key=?", id, key)
+	rows, err := c.db.Query("select * from botstore where key=?", key)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return list
 	}
 	for rows.Next() {
-		var id, key string
 		var value []byte
-		var version int32
 		var createdInt, updatedInt int64
-		if err := rows.Scan(&id, &key, &value, &version, &createdInt, &updatedInt); err != nil {
+		if err := rows.Scan(&key, &value, &createdInt, &updatedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		row := c.handleRow(id, key, value, version, createdInt, updatedInt)
+		row := c.handleRow(key, value, createdInt, updatedInt)
 		if row != nil {
 			list = append(list, row)
 		}
@@ -95,13 +90,11 @@ func (c *BotDB) handleQuery(id string, key string) []*pb.BotKV {
 	return list
 }
 
-func (c *BotDB) handleRow(id string, key string, value []byte, version int32, createdInt int64, updatedInt int64) *pb.BotKV {
+func (c *BotDB) handleRow(key string, value []byte, createdInt int64, updatedInt int64) *pb.BotKV {
 	return &pb.BotKV{
-		Id:                id,
-		Key:               key,
-		Value:             value,
-		BotReleaseVersion: version,
-		Created:           util.ProtoTs(createdInt),
-		Updated:           util.ProtoTs(updatedInt),
+		Key:     key,
+		Value:   value,
+		Created: util.ProtoTs(createdInt),
+		Updated: util.ProtoTs(updatedInt),
 	}
 }

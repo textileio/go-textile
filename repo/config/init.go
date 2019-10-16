@@ -12,15 +12,21 @@ import (
 
 // Config is used to load textile config files.
 type Config struct {
-	Account   Account   // local node's account (public info only)
-	Addresses Addresses // local node's addresses
-	API       API       // local node's API settings
-	Gateway   Gateway   // local node's Gateway settings
-	Logs      Logs      // local node's log settings
-	IsMobile  bool      // local node is setup for mobile
-	IsServer  bool      // local node is setup for a server w/ a public IP
-	Cafe      Cafe      // local node cafe settings
-	Bots      []string  // local node enabled bots
+	Account   Account      // local node's account (public info only)
+	Addresses Addresses    // local node's addresses
+	API       API          // local node's API settings
+	Gateway   Gateway      // local node's Gateway settings
+	Logs      Logs         // local node's log settings
+	IsMobile  bool         // local node is setup for mobile
+	IsServer  bool         // local node is setup for a server w/ a public IP
+	Cafe      Cafe         // local node cafe settings
+	Bots      []EnabledBot // local node enabled bots
+}
+
+// EnabledBot store settings for an enabled bot
+type EnabledBot struct {
+	ID      string // the id of the bot
+	CafeAPI bool   // if true the bot will be available (public) over the Cafe API
 }
 
 // Account store public account info
@@ -158,7 +164,7 @@ func Init() (*Config, error) {
 		},
 		IsMobile: false,
 		IsServer: false,
-		Bots:     []string{},
+		Bots:     []EnabledBot{},
 	}, nil
 }
 

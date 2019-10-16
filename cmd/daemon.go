@@ -33,7 +33,11 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	}
 
 	service := bots.NewService(node)
-	service.RunAll(repoPath, node.Config().Bots)
+	enabledBots := []string{}
+	for _, item := range node.Config().Bots {
+		enabledBots = append(enabledBots, item.ID)
+	}
+	service.RunAll(repoPath, enabledBots)
 
 	gateway.Host = &gateway.Gateway{
 		Node: node,

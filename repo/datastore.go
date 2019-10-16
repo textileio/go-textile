@@ -66,9 +66,9 @@ type PeerStore interface {
 
 type BotStore interface {
 	Queryable
-	AddOrUpdate(id string, key string, value []byte, botVersion int) error
-	Get(id string, key string) *pb.BotKV
-	Delete(id string, key string) error
+	AddOrUpdate(key string, value []byte) error
+	Get(key string) *pb.BotKV
+	Delete(key string) error
 }
 
 type FileStore interface {

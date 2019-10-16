@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/go-textile/repo/config"
@@ -43,7 +44,7 @@ func (a *Api) botsDisable(g *gin.Context) {
 
 	var targetDel int = -1
 	for i, b := range conf.Bots {
-		if b == botID {
+		if b.ID == botID {
 			targetDel = i
 		}
 	}
@@ -55,7 +56,7 @@ func (a *Api) botsDisable(g *gin.Context) {
 
 	// Remove the bot from the array
 	conf.Bots[targetDel] = conf.Bots[len(conf.Bots)-1]
-	conf.Bots[len(conf.Bots)-1] = ""
+	conf.Bots[len(conf.Bots)-1] = config.EnabledBot{}
 	conf.Bots = conf.Bots[:len(conf.Bots)-1]
 
 	jsn, err := json.MarshalIndent(conf, "", "    ")
@@ -80,6 +81,10 @@ func (a *Api) botsEnable(g *gin.Context) {
 	}
 
 	botID := opts["id"]
+	cafeApi, err := strconv.ParseBool(opts["cafe"])
+	if err != nil {
+		cafeApi = false
+	}
 
 	botPath := path.Join(a.RepoPath, "bots", botID)
 	// Check that the provided dir exists
@@ -105,12 +110,13 @@ func (a *Api) botsEnable(g *gin.Context) {
 	}
 
 	for _, b := range conf.Bots {
-		if b == botID {
+		if b.ID == botID {
 			g.String(http.StatusOK, "Bot already enabled")
 			return
 		}
 	}
-	conf.Bots = append(conf.Bots, botID)
+
+	conf.Bots = append(conf.Bots, config.EnabledBot{botID, cafeApi})
 
 	jsn, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {

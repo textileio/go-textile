@@ -7,6 +7,9 @@ import (
 	"path"
 	"reflect"
 
+	ds "github.com/ipfs/go-datastore"
+	nsds "github.com/ipfs/go-datastore/namespace"
+	query "github.com/ipfs/go-datastore/query"
 	"github.com/mr-tron/base58/base58"
 	tbots "github.com/textileio/go-textile-bots"
 	shared "github.com/textileio/go-textile-core/bots"
@@ -22,11 +25,10 @@ type BotIpfsHandler struct {
 	node  *core.Textile
 }
 
-// BotKVStore implements shared.BotStore. Extends it with BotID and BotVersion
-type BotKVStore struct {
-	botID      string
-	botVersion int
-	node       *core.Textile
+// Datastore implements shared.BotStore. Extends it with BotID and BotVersion
+type Datastore struct {
+	Namespace ds.Key
+	node      *core.Textile
 }
 
 // Get allows a bot to get IPFS data by the cid/path. Allows optional key for decryption on the fly
@@ -79,38 +81,66 @@ func (mip BotIpfsHandler) Add(data []byte, encrypt bool) (hash string, key strin
 	return idp.Hash().B58String(), k, nil
 }
 
-// Set allows a bot to add a key-val to the store
-func (kv BotKVStore) Set(key string, data []byte) (ok bool, err error) {
+// Put allows a bot to add a key-val to the store
+func (kv Datastore) Put(key ds.Key, data []byte) error {
 	datastore := kv.node.Datastore()
-	err = datastore.Bots().AddOrUpdate(kv.botID, key, data, kv.botVersion)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return datastore.Bots().AddOrUpdate(key.String(), data)
 }
 
 // Get allows a bot to get a value by string. It responds with the version of the bot that wrote the data.
-func (kv BotKVStore) Get(key string) (data []byte, version int32, err error) {
+func (kv Datastore) Get(key ds.Key) (data []byte, err error) {
 	// TODO: include bot version from row in response, allowing migrations
 	datastore := kv.node.Datastore()
-	keyVal := datastore.Bots().Get(kv.botID, key)
+	keyVal := datastore.Bots().Get(key.String())
 	if keyVal == nil {
-		return []byte(""), 0, nil
+		return []byte(""), nil
 	}
 	if keyVal.Value == nil {
-		return []byte(""), 0, nil
+		return []byte(""), nil
 	}
-	return keyVal.Value, keyVal.BotReleaseVersion, nil
+	return keyVal.Value, nil
+}
+
+// GetSize returns the size of a value
+func (kv Datastore) GetSize(key ds.Key) (size int, err error) {
+	// TODO: include bot version from row in response, allowing migrations
+	datastore := kv.node.Datastore()
+	keyVal := datastore.Bots().Get(key.String())
+	if keyVal == nil || keyVal.Value == nil {
+		return 0, nil
+	}
+	return len(keyVal.Value), nil
+}
+
+// Has returns true if key exists
+func (kv Datastore) Has(key ds.Key) (exists bool, err error) {
+	// TODO: include bot version from row in response, allowing migrations
+	datastore := kv.node.Datastore()
+	keyVal := datastore.Bots().Get(key.String())
+	if keyVal == nil {
+		return false, nil
+	}
+	if keyVal.Value == nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 // Delete allows a bot to delete a value in the kv store
-func (kv BotKVStore) Delete(key string) (ok bool, err error) {
+func (kv Datastore) Delete(key ds.Key) error {
 	datastore := kv.node.Datastore()
-	err = datastore.Bots().Delete(kv.botID, key)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return datastore.Bots().Delete(key.String())
+}
+
+// Close not used by bots but required by ds.Datastore
+func (kv Datastore) Close() error {
+	return nil
+
+}
+
+// Query not used by bots but required by ds.Datastore
+func (kv Datastore) Query(query.Query) (query.Results, error) {
+	return nil, nil
 }
 
 // Service holds a map to all running bots on this node
@@ -152,18 +182,19 @@ func (s *Service) Create(botID string, botVersion int, name string, params map[s
 		return
 	}
 
-	store := &BotKVStore{
-		botID,
-		botVersion,
+	store := Datastore{
+		ds.NewKey(botID),
 		s.node,
 	}
+	botStore := nsds.Wrap(store, ds.NewKey(botID))
+
 	ipfs := &BotIpfsHandler{
 		botID,
 		s.node,
 	}
 
 	config := shared.ClientConfig{
-		store,
+		botStore,
 		ipfs,
 		params,
 	}
@@ -227,9 +258,9 @@ func (s *Service) Delete(botID string, q []byte) (shared.Response, error) {
 
 // RunAll runs a list of bots from Textile config
 func (s *Service) RunAll(repoPath string, bots []string) {
-	for _, botID := range bots {
+	for _, botConfig := range bots {
 		botFolder := path.Join(repoPath, "bots")
-		botPath := path.Join(botFolder, botID)
+		botPath := path.Join(botFolder, botConfig)
 		botConfig, err := readBotConfig(botPath)
 		if err != nil {
 			// log.Errorf(err.Error("Bots: config read error"))

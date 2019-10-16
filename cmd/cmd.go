@@ -209,8 +209,10 @@ func Run() error {
 	// bots enable
 	botsEnableCmd := botsCmd.Command("enable", "Enable a bot")
 	botsEnableID := botsEnableCmd.Arg("id", "ID of the bot").Required().String()
+	botsEnableCafe := botsEnableCmd.Flag("cafe-api", "Whether to serve bot on the Cafe API (public)").Short('c').Bool()
+
 	cmds[botsEnableCmd.FullCommand()] = func() error {
-		return BotsEnable(*botsEnableID)
+		return BotsEnable(*botsEnableID, *botsEnableCafe)
 	}
 
 	// bots create
