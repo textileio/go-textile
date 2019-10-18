@@ -1,7 +1,6 @@
 package ipfs
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 
 	"github.com/golang/protobuf/proto"
@@ -14,13 +13,9 @@ import (
 
 // IdentityConfig initializes a new identity.
 func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
-	log.Infof("generating Ed25519 keypair for peer identity...")
+	log.Infof("generating peer identity from key...")
 
 	ident := config.Identity{}
-	sk, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		return ident, err
-	}
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	skbytes, err := sk.Bytes()
@@ -29,7 +24,7 @@ func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := peer.IDFromPublicKey(pk)
+	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return ident, err
 	}

@@ -162,6 +162,7 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 			FilestoreEnabled:     false,
 			ShardingEnabled:      false,
 			Libp2pStreamMounting: false,
+			QUIC:                 true,
 		},
 		Pubsub: native.PubsubConfig{
 			Router: "gossipsub",

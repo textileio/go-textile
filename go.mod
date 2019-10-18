@@ -61,3 +61,5 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 )
+
+replace github.com/libp2p/go-libp2p-quic-transport v0.1.1 => github.com/libp2p/go-libp2p-quic-transport v0.1.2-0.20191002022633-7abc9ea246ad

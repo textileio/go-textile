@@ -84,7 +84,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	if ports != "" {
 		parts = strings.Split(ports, ",")
 	}
-	var tcp, ws string
+	var tcp, ws, quic string
 
 	switch len(parts) {
 	case 1:
@@ -95,6 +95,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	default:
 		tcp = GetRandomPort()
 		ws = GetRandomPort()
+		quic = GetRandomPort()
 	}
 
 	list := []string{
@@ -104,6 +105,10 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	if ws != "" {
 		list = append(list, fmt.Sprintf("/ip4/0.0.0.0/tcp/%s/ws", ws))
 		list = append(list, fmt.Sprintf("/ip6/::/tcp/%s/ws", ws))
+	}
+	if quic != "" {
+		list = append(list, fmt.Sprintf("/ip4/0.0.0.0/udp/%s/quic", ws))
+		list = append(list, fmt.Sprintf("/ip6/::/udp/%s/quic", ws))
 	}
 
 	return rep.SetConfigKey("Addresses.Swarm", list)
