@@ -92,10 +92,7 @@ func (kv Datastore) Get(key ds.Key) (data []byte, err error) {
 	// TODO: include bot version from row in response, allowing migrations
 	datastore := kv.node.Datastore()
 	keyVal := datastore.Bots().Get(key.String())
-	if keyVal == nil {
-		return []byte(""), nil
-	}
-	if keyVal.Value == nil {
+	if keyVal == nil || keyVal.Value == nil {
 		return []byte(""), nil
 	}
 	return keyVal.Value, nil
@@ -117,10 +114,7 @@ func (kv Datastore) Has(key ds.Key) (exists bool, err error) {
 	// TODO: include bot version from row in response, allowing migrations
 	datastore := kv.node.Datastore()
 	keyVal := datastore.Bots().Get(key.String())
-	if keyVal == nil {
-		return false, nil
-	}
-	if keyVal.Value == nil {
+	if keyVal == nil || keyVal.Value == nil {
 		return false, nil
 	}
 	return true, nil

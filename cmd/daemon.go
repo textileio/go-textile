@@ -33,7 +33,7 @@ func Daemon(repoPath string, pinCode string, docs bool, debug bool) error {
 	}
 
 	service := bots.NewService(node)
-	enabledBots := []string{}
+	enabledBots := make([]string, len(node.Config().Bots))
 	for _, item := range node.Config().Bots {
 		enabledBots = append(enabledBots, item.ID)
 	}
