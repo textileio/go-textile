@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/go-textile/repo"
 )
 
-var botStore repo.BotStore
+var botStore repo.Botstore
 
 var testBot *pb.BotKV
 
@@ -20,24 +20,24 @@ func init() {
 func setupBotDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	_ = initDatabaseTables(conn, "")
-	botStore = NewBotStore(conn, new(sync.Mutex))
+	botStore = NewBotstore(conn, new(sync.Mutex))
 }
 
 func TestBotDB_Add(t *testing.T) {
 	newValue := "24242322"
-	err := botStore.AddOrUpdate("bot123", "ABCDEFG", []byte(newValue), 1)
+	err := botStore.AddOrUpdate("ABCDEFG", []byte(newValue))
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	stmt, err := botStore.PrepareQuery("select value from botstore where id=? and key=?")
+	stmt, err := botStore.PrepareQuery("select value from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	defer stmt.Close()
 	var value []byte
-	err = stmt.QueryRow("bot123", "ABCDEFG").Scan(&value)
+	err = stmt.QueryRow("ABCDEFG").Scan(&value)
 	if err != nil {
 		t.Error(err)
 		return
@@ -48,15 +48,14 @@ func TestBotDB_Add(t *testing.T) {
 }
 
 func TestBotDB_AddOrUpdate(t *testing.T) {
-	botId := "bot123"
 	valueKey := "ABCDEFG"
 	newValue := "{count:2}"
-	err := botStore.AddOrUpdate(botId, valueKey, []byte(newValue), 1)
+	err := botStore.AddOrUpdate(valueKey, []byte(newValue))
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	stmt, err := botStore.PrepareQuery("select value, updated from botstore where id=? and key=?")
+	stmt, err := botStore.PrepareQuery("select value, updated from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -64,7 +63,7 @@ func TestBotDB_AddOrUpdate(t *testing.T) {
 	defer stmt.Close()
 	var value []byte
 	var updated int64
-	err = stmt.QueryRow(botId, valueKey).Scan(&value, &updated)
+	err = stmt.QueryRow(valueKey).Scan(&value, &updated)
 	if err != nil {
 		t.Error(err)
 		return
@@ -76,24 +75,24 @@ func TestBotDB_AddOrUpdate(t *testing.T) {
 }
 
 func TestBotDB_Get(t *testing.T) {
-	testBotValue := botStore.Get("bot123", "ABCDEFG")
+	testBotValue := botStore.Get("ABCDEFG")
 	if testBotValue == nil {
 		t.Error("could not get bot")
 	}
 }
 
 func TestBotDB_Delete(t *testing.T) {
-	err := botStore.Delete("bot123", "ABCDEFG")
+	err := botStore.Delete("ABCDEFG")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := botStore.PrepareQuery("select id from botstore where id=? and key=?")
+	stmt, err := botStore.PrepareQuery("select id from bots_store where id=?")
 	if err != nil {
 		t.Error(err)
 	}
 	defer stmt.Close()
 	var id string
-	err = stmt.QueryRow("bot123", "ABCDEFG").Scan(&id)
+	err = stmt.QueryRow("ABCDEFG").Scan(&id)
 	if err == nil {
 		t.Error("delete failed")
 	}

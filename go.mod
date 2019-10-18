@@ -19,6 +19,7 @@ require (
 	github.com/gogo/protobuf v1.3.0
 	github.com/golang/protobuf v1.3.2
 	github.com/ipfs/go-cid v0.0.3
+	github.com/ipfs/go-datastore v0.1.1
 	github.com/ipfs/go-ipfs v0.4.22-0.20191002225611-b15edf287df6
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.1.1
@@ -47,8 +48,8 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.6.2
-	github.com/textileio/go-textile-bots v0.0.0-20191009162942-74ca35039058
-	github.com/textileio/go-textile-core v0.0.0-20191009161502-f06033084f23
+	github.com/textileio/go-textile-bots v0.0.0-20191016222050-575b11f5dfd2
+	github.com/textileio/go-textile-core v0.0.0-20191016220101-ae46e632fcf0
 	github.com/tyler-smith/go-bip39 v1.0.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

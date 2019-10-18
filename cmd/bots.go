@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	libp2pc "github.com/libp2p/go-libp2p-core/crypto"
 	shared "github.com/textileio/go-textile-core/bots"
@@ -69,9 +70,9 @@ func BotsDisable(id string) error {
 }
 
 // BotsEnable enables a known bot
-func BotsEnable(id string) error {
+func BotsEnable(id string, cafe bool) error {
 	res, err := executeJsonCmd(http.MethodPost, "bots/enable", params{
-		opts: map[string]string{"id": id},
+		opts: map[string]string{"id": id, "cafe": strconv.FormatBool(cafe)},
 	}, nil)
 	if err != nil {
 		return err
