@@ -642,6 +642,7 @@ func (c *cafeApi) reverseProxyBotAPI(method string) gin.HandlerFunc {
 		for _, b := range conf.Bots {
 			if b.ID == id && b.CafeAPI == true {
 				enabled = true
+				break
 			}
 		}
 		if enabled {
