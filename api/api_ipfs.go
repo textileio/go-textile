@@ -1,12 +1,20 @@
 package api
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/mr-tron/base58/base58"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
 )
 
 // ipfsId godoc
@@ -132,4 +140,147 @@ func (a *Api) ipfsCat(g *gin.Context) {
 	}
 
 	g.Data(http.StatusOK, "application/octet-stream", plaintext)
+}
+
+// ipfsPubsubPub godoc
+// @Summary Publish a message
+// @Description Publishes a message to a given pubsub topic
+// @Tags ipfs
+// @Accept application/octet-stream
+// @Produce text/plain
+// @Success 204 {string} string "ok"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /ipfs/pubsub/pub/{topic} [post]
+func (a *Api) ipfsPubsubPub(g *gin.Context) {
+	topic := g.Param("topic")
+	if topic == "" {
+		g.String(http.StatusBadRequest, "missing topic")
+	}
+
+	payload, err := ioutil.ReadAll(g.Request.Body)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = ipfs.Publish(a.Node.Ipfs(), topic, payload)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	g.Status(http.StatusNoContent)
+}
+
+// ipfsPubsubSub godoc
+// @Summary Subscribe messages
+// @Description Subscribes to messages on a given topic
+// @Tags ipfs
+// @Produce text/event-stream with events, or just application/json
+// @Success 200 {string} string with events, or []byte "results stream"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /ipfs/pubsub/sub/{topic} [get]
+func (a *Api) ipfsPubsubSub(g *gin.Context) {
+	topic := g.Param("topic")
+	if topic == "" {
+		g.String(http.StatusBadRequest, "Missing topic")
+	}
+
+	events := g.Query("events")
+	queryId := g.Query("queryId")
+
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	msgs := make(chan iface.PubSubMessage, 10)
+	ctx := a.Node.Ipfs().Context()
+	var id string
+	if queryId != "" {
+		id = queryId
+	} else if opts["queryId"] != "" {
+		id = opts["queryId"]
+	} else {
+		id = ksuid.New().String()
+	}
+
+	go func() {
+		if err := ipfs.Subscribe(a.Node.Ipfs(), ctx, topic, true, msgs); err != nil {
+			close(msgs)
+			a.abort500(g, err)
+			log.Errorf("ipfs pubsub sub stopped with error: %s", err.Error())
+			return
+		}
+	}()
+	log.Infof("ipfs pubsub sub started for %s", topic)
+
+	// EventSource of web browser will not pending on first msg from g.SSEvent,
+	// initHttpStatusOK here will not pending on first msg from g.Data for consistency
+	initHttpStatusOK := false
+
+	g.Stream(func(w io.Writer) bool {
+		if events != "true" && !initHttpStatusOK {
+			initHttpStatusOK = true
+			g.Data(http.StatusOK, "application/octet-stream", []byte{})
+			return true
+		}
+
+		select {
+		case <-g.Request.Context().Done():
+			log.Infof("ipfs pubsub sub shutdown for %s", topic)
+			return false
+		case msg, ok := <-msgs:
+			if !ok {
+				log.Infof("ipfs pubsub sub shutdown for %s", topic)
+				return false
+			}
+
+			mPeer := msg.From()
+			if mPeer.Pretty() == a.Node.Ipfs().Identity.Pretty() {
+				return true
+			}
+
+			value, err := proto.Marshal(&pb.Strings{
+				Values: []string{string(msg.Data())},
+			})
+			if err != nil {
+				g.String(http.StatusBadRequest, err.Error())
+				break
+			}
+
+			res := &pb.QueryResult{
+				Id:    fmt.Sprintf("%x", msg.Seq()),
+				Value: &any.Any{
+					// Can't let TypeUrl to use ipfs official "/pubsub.pb.Message"
+					// from github.com/libp2p/go-libp2p-pubsub/pb/rpc.pb.go ,
+					// because rpc.pb.go import github.com/gogo/protobuf/proto , so
+					// proto.RegisterType((*Message)(nil), "pubsub.pb.Message") in
+					// rpc.pb.go , can't let "/pubsub.pb.Message" be found in
+					// pbMarshaler.MarshalToString which import github.com/golang/protobuf
+					TypeUrl: "/Strings",
+					Value:   value,
+				},
+			}
+			str, err := pbMarshaler.MarshalToString(&pb.MobileQueryEvent{
+				Id:   id,
+				Type: pb.MobileQueryEvent_DATA,
+				Data: res,
+			})
+			if err != nil {
+				g.String(http.StatusBadRequest, err.Error())
+				break
+			}
+
+			if events == "true" || opts["events"] == "true" {
+				g.SSEvent("update", str)
+			} else {
+				g.Data(http.StatusOK, "application/json", []byte(str))
+				g.Writer.Write([]byte("\n"))
+			}
+		}
+		return true
+	})
 }

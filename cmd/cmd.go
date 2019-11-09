@@ -599,6 +599,24 @@ There are two types of invites, direct account-to-account and external:
 		return IpfsCat(*ipfsCatHash, *ipfsCatKey)
 	}
 
+	// ipfs pubsub
+	ipfsPubsubCmd := ipfsCmd.Command("pubsub", "Provides access to IPFS pubsub commands")
+
+	// ipfs pubsub pub
+	ipfsPubsubPubCmd := ipfsPubsubCmd.Command("pub", "Publish a message to a given pubsub topic")
+	ipfsPubsubPubTopic := ipfsPubsubPubCmd.Arg("topic", "Topic to publish to").Required().String()
+	ipfsPubsubPubData := ipfsPubsubPubCmd.Arg("data", "Payload of message to publish").Required().String()
+	cmds[ipfsPubsubPubCmd.FullCommand()] = func() error {
+		return IpfsPubsubPub(*ipfsPubsubPubTopic, *ipfsPubsubPubData)
+	}
+
+	// ipfs pubsub sub
+	ipfsPubsubSubCmd := ipfsPubsubCmd.Command("sub", "Subscribe to messages on a given topic")
+	ipfsPubsubSubTopic := ipfsPubsubSubCmd.Arg("topic", "String name of topic to subscribe to").Required().String()
+	cmds[ipfsPubsubSubCmd.FullCommand()] = func() error {
+		return IpfsPubsubSubCommand(*ipfsPubsubSubTopic)
+	}
+
 	// ================================
 
 	// like

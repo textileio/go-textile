@@ -325,6 +325,12 @@ func (a *Api) Run() {
 				swarm.POST("/connect", a.ipfsSwarmConnect)
 				swarm.GET("/peers", a.ipfsSwarmPeers)
 			}
+
+			pubsub := ipfs.Group("/pubsub")
+			{
+				pubsub.POST("/pub/:topic", a.ipfsPubsubPub)
+				pubsub.GET("/sub/:topic", a.ipfsPubsubSub)
+			}
 		}
 
 		bots := v0.Group("/bots")
