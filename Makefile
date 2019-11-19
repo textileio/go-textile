@@ -38,9 +38,9 @@ protos:
 .PHONY: docs
 docs:
 	go get github.com/swaggo/swag/cmd/swag
-	swag init -g core/api.go
+	swag init -g api/api.go -o api/docs
 	npm i -g swagger-markdown
-	swagger-markdown -i docs/swagger.yaml -o docs/swagger.md
+	swagger-markdown -i api/docs/swagger.yaml -o api/docs/swagger.md
 
 docker:
 	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))

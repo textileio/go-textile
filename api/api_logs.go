@@ -19,7 +19,7 @@ type SubsystemInfo map[string]string
 // @Produce application/json
 // @Param subsystem path string false "subsystem logging identifier (omit for all)"
 // @Param X-Textile-Opts header string false "level: Log-level (one of: debug, info, warning, error, critical, or "" to get current), tex-only: Whether to list/change only Textile subsystems, or all available subsystems" default(level=,tex-only="false")
-// @Success 200 {object} core.SubsystemInfo "subsystems"
+// @Success 200 {object} api.SubsystemInfo "subsystems"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /logs/{subsystem} [post]
