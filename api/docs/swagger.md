@@ -238,7 +238,7 @@ Gets the decrypted file content of a file within a files block
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | OK | string |
+| 200 | OK | [ integer ] |
 | 400 | Bad Request | string |
 | 404 | Not Found | string |
 
@@ -912,6 +912,43 @@ Displays underlying IPFS peer ID
 | 200 | peer id | string |
 | 500 | Internal Server Error | string |
 
+### /ipfs/pubsub/pub/{topic}
+
+#### POST
+##### Summary:
+
+Publish a message
+
+##### Description:
+
+Publishes a message to a given pubsub topic
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 204 | ok | string |
+| 500 | Internal Server Error | string |
+
+### /ipfs/pubsub/sub/{topic}
+
+#### GET
+##### Summary:
+
+Subscribe messages
+
+##### Description:
+
+Subscribes to messages on a given topic
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | results stream | string |
+| 400 | Bad Request | string |
+| 500 | Internal Server Error | string |
+
 ### /ipfs/swarm/connect
 
 #### POST
@@ -1009,7 +1046,7 @@ piggyback on the IPFS event logs
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | subsystems | [core.SubsystemInfo](#core.subsysteminfo) |
+| 200 | subsystems | [api.SubsystemInfo](#api.subsysteminfo) |
 | 400 | Bad Request | string |
 | 500 | Internal Server Error | string |
 
@@ -1236,6 +1273,33 @@ Marks a notifiction as read by ID. Use 'all' to mark all as read.
 | 200 | ok | string |
 | 400 | Bad Request | string |
 
+### /observe/{id}
+
+#### GET
+##### Summary:
+
+Observe thread updates
+
+##### Description:
+
+Observes updates in a thread or all threads. An update is generated
+when a new block is added to a thread. There are several update types:
+MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| thread | path | thread id, omit to stream all events | No | string |
+| X-Textile-Opts | header | type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON | No | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | stream of updates | [pb.FeedItem](#pb.feeditem) |
+| 500 | Internal Server Error | string |
+
 ### /ping
 
 #### GET
@@ -1389,33 +1453,6 @@ Searches the network for thread snapshots
 | ---- | ----------- | ------ |
 | 200 | results stream | [pb.QueryResult](#pb.queryresult) |
 | 400 | Bad Request | string |
-| 500 | Internal Server Error | string |
-
-### /subscribe/{id}
-
-#### GET
-##### Summary:
-
-Observe to thread updates
-
-##### Description:
-
-Observes updates in a thread or all threads. An update is generated
-when a new block is added to a thread. There are several update types:
-MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| thread | path | thread id, omit to stream all events | No | string |
-| X-Textile-Opts | header | type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON | No | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | stream of updates | [pb.FeedItem](#pb.feeditem) |
 | 500 | Internal Server Error | string |
 
 ### /summary
@@ -1745,11 +1782,11 @@ Check validity of existing cafe access token
 ### Models
 
 
-#### core.SubsystemInfo
+#### api.SubsystemInfo
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
-| core.SubsystemInfo | object |  |  |
+| api.SubsystemInfo | object |  |  |
 
 #### ipfs.ConnInfos
 
