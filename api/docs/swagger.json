@@ -15,7 +15,6 @@
         },
         "version": "0"
     },
-    "host": "{{.Host}}",
     "basePath": "/api/v0",
     "paths": {
         "/account": {
@@ -32,7 +31,6 @@
                     "200": {
                         "description": "contact",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Contact"
                         }
                     },
@@ -108,7 +106,6 @@
                     "200": {
                         "description": "blocks",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.BlockList"
                         }
                     },
@@ -156,7 +153,6 @@
                     "201": {
                         "description": "block",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Block"
                         }
                     },
@@ -204,7 +200,6 @@
                     "200": {
                         "description": "comment",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Comment"
                         }
                     },
@@ -240,7 +235,6 @@
                     "200": {
                         "description": "comments",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.CommentList"
                         }
                     },
@@ -281,7 +275,6 @@
                     "201": {
                         "description": "comment",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Comment"
                         }
                     },
@@ -328,7 +321,6 @@
                     "200": {
                         "description": "files",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Files"
                         }
                     },
@@ -377,7 +369,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
                         }
                     },
                     "400": {
@@ -431,7 +426,6 @@
                     "200": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -473,7 +467,6 @@
                     "200": {
                         "description": "like",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Like"
                         }
                     },
@@ -509,7 +502,6 @@
                     "200": {
                         "description": "likes",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.LikeList"
                         }
                     },
@@ -543,7 +535,6 @@
                     "201": {
                         "description": "like",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Like"
                         }
                     },
@@ -590,7 +581,6 @@
                     "200": {
                         "description": "block",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Block"
                         }
                     },
@@ -617,7 +607,6 @@
                     "200": {
                         "description": "cafe sessions",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.CafeSessionList"
                         }
                     },
@@ -658,7 +647,6 @@
                     "201": {
                         "description": "cafe session",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.CafeSession"
                         }
                     },
@@ -726,7 +714,6 @@
                     "200": {
                         "description": "cafe session",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.CafeSession"
                         }
                     },
@@ -871,7 +858,6 @@
                     "200": {
                         "description": "new config value",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/mill.Json"
                         }
                     },
@@ -898,7 +884,6 @@
                     "200": {
                         "description": "contacts",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.ContactList"
                         }
                     },
@@ -940,7 +925,6 @@
                     "200": {
                         "description": "results stream",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.QueryResult"
                         }
                     },
@@ -982,7 +966,6 @@
                     "200": {
                         "description": "contact",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Contact"
                         }
                     },
@@ -1097,7 +1080,6 @@
                     "200": {
                         "description": "feed",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FeedItemList"
                         }
                     },
@@ -1180,7 +1162,6 @@
                     "200": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -1216,7 +1197,6 @@
                     "200": {
                         "description": "files",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FilesList"
                         }
                     },
@@ -1255,7 +1235,6 @@
                     "200": {
                         "description": "invites",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.InviteViewList"
                         }
                     }
@@ -1283,7 +1262,6 @@
                     "201": {
                         "description": "invite",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.ExternalInvite"
                         }
                     },
@@ -1338,7 +1316,6 @@
                     "201": {
                         "description": "join block",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Block"
                         }
                     },
@@ -1487,6 +1464,68 @@
                 }
             }
         },
+        "/ipfs/pubsub/pub/{topic}": {
+            "post": {
+                "description": "Publishes a message to a given pubsub topic",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "ipfs"
+                ],
+                "summary": "Publish a message",
+                "responses": {
+                    "204": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ipfs/pubsub/sub/{topic}": {
+            "get": {
+                "description": "Subscribes to messages on a given topic",
+                "produces": [
+                    "text/event-stream with events",
+                    " or just application/json"
+                ],
+                "tags": [
+                    "ipfs"
+                ],
+                "summary": "Subscribe messages",
+                "responses": {
+                    "200": {
+                        "description": "results stream",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/ipfs/swarm/connect": {
             "post": {
                 "description": "Opens a new direct connection to a peer using an IPFS multiaddr",
@@ -1554,7 +1593,6 @@
                     "200": {
                         "description": "connection",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/ipfs.ConnInfos"
                         }
                     },
@@ -1596,7 +1634,6 @@
                     "200": {
                         "description": "keys",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Keys"
                         }
                     },
@@ -1638,8 +1675,7 @@
                     "200": {
                         "description": "subsystems",
                         "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/core.SubsystemInfo"
+                            "$ref": "#/definitions/api.SubsystemInfo"
                         }
                     },
                     "400": {
@@ -1680,7 +1716,6 @@
                     "200": {
                         "description": "messages",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.TextList"
                         }
                     },
@@ -1728,7 +1763,6 @@
                     "200": {
                         "description": "message",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Text"
                         }
                     },
@@ -1773,7 +1807,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -1824,7 +1857,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -1876,7 +1908,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -1927,7 +1958,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -1975,7 +2005,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
@@ -2002,7 +2031,6 @@
                     "200": {
                         "description": "notifications",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.NotificationList"
                         }
                     }
@@ -2037,6 +2065,47 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/observe/{id}": {
+            "get": {
+                "description": "Observes updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "observe"
+                ],
+                "summary": "Observe thread updates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "thread id, omit to stream all events",
+                        "name": "thread",
+                        "in": "path"
+                    },
+                    {
+                        "type": "string",
+                        "default": "type=,events=\"false\"",
+                        "description": "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "stream of updates",
+                        "schema": {
+                            "$ref": "#/definitions/pb.FeedItem"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -2099,7 +2168,6 @@
                     "200": {
                         "description": "peer",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Peer"
                         }
                     },
@@ -2278,7 +2346,6 @@
                     "200": {
                         "description": "results stream",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.QueryResult"
                         }
                     },
@@ -2286,48 +2353,6 @@
                         "description": "Bad Request",
                         "schema": {
                             "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/subscribe/{id}": {
-            "get": {
-                "description": "Observes updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subscribe"
-                ],
-                "summary": "Observe to thread updates",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "thread id, omit to stream all events",
-                        "name": "thread",
-                        "in": "path"
-                    },
-                    {
-                        "type": "string",
-                        "default": "type=,events=\"false\"",
-                        "description": "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
-                        "name": "X-Textile-Opts",
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "stream of updates",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/pb.FeedItem"
                         }
                     },
                     "500": {
@@ -2352,7 +2377,6 @@
                     "200": {
                         "description": "summary",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Summary"
                         }
                     }
@@ -2373,7 +2397,6 @@
                     "200": {
                         "description": "threads",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.ThreadList"
                         }
                     },
@@ -2420,7 +2443,6 @@
                     "201": {
                         "description": "thread",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Thread"
                         }
                     },
@@ -2462,7 +2484,6 @@
                     "200": {
                         "description": "thread",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Thread"
                         }
                     },
@@ -2593,7 +2614,6 @@
                     "201": {
                         "description": "file",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Files"
                         }
                     },
@@ -2641,7 +2661,6 @@
                     "200": {
                         "description": "message",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.Text"
                         }
                     },
@@ -2728,7 +2747,6 @@
                     "200": {
                         "description": "contacts",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/pb.ContactList"
                         }
                     },
@@ -2876,7 +2894,7 @@
         }
     },
     "definitions": {
-        "core.SubsystemInfo": {
+        "api.SubsystemInfo": {
             "type": "object",
             "additionalProperties": {}
         },

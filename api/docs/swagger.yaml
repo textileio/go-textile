@@ -1,6 +1,6 @@
 basePath: /api/v0
 definitions:
-  core.SubsystemInfo:
+  api.SubsystemInfo:
     additionalProperties: {}
     type: object
   ipfs.ConnInfos:
@@ -504,7 +504,6 @@ definitions:
       name:
         type: string
     type: object
-host: '{{.Host}}'
 info:
   contact:
     email: contact@textile.io
@@ -528,7 +527,6 @@ paths:
           description: contact
           schema:
             $ref: '#/definitions/pb.Contact'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -583,7 +581,6 @@ paths:
           description: blocks
           schema:
             $ref: '#/definitions/pb.BlockList'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -615,7 +612,6 @@ paths:
           description: block
           schema:
             $ref: '#/definitions/pb.Block'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -647,7 +643,6 @@ paths:
           description: comment
           schema:
             $ref: '#/definitions/pb.Comment'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -671,7 +666,6 @@ paths:
           description: comments
           schema:
             $ref: '#/definitions/pb.CommentList'
-            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -699,7 +693,6 @@ paths:
           description: comment
           schema:
             $ref: '#/definitions/pb.Comment'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -730,7 +723,6 @@ paths:
           description: files
           schema:
             $ref: '#/definitions/pb.Files'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -762,7 +754,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            items:
+              type: integer
+            type: array
         "400":
           description: Bad Request
           schema:
@@ -799,7 +793,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -827,7 +820,6 @@ paths:
           description: like
           schema:
             $ref: '#/definitions/pb.Like'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -851,7 +843,6 @@ paths:
           description: likes
           schema:
             $ref: '#/definitions/pb.LikeList'
-            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -874,7 +865,6 @@ paths:
           description: like
           schema:
             $ref: '#/definitions/pb.Like'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -905,7 +895,6 @@ paths:
           description: block
           schema:
             $ref: '#/definitions/pb.Block'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -925,7 +914,6 @@ paths:
           description: cafe sessions
           schema:
             $ref: '#/definitions/pb.CafeSessionList'
-            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -956,7 +944,6 @@ paths:
           description: cafe session
           schema:
             $ref: '#/definitions/pb.CafeSession'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1007,7 +994,6 @@ paths:
           description: cafe session
           schema:
             $ref: '#/definitions/pb.CafeSession'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -1112,7 +1098,6 @@ paths:
           description: new config value
           schema:
             $ref: '#/definitions/mill.Json'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1130,7 +1115,6 @@ paths:
           description: contacts
           schema:
             $ref: '#/definitions/pb.ContactList'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -1182,7 +1166,6 @@ paths:
           description: contact
           schema:
             $ref: '#/definitions/pb.Contact'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -1239,7 +1222,6 @@ paths:
           description: results stream
           schema:
             $ref: '#/definitions/pb.QueryResult'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -1283,7 +1265,6 @@ paths:
           description: feed
           schema:
             $ref: '#/definitions/pb.FeedItemList'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1338,7 +1319,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -1364,7 +1344,6 @@ paths:
           description: files
           schema:
             $ref: '#/definitions/pb.FilesList'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1390,7 +1369,6 @@ paths:
           description: invites
           schema:
             $ref: '#/definitions/pb.InviteViewList'
-            type: object
       summary: List invites
       tags:
       - invites
@@ -1410,7 +1388,6 @@ paths:
           description: invite
           schema:
             $ref: '#/definitions/pb.ExternalInvite'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1449,7 +1426,6 @@ paths:
           description: join block
           schema:
             $ref: '#/definitions/pb.Block'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1547,6 +1523,47 @@ paths:
       summary: Get IPFS peer ID
       tags:
       - ipfs
+  /ipfs/pubsub/pub/{topic}:
+    post:
+      consumes:
+      - application/octet-stream
+      description: Publishes a message to a given pubsub topic
+      produces:
+      - text/plain
+      responses:
+        "204":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Publish a message
+      tags:
+      - ipfs
+  /ipfs/pubsub/sub/{topic}:
+    get:
+      description: Subscribes to messages on a given topic
+      produces:
+      - text/event-stream with events
+      - ' or just application/json'
+      responses:
+        "200":
+          description: results stream
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Subscribe messages
+      tags:
+      - ipfs
   /ipfs/swarm/connect:
     post:
       description: Opens a new direct connection to a peer using an IPFS multiaddr
@@ -1594,7 +1611,6 @@ paths:
           description: connection
           schema:
             $ref: '#/definitions/ipfs.ConnInfos'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1622,7 +1638,6 @@ paths:
           description: keys
           schema:
             $ref: '#/definitions/pb.Keys'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1652,8 +1667,7 @@ paths:
         "200":
           description: subsystems
           schema:
-            $ref: '#/definitions/core.SubsystemInfo'
-            type: object
+            $ref: '#/definitions/api.SubsystemInfo'
         "400":
           description: Bad Request
           schema:
@@ -1683,7 +1697,6 @@ paths:
           description: messages
           schema:
             $ref: '#/definitions/pb.TextList'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1715,7 +1728,6 @@ paths:
           description: message
           schema:
             $ref: '#/definitions/pb.Text'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1749,7 +1761,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1787,7 +1798,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1827,7 +1837,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1865,7 +1874,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1898,7 +1906,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -1916,7 +1923,6 @@ paths:
           description: notifications
           schema:
             $ref: '#/definitions/pb.NotificationList'
-            type: object
       summary: List notifications
       tags:
       - notifications
@@ -1943,6 +1949,38 @@ paths:
       summary: Mark notifiction as read
       tags:
       - notifications
+  /observe/{id}:
+    get:
+      description: |-
+        Observes updates in a thread or all threads. An update is generated
+        when a new block is added to a thread. There are several update types:
+        MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
+      parameters:
+      - description: thread id, omit to stream all events
+        in: path
+        name: thread
+        type: string
+      - default: type=,events="false"
+        description: 'type: Or''d list of event types (e.g., FILES|COMMENTS|LIKES)
+          or empty to include all types, events: Whether to emit Server-Sent Events
+          (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: stream of updates
+          schema:
+            $ref: '#/definitions/pb.FeedItem'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Observe thread updates
+      tags:
+      - observe
   /ping:
     get:
       description: Pings another peer on the network, returning online|offline.
@@ -1980,7 +2018,6 @@ paths:
           description: peer
           schema:
             $ref: '#/definitions/pb.Peer'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2100,7 +2137,6 @@ paths:
           description: results stream
           schema:
             $ref: '#/definitions/pb.QueryResult'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2112,39 +2148,6 @@ paths:
       summary: Search for thread snapshots
       tags:
       - threads
-  /subscribe/{id}:
-    get:
-      description: |-
-        Observes updates in a thread or all threads. An update is generated
-        when a new block is added to a thread. There are several update types:
-        MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
-      parameters:
-      - description: thread id, omit to stream all events
-        in: path
-        name: thread
-        type: string
-      - default: type=,events="false"
-        description: 'type: Or''d list of event types (e.g., FILES|COMMENTS|LIKES)
-          or empty to include all types, events: Whether to emit Server-Sent Events
-          (SSEvent) or plain JSON'
-        in: header
-        name: X-Textile-Opts
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: stream of updates
-          schema:
-            $ref: '#/definitions/pb.FeedItem'
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Observe to thread updates
-      tags:
-      - subscribe
   /summary:
     get:
       produces:
@@ -2154,7 +2157,6 @@ paths:
           description: summary
           schema:
             $ref: '#/definitions/pb.Summary'
-            type: object
       summary: Get a summary of node data
       tags:
       - utils
@@ -2168,7 +2170,6 @@ paths:
           description: threads
           schema:
             $ref: '#/definitions/pb.ThreadList'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2208,7 +2209,6 @@ paths:
           description: thread
           schema:
             $ref: '#/definitions/pb.Thread'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2261,7 +2261,6 @@ paths:
           description: thread
           schema:
             $ref: '#/definitions/pb.Thread'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2328,7 +2327,6 @@ paths:
           description: file
           schema:
             $ref: '#/definitions/pb.Files'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2360,7 +2358,6 @@ paths:
           description: message
           schema:
             $ref: '#/definitions/pb.Text'
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -2418,7 +2415,6 @@ paths:
           description: contacts
           schema:
             $ref: '#/definitions/pb.ContactList'
-            type: object
         "404":
           description: Not Found
           schema:
