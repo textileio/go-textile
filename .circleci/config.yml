@@ -112,8 +112,8 @@ jobs:
       - run:
           name: install golang
           command: |
-            curl -L -o go1.12.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.5.darwin-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.12.5.darwin-amd64.tar.gz
+            curl -L -o go1.13.1.darwin-amd64.tar.gz https://dl.google.com/go/go1.13.1.darwin-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.13.1.darwin-amd64.tar.gz
       - restore_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
       - run:
@@ -196,8 +196,8 @@ jobs:
           command: |
             export GOROOT=/usr/local/go
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-            curl -L -o go1.12.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.5.darwin-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.12.5.darwin-amd64.tar.gz
+            curl -L -o go1.13.1.darwin-amd64.tar.gz https://dl.google.com/go/go1.13.1.darwin-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.13.1.darwin-amd64.tar.gz
             cd ~ && mkdir gosrc && cd gosrc
             git clone https://github.com/textileio/go.git && cd go
             git checkout sander/ptrace-hackery
@@ -271,8 +271,8 @@ jobs:
       - run:
           name: install golang
           command: |
-            wget https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.12.5.linux-amd64.tar.gz
+            wget https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.13.1.linux-amd64.tar.gz
             mkdir -p $GOPATH/bin
       - run:
           name: install protobuf
@@ -591,3 +591,4 @@ workflows:
               ignore: /.*/
             tags:
               only: /^v.*/
+
