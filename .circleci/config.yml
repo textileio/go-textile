@@ -471,7 +471,7 @@ jobs:
 
   publish-js-types:
     docker:
-      - image: circleci/node:8
+      - image: circleci/node:10.15.3
     steps:
       - checkout
       - attach_workspace:
