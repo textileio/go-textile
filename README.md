@@ -7,6 +7,20 @@
 [![CircleCI branch](https://img.shields.io/circleci/project/github/textileio/go-textile/master.svg?style=popout-square)](https://circleci.com/gh/textileio/go-textile)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=popout-square)](https://github.com/RichardLitt/standard-readme)
 
+
+---
+**Deprecation Warning**
+
+Textile Threads v1 are being deprecated. Please follow our ongoing work on v2 on both the [go-textile-threads repo](https://github.com/textileio/go-textile-threads) and the [early preview](https://paper.dropbox.com/doc/Threads-v2-Early-Preview-X8fKsMiTyztuQ1L8CnUng). 
+
+Until Threads v2 release, this repo should be used for experimental purposes only.
+
+---
+
+
+
+
+
 > Textile implementation in Go
 
 This repository contains the core API, daemon, and command-line client, as well as bindings for mobile (iOS/Android) applications.
