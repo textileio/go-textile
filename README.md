@@ -11,7 +11,7 @@
 ---
 **Deprecation Warning**
 
-Textile Threads v1 are being deprecated. Please follow our ongoing work on v2 on both the [go-textile-threads repo](https://github.com/textileio/go-textile-threads) and the [early preview](https://paper.dropbox.com/doc/Threads-v2-Early-Preview-X8fKsMiTyztuQ1L8CnUng). 
+Textile Threads v1 are being deprecated. Please follow our ongoing work on v2 on both the [go-threads repo](https://github.com/textileio/go-threads) and the [early preview](https://paper.dropbox.com/doc/Threads-v2-Early-Preview-X8fKsMiTyztuQ1L8CnUng). 
 
 Until Threads v2 release, this repo should be used for experimental purposes only.
 
