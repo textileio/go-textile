@@ -1,3 +1,6 @@
+### ** WARNING **: **[go-textile](https://github.com/textileio/go-textile) has been replaced by [go-threads](https://github.com/textileio/go-threads) and [textile](https://github.com/textileio/textile).**
+
+---
 # go-textile
 
 [![Made by Textile](https://img.shields.io/badge/made%20by-Textile-informational.svg?style=popout-square)](https://textile.io)
@@ -6,20 +9,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/go-textile?style=flat-square)](https://goreportcard.com/report/github.com/textileio/go-textile?style=flat-square)
 [![CircleCI branch](https://img.shields.io/circleci/project/github/textileio/go-textile/master.svg?style=popout-square)](https://circleci.com/gh/textileio/go-textile)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=popout-square)](https://github.com/RichardLitt/standard-readme)
-
-
----
-**Deprecation Warning**
-
-Textile Threads v1 are being deprecated. Please follow our ongoing work on v2 on both the [go-threads repo](https://github.com/textileio/go-threads) and the [early preview](https://paper.dropbox.com/doc/Threads-v2-Early-Preview-X8fKsMiTyztuQ1L8CnUng). 
-
-Until Threads v2 release, this repo should be used for experimental purposes only.
-
----
-
-
-
-
 
 > Textile implementation in Go
 
