@@ -39,3 +39,17 @@ func (m *Mobile) Messages(offset string, limit int, threadId string) ([]byte, er
 
 	return proto.Marshal(msgs)
 }
+
+// Message calls core Message
+func (m *Mobile) Message(blockId string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	msg, err := m.node.Message(blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(msg)
+}

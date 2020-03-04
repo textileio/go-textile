@@ -28,12 +28,13 @@ var testVars = struct {
 	mobile1 *Mobile
 	mobile2 *Mobile
 
-	thrdId     string
-	dir        []byte
-	filesBlock *pb.Block
-	files      []*pb.Files
-	invite     *pb.ExternalInvite
-	avatar     string
+	thrdId         string
+	dir            []byte
+	filesBlock     *pb.Block
+	files          []*pb.Files
+	invite         *pb.ExternalInvite
+	avatar         string
+	messageBlockId string
 }{
 	initConfig1: InitConfig{
 		BaseRepoPath: "testdata/.textile1",
@@ -420,10 +421,11 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_AddMessage(t *testing.T) {
-	_, err := testVars.mobile1.AddMessage(testVars.thrdId, "ping pong")
+	blockId, err := testVars.mobile1.AddMessage(testVars.thrdId, "ping pong")
 	if err != nil {
 		t.Fatalf("add thread message failed: %s", err)
 	}
+	testVars.messageBlockId = blockId
 }
 
 func TestMobile_Messages(t *testing.T) {
@@ -438,6 +440,21 @@ func TestMobile_Messages(t *testing.T) {
 	}
 	if len(list.Items) != 1 {
 		t.Fatal("wrong number of messages")
+	}
+}
+
+func TestMobile_Message(t *testing.T) {
+	res, err := testVars.mobile1.Message(testVars.messageBlockId)
+	if err != nil {
+		t.Fatalf("thread message failed: %s", err)
+	}
+	text := new(pb.Text)
+	err = proto.Unmarshal(res, text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text.GetBlock() != testVars.messageBlockId {
+		t.Fatal("wrong block id")
 	}
 }
 
